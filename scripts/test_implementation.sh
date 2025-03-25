@@ -113,54 +113,66 @@ check_dependencies() {
     if [ $missing_aptdec -eq 1 ]; then
         echo "aptdec is not installed. This is required for image processing."
         
-        # Check if SSH keys are set up
-        if [ -f "$HOME/.ssh/id_rsa" ] || [ -f "$HOME/.ssh/id_ed25519" ]; then
-            echo "SSH keys found. Attempting to install aptdec using SSH..."
+        echo "Attempting to install aptdec..."
+        
+        # Install required dependencies first
+        echo "Installing aptdec dependencies..."
+        sudo apt-get update && sudo apt-get install -y cmake git gcc libsndfile-dev libpng-dev
+        
+        # Create temporary directory for aptdec
+        mkdir -p /tmp/aptdec_install
+        cd /tmp/aptdec_install
+        
+        # Clone with recursive flag to get all submodules using SSH
+        if git clone --recursive git@github.com:Xerbo/aptdec.git; then
+            cd aptdec
             
-            # Check if required build tools are installed
-            if ! command -v git &> /dev/null || ! command -v make &> /dev/null; then
-                echo "Installing build dependencies..."
-                sudo apt-get update && sudo apt-get install -y git build-essential
-            fi
-            
-            # Create temporary directory for aptdec
-            mkdir -p /tmp/aptdec_install
-            cd /tmp/aptdec_install
-            
-            # Clone via SSH
-            if git clone git@github.com:Xerbo/aptdec.git; then
-                cd aptdec
-                if make; then
-                    if sudo make install; then
-                        echo "aptdec installed successfully via SSH."
+            # Use cmake to configure and build as per README instructions
+            if cmake -B build; then
+                if cmake --build build; then
+                    # The binary is in build/aptdec - need to install it to /usr/local/bin
+                    if sudo cp build/aptdec /usr/local/bin/; then
+                        sudo chmod +x /usr/local/bin/aptdec
+                        echo "aptdec installed successfully to /usr/local/bin/"
+                        
+                        # Verify installation
+                        if command -v aptdec &> /dev/null; then
+                            echo "aptdec installation verified!"
+                        else
+                            echo "WARNING: aptdec binary installed but not found in PATH"
+                        fi
                     else
-                        echo "Failed to install aptdec."
+                        echo "Failed to copy aptdec binary to /usr/local/bin/"
                     fi
                 else
                     echo "Failed to build aptdec."
                 fi
             else
-                echo "Failed to clone aptdec via SSH."
+                echo "Failed to configure aptdec with CMake."
             fi
-            
-            # Clean up
-            cd "$OLDPWD" || cd "$HOME"
-            rm -rf /tmp/aptdec_install
         else
-            echo "No SSH keys found. Please set up SSH keys for GitHub access."
-            echo "You can do this by running: ssh-keygen -t ed25519 -C 'your-email@example.com'"
-            echo "Then add the public key to your GitHub account."
-            echo ""
-            echo "For now, aptdec will not be installed. The script will continue,"
-            echo "but recorded audio files will not be converted to images."
+            echo "Failed to clone aptdec repository."
         fi
+        
+        # Clean up
+        cd "$OLDPWD" || cd "$HOME"
+        rm -rf /tmp/aptdec_install
+        
+        # Add explanation for manual installation
+        echo ""
+        echo "If you want to manually install aptdec later, you can run:"
+        echo "sudo apt install cmake git gcc libsndfile-dev libpng-dev"
+        echo "git clone --recursive git@github.com:Xerbo/aptdec.git && cd aptdec"
+        echo "cmake -B build"
+        echo "cmake --build build"
+        echo "sudo cp build/aptdec /usr/local/bin/"
+        echo "sudo chmod +x /usr/local/bin/aptdec"
     fi
     
     # Add explanation for manual installation
     echo ""
     echo "If you want to manually install aptdec later, you can run:"
-    echo "git clone git@github.com:Xerbo/aptdec.git"
-    echo "cd aptdec"
+    echo "git clone --recursive git@github.com:Xerbo/aptdec.git && cd aptdec"
     echo "make"
     echo "sudo make install"
 }
