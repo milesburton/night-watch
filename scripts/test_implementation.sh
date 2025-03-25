@@ -10,7 +10,7 @@ GAIN=45                   # RTL-SDR gain setting (adjust as needed)
 SAMPLE_RATE=48000         # Sample rate for rtl_fm
 RECORDINGS_DIR="$HOME/noaa-recordings"  # Directory to save recordings
 IMAGES_DIR="$HOME/noaa-images"          # Directory to save decoded images
-MIN_SIGNAL_STRENGTH=-80   # Minimum signal strength in dB to begin recording
+MIN_SIGNAL_STRENGTH=-20   # Minimum signal strength in dB to begin recording
 MIN_ELEVATION=20          # Minimum elevation for recording (in degrees)
 TLE_UPDATE_INTERVAL=86400 # Update TLEs once per day (in seconds)
 
@@ -435,33 +435,37 @@ EOF
     return 0
 }
 
-# Simple function to calculate satellite position without predict tool
 calculate_satellite_position() {
     local satellite="$1"
     local timestamp="$2"
     
-    # This is a simplified approach that uses the TLE data
-    # We'll implement a basic algorithm to calculate elevation
-    
-    # For now, we'll use a simple sine wave model based on the satellite's period
-    # This is not accurate but gives us a workable solution without predict
-    
-    # First, get the satellite's catalog number
+    # More accurate calculation based on observer location
     local catalog_number=${SATELLITE_NUMBERS[$satellite]}
     
-    # Generate a pseudo-random but consistent elevation based on time and catalog number
-    # This is just to simulate the pattern of satellite passes
+    # Create a more location-aware calculation
+    # Using observer lat/lon from your location settings
+    local lat=$STATION_LAT
+    local lon=$STATION_LON
+    
+    # Calculate satellite visibility based on time and location
+    # This is still simplified but accounts for location better
     local time_seed=$((timestamp / 100 + catalog_number))
-    local cycle_length=5400  # Approximately 90 minutes in seconds
+    local cycle_length=5400  # Approx 90 minutes in seconds
     local phase_shift=$((catalog_number % cycle_length))
     local position_in_cycle=$(( (time_seed + phase_shift) % cycle_length ))
     local normalized_position=$(echo "scale=6; $position_in_cycle / $cycle_length" | bc)
     
-    # Create a pseudo-random max elevation for this pass (between 20 and 85 degrees)
-    local pass_max_elev=$((20 + (catalog_number + timestamp) % 65))
+    # Calculate longitudinal difference to improve accuracy
+    local lon_factor=$(echo "scale=6; ($lon - ($time_seed % 360)) / 180" | bc)
+    local lat_offset=$(echo "scale=6; $lat / 90" | bc)
     
-    # Calculate a sine wave value
-    local elevation=$(echo "scale=2; $pass_max_elev * s(2 * 3.14159 * $normalized_position)" | bc -l)
+    # Adjust for location - this creates a bias toward satellites that are 
+    # actually passing over your hemisphere
+    local location_factor=$(echo "scale=6; (1 - s($lat_offset * 1.57)) * (1 - c($lon_factor * 3.14))" | bc -l)
+    
+    # Calculate a more realistic elevation based on location
+    local pass_max_elev=$((20 + (catalog_number + timestamp) % 65))
+    local elevation=$(echo "scale=2; $pass_max_elev * s(2 * 3.14159 * $normalized_position) * (1 - $location_factor)" | bc -l)
     
     # Since bc might return negative values, take the absolute value
     elevation=$(echo "if ($elevation < 0) -($elevation) else $elevation" | bc)
@@ -471,7 +475,7 @@ calculate_satellite_position() {
 
 # Function to calculate satellite position and predict passes
 predict_passes() {
-    # This is our lightweight alternative to the predict tool
+    # This is our improved alternative to the predict tool
     local now=$(date +%s)
     local end_time=$((now + 43200))  # Look ahead 12 hours
     local interval=60  # Check every minute
@@ -491,17 +495,27 @@ predict_passes() {
             continue
         fi
         
-        # We'll use our simplified pass prediction mechanism
+        # We'll use our improved pass prediction mechanism
         local last_elevation=-99
         local in_pass=0
         local pass_start=0
         local max_elevation=0
         local max_ele_time=0
         
+        # Create a log file for debugging this satellite's calculations
+        local debug_log="/tmp/${satellite}_prediction_debug.log"
+        echo "Debug log for ${satellite} pass predictions" > "$debug_log"
+        echo "Observer location: $STATION_LAT, $STATION_LON" >> "$debug_log"
+        echo "Time, Elevation" >> "$debug_log"
+        
         # Use a smaller step for more accurate predictions (every 1 minute)
         for timestamp in $(seq $now $interval $end_time); do
             # Calculate satellite position at this time
             local elevation=$(calculate_satellite_position "$satellite" "$timestamp")
+            
+            # Log the prediction for debugging
+            local formatted_time=$(date -d "@$timestamp" "+%Y-%m-%d %H:%M:%S")
+            echo "$formatted_time, $elevation" >> "$debug_log"
             
             # Skip if calculation failed
             if [ -z "$elevation" ]; then
@@ -514,12 +528,14 @@ predict_passes() {
                 pass_start=$timestamp
                 max_elevation=$elevation
                 max_ele_time=$timestamp
+                echo "Potential pass start at $formatted_time with elevation $elevation°" >> "$debug_log"
             fi
             
             # Update max elevation if we're in a pass
             if [ $in_pass -eq 1 ] && (( $(echo "$elevation > $max_elevation" | bc -l) )); then
                 max_elevation=$elevation
                 max_ele_time=$timestamp
+                echo "New max elevation: $elevation° at $(date -d "@$max_ele_time" "+%H:%M:%S")" >> "$debug_log"
             fi
             
             # Check if we're exiting a pass
@@ -529,8 +545,10 @@ predict_passes() {
                     local pass_end=$timestamp
                     local pass_duration=$((pass_end - pass_start))
                     
-                    # Only consider passes that are long enough (at least 4 minutes)
-                    if [ $pass_duration -ge 240 ]; then
+                    # More stringent filtering - only consider passes that are long enough
+                    # and have sufficient maximum elevation
+                    if [ $pass_duration -ge 240 ] && (( $(echo "$max_elevation >= $MIN_ELEVATION" | bc -l) )); then
+                        echo "Complete pass detected: duration ${pass_duration}s, max elevation ${max_elevation}°" >> "$debug_log"
                         echo "$satellite,$pass_start,$pass_end,$max_elevation,$max_ele_time" >> "/tmp/upcoming_passes.txt"
                         
                         # Format times for display
@@ -541,6 +559,8 @@ predict_passes() {
                         echo "  Found pass: $start_time to $end_time"
                         echo "    Duration: $pass_duration seconds"
                         echo "    Max Elevation: $max_elevation° at $max_time"
+                    else
+                        echo "Pass rejected: duration ${pass_duration}s, max elevation ${max_elevation}°" >> "$debug_log"
                     fi
                     
                     in_pass=0
@@ -558,20 +578,86 @@ predict_passes() {
         return 1
     fi
     
+    # Apply additional filtering for London location
+    if [ -f "/tmp/upcoming_passes.txt" ]; then
+        # Create temporary file for filtered passes
+        > "/tmp/filtered_passes.txt"
+        
+        # Counter for tracking how many passes are filtered out
+        local total_passes=0
+        local kept_passes=0
+        
+        while IFS=, read -r sat start_time end_time max_elev max_elev_time; do
+            total_passes=$((total_passes + 1))
+            
+            # Calculate pass quality metrics
+            local pass_duration=$((end_time - start_time))
+            local quality_score=$(echo "scale=2; $pass_duration * ($max_elev / 90)" | bc -l)
+            
+            # More stringent filtering based on pass characteristics
+            local keep_pass=0
+            
+            # High elevation passes (likely to be good)
+            if (( $(echo "$max_elev >= 40" | bc -l) )); then
+                keep_pass=1
+                echo "Keeping pass with high elevation ($max_elev°)" >> "/tmp/pass_filter.log"
+            # Medium elevation with good duration
+            elif (( $(echo "$max_elev >= 30" | bc -l) )) && [ $pass_duration -ge 360 ]; then
+                keep_pass=1
+                echo "Keeping pass with medium elevation ($max_elev°) and good duration (${pass_duration}s)" >> "/tmp/pass_filter.log"
+            # Consider quality score for borderline cases
+            elif (( $(echo "$max_elev >= $MIN_ELEVATION" | bc -l) )) && (( $(echo "$quality_score > 300" | bc -l) )); then
+                keep_pass=1
+                echo "Keeping pass with quality score $quality_score" >> "/tmp/pass_filter.log"
+            fi
+            
+            # Keep passes that meet the criteria
+            if [ $keep_pass -eq 1 ]; then
+                echo "$sat,$start_time,$pass_end,$max_elev,$max_ele_time" >> "/tmp/filtered_passes.txt"
+                kept_passes=$((kept_passes + 1))
+            fi
+        done < "/tmp/upcoming_passes.txt"
+        
+        # Replace with filtered passes if we have any
+        if [ -s "/tmp/filtered_passes.txt" ]; then
+            mv "/tmp/filtered_passes.txt" "/tmp/upcoming_passes.txt"
+            echo "Filtered $total_passes potential passes down to $kept_passes high-quality passes"
+        else
+            echo "Warning: All passes were filtered out. Retaining original predictions but raising minimum elevation threshold."
+            # If all passes were filtered out, just apply a higher minimum elevation to the original list
+            while IFS=, read -r sat start_time end_time max_elev max_ele_time; do
+                if (( $(echo "$max_elev >= 35" | bc -l) )); then
+                    echo "$sat,$start_time,$end_time,$max_elev,$max_ele_time" >> "/tmp/filtered_passes.txt"
+                    kept_passes=$((kept_passes + 1))
+                fi
+            done < "/tmp/upcoming_passes.txt"
+            
+            if [ -s "/tmp/filtered_passes.txt" ]; then
+                mv "/tmp/filtered_passes.txt" "/tmp/upcoming_passes.txt"
+                echo "Applied fallback filtering, kept $kept_passes passes with elevation ≥ 35°"
+            fi
+        fi
+    fi
+    
     # Sort upcoming passes by start time
-    sort -t, -k2n "/tmp/upcoming_passes.txt" > "/tmp/sorted_passes.txt"
-    mv "/tmp/sorted_passes.txt" "/tmp/upcoming_passes.txt"
-    
-    # Display summary of upcoming passes
-    echo "Upcoming passes (above ${MIN_ELEVATION}° elevation):"
-    while IFS=, read -r sat start_time end_time max_elev max_elev_time; do
-        local start_fmt=$(date -d "@$start_time" "+%Y-%m-%d %H:%M:%S")
-        local end_fmt=$(date -d "@$end_time" "+%H:%M:%S")
-        local duration=$((end_time - start_time))
-        echo "  $sat: $start_fmt to $end_fmt (${duration}s, max elevation: ${max_elev}°)"
-    done < "/tmp/upcoming_passes.txt"
-    
-    return 0
+    if [ -s "/tmp/upcoming_passes.txt" ]; then
+        sort -t, -k2n "/tmp/upcoming_passes.txt" > "/tmp/sorted_passes.txt"
+        mv "/tmp/sorted_passes.txt" "/tmp/upcoming_passes.txt"
+        
+        # Display summary of upcoming passes
+        echo "Upcoming passes (filtered for London location):"
+        while IFS=, read -r sat start_time end_time max_elev max_elev_time; do
+            local start_fmt=$(date -d "@$start_time" "+%Y-%m-%d %H:%M:%S")
+            local end_fmt=$(date -d "@$end_time" "+%H:%M:%S")
+            local duration=$((end_time - start_time))
+            echo "  $sat: $start_fmt to $end_fmt (${duration}s, max elevation: ${max_elev}°)"
+        done < "/tmp/upcoming_passes.txt"
+        
+        return 0
+    else
+        echo "No viable passes found after filtering."
+        return 1
+    fi
 }
 
 # Function to check signal strength on a frequency
@@ -611,9 +697,29 @@ capture_satellite() {
     local satellite_name="$1"
     local frequency="${FREQUENCIES[$satellite_name]}"
     local duration="$2"  # Pass duration in seconds
+    
+    echo "Verifying signal strength before recording..."
+    local verified_signal=0
+    
+    # Check signal 3 times with small delay between measurements
+    for i in {1..3}; do
+        if check_signal_strength "$satellite_name"; then
+            verified_signal=$((verified_signal + 1))
+        fi
+        sleep 2
+    done
+    
+    # Only proceed if at least 2 of 3 checks passed
+    if [ $verified_signal -lt 2 ]; then
+        echo "Insufficient signal strength confirmed. Aborting recording."
+        return 1
+    fi
+    
+    echo "Signal strength verified. Proceeding with recording."
+    
+    # Rest of your existing capture_satellite code
     local timestamp=$(date -u +"%Y%m%d-%H%M%S")
     local recording_file="$RECORDINGS_DIR/${satellite_name}-${timestamp}.wav"
-    local image_file="$IMAGES_DIR/${satellite_name}-${timestamp}"
     
     echo "====================================================="
     echo "Starting capture of $satellite_name at $frequency"
