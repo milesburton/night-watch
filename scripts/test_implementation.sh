@@ -128,7 +128,7 @@ check_dependencies() {
             cd /tmp/aptdec_install
             
             # Clone via SSH
-            if git clone git@github.com:csete/aptdec.git; then
+            if git clone git@github.com:Xerbo/aptdec.git; then
                 cd aptdec
                 if make; then
                     if sudo make install; then
@@ -159,7 +159,7 @@ check_dependencies() {
     # Add explanation for manual installation
     echo ""
     echo "If you want to manually install aptdec later, you can run:"
-    echo "git clone git@github.com:csete/aptdec.git"
+    echo "git clone git@github.com:Xerbo/aptdec.git"
     echo "cd aptdec"
     echo "make"
     echo "sudo make install"
