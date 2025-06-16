@@ -16,8 +16,8 @@ OUT_IMG="/workspace/images/${DATE}-${SAT}.png"
 FINAL_IMG="/website/${DATE}-${SAT}.png"
 
 echo "📡 Capturing $SAT at $FREQ..."
-rtl_fm -f $FREQ -M fm -s 60k -g 40 - | \
-sox -t raw -e signed -b 16 -r 60k -c 1 - -t wav $OUT_WAV
+rtl_fm -f $FREQ -M fm -s 48000 -g 36 - | \
+sox -t raw -e signed -b 16 -r 110250 -c 1 - -t wav "$OUT_WAV"
 
 echo "🖼️ Decoding image..."
 noaa-apt $OUT_WAV -o $OUT_IMG
