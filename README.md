@@ -19,8 +19,21 @@ Multi-signal RF capture platform for satellite imagery. Automatically captures a
 
 ## Prerequisites
 
-- Docker and Docker Compose v2 installed
+- Docker and Docker Compose v2 installed on the host machine
 - RTL-SDR dongle connected via USB
+
+### Installing Docker (Raspberry Pi / Debian / Ubuntu)
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+```
+
+Log out and back in (or reboot) for group changes to take effect. Verify with:
+
+```bash
+docker compose version
+```
 
 ## Quick Start
 
