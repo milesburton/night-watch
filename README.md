@@ -19,15 +19,13 @@ Multi-signal RF capture platform for satellite imagery. Automatically captures a
 
 ## Quick Start
 
-Use the Dev Container for the easiest setup:
-
 ```bash
 git clone https://github.com/milesburton/noaa-satellite-capture.git
 cd noaa-satellite-capture
 cp .env.example .env
 ```
 
-Edit `.env` with your coordinates:
+Edit `.env` with your station coordinates:
 
 ```env
 STATION_LATITUDE=51.5069
@@ -35,7 +33,7 @@ STATION_LONGITUDE=-0.1276
 STATION_ALTITUDE=10
 ```
 
-Open in VS Code with the Dev Containers extension, or run with Docker:
+Start the container:
 
 ```bash
 docker compose up -d
@@ -43,28 +41,73 @@ docker compose up -d
 
 Web dashboard: `http://localhost:3000`
 
-## Configuration
+## Running Continuously
 
-```env
-STATION_LATITUDE=51.5069
-STATION_LONGITUDE=-0.1276
-STATION_ALTITUDE=10
-
-SDR_GAIN=45
-SDR_PPM_CORRECTION=0
-MIN_ELEVATION=20
-
-WEB_PORT=3000
-DATABASE_PATH=./data/captures.db
-```
-
-## Commands
+The container runs as a daemon and automatically restarts unless stopped.
 
 ```bash
-bun start          # Start capture daemon
-bun run predict    # Show upcoming passes
-bun run status     # Check system status
-bun test           # Run tests
+docker compose up -d      # Start in background
+docker compose logs -f    # View live logs
+docker compose stop       # Stop the container
+docker compose start      # Start a stopped container
+docker compose down       # Stop and remove container (data persists)
+docker compose down -v    # Stop and remove container AND volumes (deletes all data)
+```
+
+## Data Persistence
+
+RFCapture uses Docker named volumes to persist data across container restarts and updates:
+
+| Volume | Path | Contents |
+|--------|------|----------|
+| `rfcapture-data` | `/app/data` | SQLite database with capture history |
+| `rfcapture-recordings` | `/app/recordings` | Raw WAV recordings |
+| `rfcapture-images` | `/app/images` | Decoded satellite images |
+
+To inspect volumes:
+
+```bash
+docker volume ls | grep rfcapture
+docker volume inspect rfcapture-images
+```
+
+To backup your data:
+
+```bash
+docker run --rm -v rfcapture-images:/data -v $(pwd):/backup alpine tar czf /backup/images-backup.tar.gz -C /data .
+```
+
+## Running Commands
+
+All commands should be run inside the container:
+
+```bash
+docker compose exec rfcapture bun run predict    # Show upcoming passes
+docker compose exec rfcapture bun run status     # Check system status
+docker compose exec rfcapture bun test           # Run tests
+```
+
+Or start an interactive shell:
+
+```bash
+docker compose exec rfcapture bash
+```
+
+## Configuration
+
+All configuration is via environment variables in `.env`:
+
+```env
+STATION_LATITUDE=51.5069      # Your latitude
+STATION_LONGITUDE=-0.1276     # Your longitude
+STATION_ALTITUDE=10           # Altitude in metres
+
+SDR_GAIN=45                   # RTL-SDR gain (0-50, or 'auto')
+SDR_PPM_CORRECTION=0          # Frequency correction
+MIN_ELEVATION=20              # Minimum pass elevation in degrees
+
+WEB_PORT=3000                 # Web dashboard port
+LOG_LEVEL=info                # debug, info, warn, error
 ```
 
 ## Web Dashboard
@@ -74,6 +117,23 @@ bun test           # Run tests
 - Doppler shift visualization during captures
 - ISS SSTV toggle for event-based capture
 - Image gallery with capture history
+
+## Development
+
+For development, use the VS Code Dev Container:
+
+1. Install the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension
+2. Open the project in VS Code
+3. Click "Reopen in Container" when prompted
+
+Inside the dev container:
+
+```bash
+bun install           # Install dependencies
+bun start             # Start capture daemon
+bun test              # Run tests
+bun run lint          # Check code style
+```
 
 ## References
 
