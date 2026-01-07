@@ -28,6 +28,7 @@ RUN echo "1" > /var/lib/dpkg/info/format \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
+    make \
     gcc \
     g++ \
     libsndfile-dev \
@@ -40,7 +41,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && cp build/aptdec /usr/local/bin/ \
     && cd / \
     && rm -rf /tmp/aptdec \
-    && apt-get purge -y cmake gcc g++ git \
+    && apt-get purge -y cmake make gcc g++ git \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
