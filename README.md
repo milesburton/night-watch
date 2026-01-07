@@ -23,14 +23,7 @@ Multi-signal RF capture platform for satellite imagery. Automatically captures a
 git clone https://github.com/milesburton/noaa-satellite-capture.git
 cd noaa-satellite-capture
 cp .env.example .env
-```
-
-Edit `.env` with your station coordinates:
-
-```env
-STATION_LATITUDE=51.5069
-STATION_LONGITUDE=-0.1276
-STATION_ALTITUDE=10
+nano .env   # Set your coordinates (see Configuration below)
 ```
 
 Start the container:
