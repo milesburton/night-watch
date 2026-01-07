@@ -1,5 +1,11 @@
 # RFCapture
 
+[![CI](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/ci.yml/badge.svg)](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/ci.yml)
+[![Docker Build](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/docker-build.yml/badge.svg)](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/docker-build.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Bun](https://img.shields.io/badge/runtime-Bun-f9f1e1?logo=bun)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)](https://www.typescriptlang.org/)
+
 Multi-signal RF capture platform for satellite imagery. Automatically captures and decodes APT signals from NOAA weather satellites, with support for ISS SSTV events.
 
 ## Supported Signals
