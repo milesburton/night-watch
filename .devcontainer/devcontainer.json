@@ -7,16 +7,8 @@
   "settings": {
     "terminal.integrated.defaultProfile.linux": "bash"
   },
-  "extensions": [
-    "ms-azuretools.vscode-docker",
-    "eamodio.gitlens"
-  ],
-  "mounts": [
-    "source=/dev/bus/usb,target=/dev/bus/usb,type=bind,consistency=cached"
-  ],
-  "runArgs": [
-    "--device=/dev/bus/usb"
-  ],
+  "extensions": ["ms-azuretools.vscode-docker", "eamodio.gitlens"],
+  "mounts": ["source=/dev/bus/usb,target=/dev/bus/usb,type=bind,consistency=cached"],
+  "runArgs": ["--device=/dev/bus/usb"],
   "postCreateCommand": "echo '🚀 Dev Container Ready! Plug in RTL-SDR and start capturing!'"
 }
-
