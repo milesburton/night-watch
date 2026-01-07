@@ -68,6 +68,12 @@ docker compose down       # Stop and remove container (data persists)
 docker compose down -v    # Stop and remove container AND volumes (deletes all data)
 ```
 
+Check container health:
+
+```bash
+docker inspect --format='{{json .State.Health.Status}}' rfcapture
+```
+
 ## Data Persistence
 
 RFCapture uses Docker named volumes to persist data across container restarts and updates:
