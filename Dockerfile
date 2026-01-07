@@ -7,7 +7,8 @@ COPY tsconfig.json ./
 
 FROM debian:bookworm-slim
 
-RUN rm -rf /var/lib/apt/lists/* \
+RUN echo "1" > /var/lib/dpkg/info/format \
+    && rm -rf /var/lib/apt/lists/* \
     && apt-get clean \
     && apt-get update --allow-insecure-repositories \
     && apt-get install -y --allow-unauthenticated ca-certificates gnupg curl \
