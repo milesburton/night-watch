@@ -3,6 +3,7 @@ import { loadConfig } from '../../config/config'
 import { closeDatabase, initializeDatabase } from '../../db/database'
 import { ensureDir } from '../../utils/fs'
 import { logger } from '../../utils/logger'
+import { startGlobeService, stopGlobeService } from '../../web/globe-service'
 import { startWebServer } from '../../web/server'
 
 export async function serveCommand(_args: string[]): Promise<void> {
@@ -21,6 +22,9 @@ export async function serveCommand(_args: string[]): Promise<void> {
   // Start web server
   const server = startWebServer(config.web.port, config.web.host, config.recording.imagesDir)
 
+  // Start globe service for real-time satellite positions
+  await startGlobeService(config.station)
+
   console.log(
     chalk.bold.green(`\n  Web dashboard running at http://${config.web.host}:${config.web.port}`)
   )
@@ -29,6 +33,7 @@ export async function serveCommand(_args: string[]): Promise<void> {
   // Graceful shutdown handler
   const shutdown = () => {
     logger.info('\nShutting down...')
+    stopGlobeService()
     server.stop()
     closeDatabase()
     process.exit(0)

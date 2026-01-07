@@ -38,6 +38,36 @@ export interface SatellitePosition {
   timestamp: Date
 }
 
+export interface SatelliteGeolocation {
+  noradId: number
+  name: string
+  latitude: number
+  longitude: number
+  altitude: number
+  signalType: SignalType
+}
+
+export interface GroundTrackPoint {
+  lat: number
+  lng: number
+}
+
+export interface GroundTrack {
+  noradId: number
+  name: string
+  signalType: SignalType
+  points: GroundTrackPoint[]
+}
+
+export interface GlobeState {
+  satellites: SatelliteGeolocation[]
+  groundTracks: GroundTrack[]
+  station: {
+    latitude: number
+    longitude: number
+  }
+}
+
 export interface SatellitePass {
   satellite: SatelliteInfo
   aos: Date
@@ -124,6 +154,7 @@ export type StateEvent =
   | { type: 'pass_complete'; result: CaptureResult }
   | { type: 'capture_progress'; progress: number; elapsed: number; total: number }
   | { type: 'passes_updated'; passes: SatellitePass[] }
+  | { type: 'satellite_positions'; globe: GlobeState }
 
 export interface CaptureHistoryEntry {
   id: number

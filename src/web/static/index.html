@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RFCapture</title>
   <link rel="stylesheet" href="/styles.css">
+  <script src="https://unpkg.com/globe.gl@2.27.2/dist/globe.gl.min.js"></script>
 </head>
 <body>
   <header>
@@ -50,6 +51,27 @@
           <div class="stat">
             <span id="stat-failed" class="stat-value failed">0</span>
             <span class="stat-label">Failed</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="globe-section">
+      <h2>Live Satellite Tracking</h2>
+      <div class="globe-container">
+        <div id="globe"></div>
+        <div class="globe-legend">
+          <div class="legend-item">
+            <span class="legend-dot station"></span>
+            <span>Ground Station</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot satellite-apt"></span>
+            <span>NOAA (APT)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot satellite-sstv"></span>
+            <span>ISS (SSTV)</span>
           </div>
         </div>
       </div>

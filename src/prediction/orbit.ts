@@ -1,6 +1,7 @@
 import * as satellite from 'satellite.js'
 import type {
   Coordinates,
+  SatelliteGeolocation,
   SatelliteInfo,
   SatellitePass,
   SatellitePosition,
@@ -46,6 +47,34 @@ export function getSatellitePosition(
     const position = positionAndVelocity.position
 
     return typeof position !== 'boolean' ? computeLookAngles(position, observer, time) : null
+  } catch {
+    return null
+  }
+}
+
+export function getSatelliteGeolocation(
+  tle: TwoLineElement,
+  satelliteInfo: SatelliteInfo,
+  time: Date
+): SatelliteGeolocation | null {
+  try {
+    const satrec = satellite.twoline2satrec(tle.line1, tle.line2)
+    const positionAndVelocity = satellite.propagate(satrec, time)
+    const position = positionAndVelocity.position
+
+    if (typeof position === 'boolean') return null
+
+    const gmst = satellite.gstime(time)
+    const geodetic = satellite.eciToGeodetic(position, gmst)
+
+    return {
+      noradId: satelliteInfo.noradId,
+      name: satelliteInfo.name,
+      latitude: satellite.degreesLat(geodetic.latitude),
+      longitude: satellite.degreesLong(geodetic.longitude),
+      altitude: geodetic.height,
+      signalType: satelliteInfo.signalType,
+    }
   } catch {
     return null
   }

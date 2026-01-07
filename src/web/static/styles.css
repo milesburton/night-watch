@@ -546,6 +546,62 @@ footer {
   display: none !important;
 }
 
+.globe-section {
+  background: var(--bg-card);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+}
+
+.globe-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#globe {
+  width: 100%;
+  max-width: 800px;
+  height: 500px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.globe-legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.legend-dot.station {
+  background: var(--success);
+}
+
+.legend-dot.satellite-apt {
+  background: var(--accent);
+}
+
+.legend-dot.satellite-sstv {
+  background: var(--purple);
+}
+
 @media (max-width: 768px) {
   header {
     flex-direction: column;
@@ -571,5 +627,13 @@ footer {
   .doppler-info {
     flex-direction: column;
     gap: 0.25rem;
+  }
+
+  #globe {
+    height: 350px;
+  }
+
+  .globe-legend {
+    gap: 1rem;
   }
 }
