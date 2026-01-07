@@ -14,6 +14,9 @@ const envSchema = z.object({
   IMAGES_DIR: z.string().default('./images'),
   TLE_UPDATE_INTERVAL_HOURS: z.coerce.number().default(24),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  WEB_PORT: z.coerce.number().default(3000),
+  WEB_HOST: z.string().default('0.0.0.0'),
+  DATABASE_PATH: z.string().default('./data/captures.db'),
 })
 
 function parseEnv(): z.infer<typeof envSchema> {
@@ -49,6 +52,13 @@ export function loadConfig(): ReceiverConfig {
     },
     tle: {
       updateIntervalHours: env.TLE_UPDATE_INTERVAL_HOURS,
+    },
+    web: {
+      port: env.WEB_PORT,
+      host: env.WEB_HOST,
+    },
+    database: {
+      path: env.DATABASE_PATH,
     },
     logLevel: env.LOG_LEVEL as LogLevel,
   }

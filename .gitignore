@@ -8,6 +8,7 @@ dist/
 data/*
 recordings/*
 images/*
+!data/.gitkeep
 !recordings/.gitkeep
 !images/.gitkeep
 
@@ -34,3 +35,4 @@ images/*
 
 # Bun
 bun.lockb
+.env.raspberrypi

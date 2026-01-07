@@ -3,7 +3,9 @@ import ora from 'ora'
 import { decodeRecording } from '../capture/decoder'
 import { recordPass } from '../capture/recorder'
 import { verifySignal } from '../capture/signal'
+import { getDatabase } from '../db/database'
 import { PASS_CONSTRAINTS } from '../satellites/constants'
+import { stateManager } from '../state/state-manager'
 import type { CaptureResult, ReceiverConfig, SatellitePass } from '../types'
 import { logger } from '../utils/logger'
 
@@ -12,6 +14,8 @@ export async function waitForPass(pass: SatellitePass): Promise<void> {
   const passStart = pass.aos.getTime()
   const bufferMs = PASS_CONSTRAINTS.captureBufferSeconds * 1000
   const targetTime = passStart - bufferMs
+
+  stateManager.setStatus('waiting')
 
   if (now >= targetTime) {
     logger.info('Pass is starting now!')
@@ -72,6 +76,8 @@ export async function capturePass(
   const { satellite } = pass
   const duration = Math.ceil(pass.duration) + PASS_CONSTRAINTS.captureBufferSeconds * 2
 
+  stateManager.startPass(pass)
+
   logger.satellite(
     satellite.name,
     `Starting capture (${duration}s, max elev: ${pass.maxElevation.toFixed(1)}°)`
@@ -85,7 +91,7 @@ export async function capturePass(
 
   if (!signalOk) {
     logger.warn(`Signal too weak for ${satellite.name}, skipping capture`)
-    return {
+    const result: CaptureResult = {
       satellite,
       recordingPath: '',
       imagePaths: [],
@@ -95,6 +101,9 @@ export async function capturePass(
       success: false,
       error: 'Signal too weak',
     }
+    saveResultToDatabase(result, pass)
+    stateManager.completePass(result)
+    return result
   }
 
   const startTime = new Date()
@@ -109,10 +118,12 @@ export async function capturePass(
       const progress = Math.round((elapsed / total) * 100)
       const remaining = total - elapsed
       spinner.text = `Recording ${satellite.name}: ${progress}% (${formatDuration(remaining)} remaining)`
+      stateManager.updateProgress(progress, elapsed, total)
     })
 
     spinner.succeed(`Recording complete: ${recordingPath}`)
 
+    stateManager.setStatus('decoding')
     const images = await decodeRecording(recordingPath, config.recording.imagesDir)
     const imagePaths = images
       ? [images.channelA, images.channelB, images.composite].filter(
@@ -120,7 +131,7 @@ export async function capturePass(
         )
       : []
 
-    return {
+    const result: CaptureResult = {
       satellite,
       recordingPath,
       imagePaths,
@@ -129,9 +140,13 @@ export async function capturePass(
       maxSignalStrength: 0,
       success: true,
     }
+
+    saveResultToDatabase(result, pass)
+    stateManager.completePass(result)
+    return result
   } catch (error) {
     spinner.fail(`Capture failed for ${satellite.name}`)
-    return {
+    const result: CaptureResult = {
       satellite,
       recordingPath: '',
       imagePaths: [],
@@ -141,6 +156,21 @@ export async function capturePass(
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
     }
+    saveResultToDatabase(result, pass)
+    stateManager.completePass(result)
+    return result
+  }
+}
+
+function saveResultToDatabase(result: CaptureResult, pass: SatellitePass): void {
+  try {
+    const db = getDatabase()
+    const captureId = db.saveCapture(result, pass)
+    if (result.imagePaths.length > 0) {
+      db.saveImages(captureId, result.imagePaths)
+    }
+  } catch (error) {
+    logger.warn(`Failed to save capture to database: ${error}`)
   }
 }
 

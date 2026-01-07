@@ -60,8 +60,9 @@ Edit `.env` with your receiver location and settings:
 
 ```env
 # Receiver Location (required)
+# Example uses Charing Cross, London - replace with your coordinates
 STATION_LATITUDE=51.5074    # Your latitude in decimal degrees
-STATION_LONGITUDE=-0.1278    # Your longitude in decimal degrees
+STATION_LONGITUDE=-0.1278   # Your longitude in decimal degrees
 STATION_ALTITUDE=10         # Altitude in metres
 
 # RTL-SDR Settings
