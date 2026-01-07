@@ -1,10 +1,16 @@
-# NOAA Satellite Pass Recorder 🛰️📡
+# NOAA Satellite Pass Recorder
 
 Automatically capture NOAA weather satellite imagery using an RTL-SDR, a tuned 137MHz turnstile antenna, and a Raspberry Pi.
 
 ## Overview
 
 This system automates the recording and decoding of passes from NOAA weather satellites (NOAA-15, NOAA-18, and NOAA-19) as they orbit overhead, capturing APT (Automatic Picture Transmission) signals directly from space.
+
+Features:
+- Real-time web dashboard with pass status and image gallery
+- Automatic satellite pass prediction using SGP4 orbital mechanics
+- Continuous capture daemon with SQLite history
+- WebSocket-based live updates
 
 ## Hardware Requirements
 
@@ -13,7 +19,49 @@ This system automates the recording and decoding of passes from NOAA weather sat
 - 137MHz turnstile antenna (optimised for APT signals)
 - Appropriate cables and connectors
 
-## Software Requirements
+## Quick Start with Docker
+
+The easiest way to run on a Raspberry Pi:
+
+```bash
+# Clone the repository
+git clone https://github.com/milesburton/noaa-satellite-capture.git
+cd noaa-satellite-capture
+
+# Create your configuration
+cp .env.example .env
+# Edit .env with your coordinates (STATION_LATITUDE, STATION_LONGITUDE)
+
+# Start the container
+docker compose up -d
+
+# View logs
+docker compose logs -f
+```
+
+The web dashboard will be available at `http://your-pi-ip:3000`
+
+### Docker Environment Variables
+
+You can configure the system via environment variables or a `.env` file:
+
+```env
+# Required: Your location
+STATION_LATITUDE=51.5074
+STATION_LONGITUDE=-0.1278
+STATION_ALTITUDE=10
+
+# Optional: SDR settings
+SDR_GAIN=45
+SDR_PPM_CORRECTION=0
+
+# Optional: Recording settings
+MIN_ELEVATION=20
+```
+
+## Manual Installation
+
+### Software Requirements
 
 - [Bun](https://bun.sh) (v1.0.0 or newer)
 - RTL-SDR drivers (`rtl-sdr` package)
@@ -39,7 +87,7 @@ sudo cp build/aptdec /usr/local/bin/
 curl -fsSL https://bun.sh/install | bash
 ```
 
-## Installation
+### Installation
 
 ```bash
 # Clone the repository
@@ -75,30 +123,46 @@ MIN_ELEVATION=20            # Minimum pass elevation in degrees
 MIN_SIGNAL_STRENGTH=-20     # Minimum signal strength in dB
 RECORDINGS_DIR=./recordings
 IMAGES_DIR=./images
+
+# Web Dashboard
+WEB_PORT=3000
+WEB_HOST=0.0.0.0
+
+# Database
+DATABASE_PATH=./data/captures.db
 ```
 
 ## Usage
 
-### Predict Upcoming Passes
-
-```bash
-bun run predict
-
-# Predict for next 48 hours
-bun run predict 48
-```
-
-### Start Automatic Capture
+### Start the Capture Daemon
 
 ```bash
 bun start
 ```
 
-The system will:
+This starts the continuous capture daemon with the web dashboard. The system will:
 1. Fetch current TLE orbital data from CelesTrak
 2. Predict satellite passes for your location
 3. Wait for each pass and automatically record
 4. Decode the audio into weather images
+5. Store results in SQLite and display on the web dashboard
+
+### Other Commands
+
+```bash
+# Predict upcoming passes
+bun run predict
+bun run predict 48    # Next 48 hours
+
+# Check system status
+bun run status
+
+# Start web server only (no capture)
+bun run serve
+
+# Show help
+bun run src/cli/main.ts help
+```
 
 ### Development
 
@@ -117,14 +181,33 @@ bun run lint:fix
 bun run format
 ```
 
+## Web Dashboard
+
+Access the dashboard at `http://localhost:3000` (or your Pi's IP address).
+
+Features:
+- **Live Status**: Current system state (Standby/Waiting/Capturing/Decoding)
+- **Progress Bar**: Real-time capture progress with time remaining
+- **Upcoming Passes**: Table of predicted satellite passes
+- **Image Gallery**: Recent captures with thumbnails and metadata
+- **Statistics**: Total, successful, and failed capture counts
+
 ## Project Structure
 
 ```
 src/
-├── index.ts                    # Main entry point
-├── types.ts                    # TypeScript type definitions
+├── cli/
+│   ├── main.ts                 # Unified CLI entry point
+│   └── commands/               # CLI subcommands
 ├── config/
 │   └── config.ts               # Environment configuration
+├── db/
+│   └── database.ts             # SQLite database layer
+├── state/
+│   └── state-manager.ts        # System state management
+├── web/
+│   ├── server.ts               # HTTP/WebSocket server
+│   └── static/                 # Dashboard frontend
 ├── satellites/
 │   ├── constants.ts            # NOAA frequencies, NORAD IDs
 │   └── tle.ts                  # TLE fetching & caching
@@ -136,13 +219,12 @@ src/
 │   ├── recorder.ts             # RTL-SDR audio recording
 │   └── decoder.ts              # aptdec image decoding
 ├── scheduler/
-│   └── scheduler.ts            # Pass scheduling & capture orchestration
-├── cli/
-│   └── predict.ts              # CLI pass prediction tool
-└── utils/
-    ├── logger.ts               # Structured logging
-    ├── shell.ts                # Command execution
-    └── fs.ts                   # File system utilities
+│   └── scheduler.ts            # Pass scheduling & orchestration
+├── utils/
+│   ├── logger.ts               # Structured logging
+│   ├── shell.ts                # Command execution
+│   └── fs.ts                   # File system utilities
+└── types.ts                    # TypeScript type definitions
 ```
 
 ## NOAA Satellites

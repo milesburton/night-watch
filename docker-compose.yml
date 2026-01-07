@@ -1,0 +1,54 @@
+services:
+  noaa-capture:
+    build: .
+    container_name: noaa-satellite-capture
+    restart: unless-stopped
+
+    # RTL-SDR USB device access
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    privileged: true
+
+    ports:
+      - "3000:3000"
+
+    volumes:
+      # Persist captured data
+      - ./data:/app/data
+      - ./recordings:/app/recordings
+      - ./images:/app/images
+
+    environment:
+      # Station location - UPDATE THESE
+      - STATION_LATITUDE=${STATION_LATITUDE:-51.5074}
+      - STATION_LONGITUDE=${STATION_LONGITUDE:--0.1278}
+      - STATION_ALTITUDE=${STATION_ALTITUDE:-10}
+
+      # SDR settings
+      - SDR_GAIN=${SDR_GAIN:-45}
+      - SDR_SAMPLE_RATE=${SDR_SAMPLE_RATE:-48000}
+      - SDR_PPM_CORRECTION=${SDR_PPM_CORRECTION:-0}
+
+      # Recording settings
+      - MIN_ELEVATION=${MIN_ELEVATION:-20}
+      - MIN_SIGNAL_STRENGTH=${MIN_SIGNAL_STRENGTH:--20}
+
+      # Paths (inside container)
+      - RECORDINGS_DIR=/app/recordings
+      - IMAGES_DIR=/app/images
+      - DATABASE_PATH=/app/data/captures.db
+
+      # Web dashboard
+      - WEB_PORT=3000
+      - WEB_HOST=0.0.0.0
+
+      # Other settings
+      - TLE_UPDATE_INTERVAL_HOURS=${TLE_UPDATE_INTERVAL_HOURS:-24}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

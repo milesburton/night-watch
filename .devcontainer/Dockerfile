@@ -1,47 +1,36 @@
-FROM debian:bullseye
+# NOAA Satellite Capture - Development Container
+FROM debian:bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1️⃣ Install dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     rtl-sdr \
     sox \
     git \
-    python3 \
-    python3-pip \
-    wget \
+    curl \
+    unzip \
     build-essential \
-    nginx \
-    noaa-apt \
-    cron \
-    predict \
-    tree \
-    vim \
-    && apt-get clean
+    cmake \
+    libsndfile-dev \
+    libpng-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# 2️⃣ Create working directories
-RUN mkdir -p /workspace/scripts /website /workspace/recordings /workspace/images \
-    && chown -R www-data:www-data /website
+# Install aptdec for APT signal decoding
+RUN git clone --recursive https://github.com/Xerbo/aptdec.git /tmp/aptdec \
+    && cd /tmp/aptdec \
+    && cmake -B build \
+    && cmake --build build \
+    && cp build/aptdec /usr/local/bin/ \
+    && rm -rf /tmp/aptdec
 
-# 3️⃣ Copy scripts before setting up cron (for better caching)
-COPY ./scripts /workspace/scripts
-RUN chmod +x /workspace/scripts/*.sh
+# Install Bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
 
-# 4️⃣ Set up cron jobs (runs tle_update + schedule_passes every 6h)
-RUN bash /workspace/scripts/setup_cron.sh
-
-# 5️⃣ Serve website via Nginx
-RUN ln -s /website /var/www/html/noaa
-
-# 6️⃣ Optional: Run cron and nginx at startup
-CMD service cron start && service nginx start && tail -f /dev/null
-
+# Create working directories
 WORKDIR /workspace
 
-# Copy startup script
-COPY ./scripts/start_services.sh /start_services.sh
-RUN chmod +x /start_services.sh
-
-# CMD to start services and tail logs
-CMD ["/start_services.sh"]
-
+# Default command
+CMD ["bash"]
