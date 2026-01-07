@@ -10,6 +10,7 @@ import { stateManager } from '../../state/state-manager'
 import { ensureDir } from '../../utils/fs'
 import { logger } from '../../utils/logger'
 import { checkDependencies } from '../../utils/shell'
+import { startGlobeService, stopGlobeService } from '../../web/globe-service'
 import { startWebServer } from '../../web/server'
 
 const REQUIRED_COMMANDS = ['rtl_fm', 'rtl_power', 'sox']
@@ -55,9 +56,13 @@ export async function runCommand(_args: string[]): Promise<void> {
   const server = startWebServer(config.web.port, config.web.host, config.recording.imagesDir)
   logger.info(`Web dashboard running at http://${config.web.host}:${config.web.port}`)
 
+  // Start globe service for real-time satellite positions
+  await startGlobeService(config.station)
+
   // Graceful shutdown handler
   const shutdown = () => {
     logger.info('\nShutting down...')
+    stopGlobeService()
     server.stop()
     closeDatabase()
     process.exit(0)

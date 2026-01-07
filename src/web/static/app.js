@@ -7,6 +7,8 @@ class SatelliteMonitor {
     this.maxReconnectAttempts = 20
     this.reconnectDelay = 1000
     this.countdownInterval = null
+    this.globe = null
+    this.globeInitialised = false
   }
 
   connect() {
@@ -60,6 +62,9 @@ class SatelliteMonitor {
       case 'init':
         this.state = data.state
         this.renderAll()
+        if (data.globe) {
+          this.updateGlobe(data.globe)
+        }
         break
       case 'status_change':
         this.updateStatus(data.status)
@@ -83,6 +88,9 @@ class SatelliteMonitor {
       case 'sstv_status':
         this.updateSstvStatus(data.status)
         break
+      case 'satellite_positions':
+        this.updateGlobe(data.globe)
+        break
     }
   }
 
@@ -98,6 +106,7 @@ class SatelliteMonitor {
     this.loadSstvStatus()
     this.startCountdown()
     this.setupSstvToggle()
+    this.initGlobe()
   }
 
   formatFrequency(hz) {
@@ -432,6 +441,83 @@ class SatelliteMonitor {
       `
       })
       .join('')
+  }
+
+  initGlobe() {
+    if (this.globeInitialised || typeof Globe === 'undefined') return
+
+    const container = document.getElementById('globe')
+    if (!container) return
+
+    const EARTH_RADIUS_KM = 6371
+
+    this.globe = Globe()
+      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+      .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+      .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+      .showAtmosphere(true)
+      .atmosphereColor('#3a228a')
+      .atmosphereAltitude(0.25)
+      .pointsData([])
+      .pointAltitude((d) => d.altitude / EARTH_RADIUS_KM)
+      .pointColor((d) => (d.signalType === 'sstv' ? '#8b5cf6' : '#3b82f6'))
+      .pointRadius(0.8)
+      .pointLabel(
+        (d) =>
+          `<div style="text-align:center"><b>${d.name}</b><br/>Alt: ${d.altitude.toFixed(0)} km</div>`
+      )
+      .pathsData([])
+      .pathPoints('points')
+      .pathPointLat((p) => p.lat)
+      .pathPointLng((p) => p.lng)
+      .pathColor((path) =>
+        path.signalType === 'sstv' ? 'rgba(139,92,246,0.4)' : 'rgba(59,130,246,0.4)'
+      )
+      .pathStroke(1.5)
+      .pathDashLength(0.01)
+      .pathDashGap(0.004)
+      .pathDashAnimateTime(100000)
+      .labelsData([])
+      .labelLat((d) => d.lat)
+      .labelLng((d) => d.lng)
+      .labelText((d) => d.name)
+      .labelSize(1.2)
+      .labelColor(() => '#22c55e')
+      .labelDotRadius(0.3)
+      .labelAltitude(0.01)(container)
+
+    this.globe.pointOfView({ lat: 30, lng: 0, altitude: 2.5 })
+    this.globeInitialised = true
+  }
+
+  updateGlobe(globeState) {
+    if (!this.globe || !globeState) return
+
+    const satellitePoints = globeState.satellites.map((sat) => ({
+      lat: sat.latitude,
+      lng: sat.longitude,
+      altitude: sat.altitude,
+      name: sat.name,
+      signalType: sat.signalType,
+    }))
+    this.globe.pointsData(satellitePoints)
+
+    const tracks = globeState.groundTracks.map((track) => ({
+      points: track.points,
+      name: track.name,
+      signalType: track.signalType,
+    }))
+    this.globe.pathsData(tracks)
+
+    if (globeState.station) {
+      this.globe.labelsData([
+        {
+          name: 'Station',
+          lat: globeState.station.latitude,
+          lng: globeState.station.longitude,
+        },
+      ])
+    }
   }
 }
 

@@ -4,6 +4,7 @@ import { getDatabase } from '../db/database'
 import { getSstvStatus, setManualSstvEnabled } from '../satellites/events'
 import { stateManager } from '../state/state-manager'
 import type { StateEvent } from '../types'
+import { getGlobeState } from './globe-service'
 
 const clients = new Set<ServerWebSocket<unknown>>()
 
@@ -90,6 +91,11 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
         }
       }
 
+      if (url.pathname === '/api/globe') {
+        const globe = getGlobeState()
+        return jsonResponse(globe)
+      }
+
       return new Response('Not Found', { status: 404 })
     },
 
@@ -101,6 +107,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
           JSON.stringify({
             type: 'init',
             state: stateManager.getState(),
+            globe: getGlobeState(),
           })
         )
       },

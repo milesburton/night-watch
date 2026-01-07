@@ -1,5 +1,12 @@
 import { EventEmitter } from 'node:events'
-import type { CaptureResult, SatellitePass, StateEvent, SystemState, SystemStatus } from '../types'
+import type {
+  CaptureResult,
+  GlobeState,
+  SatellitePass,
+  StateEvent,
+  SystemState,
+  SystemStatus,
+} from '../types'
 
 export class StateManager extends EventEmitter {
   private state: SystemState = {
@@ -67,6 +74,10 @@ export class StateManager extends EventEmitter {
     this.state.nextPass = passes[0] || null
     this.state.lastUpdate = new Date()
     this.emitEvent({ type: 'passes_updated', passes })
+  }
+
+  emitGlobeState(globe: GlobeState): void {
+    this.emitEvent({ type: 'satellite_positions', globe })
   }
 
   private emitEvent(event: StateEvent): void {
