@@ -7,7 +7,10 @@ COPY tsconfig.json ./
 
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update || true \
+    && apt-get install -y --no-install-recommends debian-archive-keyring \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
     rtl-sdr \
     sox \
     ca-certificates \
