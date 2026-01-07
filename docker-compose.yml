@@ -9,9 +9,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./data:/app/data
-      - ./recordings:/app/recordings
-      - ./images:/app/images
+      - rfcapture-data:/app/data
+      - rfcapture-recordings:/app/recordings
+      - rfcapture-images:/app/images
     environment:
       - STATION_LATITUDE=${STATION_LATITUDE:-51.5069}
       - STATION_LONGITUDE=${STATION_LONGITUDE:--0.1276}
@@ -34,3 +34,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+volumes:
+  rfcapture-data:
+  rfcapture-recordings:
+  rfcapture-images:
