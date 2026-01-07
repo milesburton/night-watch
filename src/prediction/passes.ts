@@ -1,6 +1,14 @@
-import type { Coordinates, SatelliteInfo, SatellitePass, TwoLineElement } from '../types'
+import type {
+  Coordinates,
+  PassPrediction,
+  SatelliteInfo,
+  SatellitePass,
+  SatellitePosition,
+  TwoLineElement,
+} from '../types'
 import { logger } from '../utils/logger'
-import { createObserver, findPasses, refinePassTiming } from './orbit'
+import { calculateDopplerShift } from './doppler'
+import { createObserver, findPasses, getSatellitePosition, refinePassTiming } from './orbit'
 
 export interface PredictionOptions {
   startTime?: Date
@@ -87,4 +95,51 @@ export function formatPassesTable(passes: SatellitePass[]): string {
   lines.push('└─────────────┴─────────────────────┴──────────┴───────────┴──────────┘')
 
   return lines.join('\n')
+}
+
+export function getPassPositions(
+  tle: TwoLineElement,
+  pass: SatellitePass,
+  station: Coordinates,
+  stepSeconds = 10
+): SatellitePosition[] {
+  const observer = createObserver(station)
+  const positions: SatellitePosition[] = []
+  const current = new Date(pass.aos)
+
+  while (current <= pass.los) {
+    const position = getSatellitePosition(tle, observer, current)
+    if (position) {
+      positions.push(position)
+    }
+    current.setSeconds(current.getSeconds() + stepSeconds)
+  }
+
+  return positions
+}
+
+export function predictPassesWithDoppler(
+  satellites: SatelliteInfo[],
+  tles: TwoLineElement[],
+  station: Coordinates,
+  options: PredictionOptions = {}
+): PassPrediction[] {
+  const passes = predictPasses(satellites, tles, station, options)
+
+  return passes.map((pass) => {
+    const tle = tles.find(
+      (t) =>
+        t.name.includes(pass.satellite.name) ||
+        t.name.includes(pass.satellite.name.replace(' ', '-'))
+    )
+
+    if (!tle) {
+      return { pass, positions: [] }
+    }
+
+    const positions = getPassPositions(tle, pass, station)
+    const doppler = calculateDopplerShift(pass.satellite.frequency, positions)
+
+    return { pass, positions, doppler }
+  })
 }

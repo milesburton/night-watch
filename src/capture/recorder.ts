@@ -69,7 +69,7 @@ export async function startRecording(
     { stdio: ['pipe', 'pipe', 'pipe'] }
   )
 
-  rtlProcess.stdout?.pipe(soxProcess.stdin!)
+  soxProcess.stdin && rtlProcess.stdout?.pipe(soxProcess.stdin)
 
   rtlProcess.stderr?.on('data', (data: Buffer) => {
     logger.debug(`rtl_fm: ${data.toString().trim()}`)

@@ -1,32 +1,14 @@
 import { describe, expect, it } from 'bun:test'
 import { createObserver, findPasses, getSatellitePosition } from '../../src/prediction/orbit'
-import type { Coordinates, SatelliteInfo, TwoLineElement } from '../../src/types'
-
-const TEST_STATION: Coordinates = {
-  latitude: 51.4761,
-  longitude: 0.1709,
-  altitude: 10,
-}
-
-const TEST_TLE: TwoLineElement = {
-  name: 'NOAA 19',
-  line1: '1 33591U 09005A   25085.56541919  .00000082  00000+0  69653-4 0  9990',
-  line2: '2 33591  99.1870 136.4258 0014198 103.3588 256.9118 14.12499278770708',
-}
-
-const TEST_SATELLITE: SatelliteInfo = {
-  name: 'NOAA 19',
-  noradId: 33591,
-  frequency: 137.1e6,
-}
+import { TEST_SATELLITE, TEST_STATION, TEST_TLE } from '../fixtures'
 
 describe('orbit calculations', () => {
   describe('createObserver', () => {
     it('should convert coordinates to radians', () => {
       const observer = createObserver(TEST_STATION)
 
-      expect(observer.latitude).toBeCloseTo(0.8983, 3)
-      expect(observer.longitude).toBeCloseTo(0.00298, 3)
+      expect(observer.latitude).toBeCloseTo(0.899, 2)
+      expect(observer.longitude).toBeCloseTo(-0.00223, 3)
       expect(observer.height).toBeCloseTo(0.01, 2)
     })
   })

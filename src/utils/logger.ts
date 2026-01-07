@@ -1,81 +1,78 @@
-import chalk from 'chalk'
+import pino from 'pino'
 import type { LogLevel } from '../types'
 
-let currentLevel: LogLevel = 'info'
-
-const levels: Record<LogLevel, number> = {
-  debug: 0,
-  info: 1,
-  warn: 2,
-  error: 3,
+const pinoLevelMap: Record<LogLevel, string> = {
+  debug: 'debug',
+  info: 'info',
+  warn: 'warn',
+  error: 'error',
 }
 
-const prefixes: Record<LogLevel, string> = {
-  debug: chalk.gray('🔍'),
-  info: chalk.blue('ℹ️ '),
-  warn: chalk.yellow('⚠️ '),
-  error: chalk.red('❌'),
-}
+const createLogger = () =>
+  pino({
+    level: 'info',
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'HH:MM:ss',
+        ignore: 'pid,hostname',
+      },
+    },
+  })
 
-function shouldLog(level: LogLevel): boolean {
-  return levels[level] >= levels[currentLevel]
-}
-
-function formatTimestamp(): string {
-  return chalk.gray(new Date().toLocaleTimeString('en-GB', { hour12: false }))
-}
-
-function log(level: LogLevel, message: string, ...args: unknown[]): void {
-  if (!shouldLog(level)) return
-
-  const timestamp = formatTimestamp()
-  const prefix = prefixes[level]
-
-  console.log(`${timestamp} ${prefix} ${message}`, ...args)
-}
+let pinoLogger = createLogger()
 
 export const logger = {
   setLevel(level: LogLevel): void {
-    currentLevel = level
+    pinoLogger = pino({
+      level: pinoLevelMap[level],
+      transport: {
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          translateTime: 'HH:MM:ss',
+          ignore: 'pid,hostname',
+        },
+      },
+    })
   },
 
   debug(message: string, ...args: unknown[]): void {
-    log('debug', message, ...args)
+    pinoLogger.debug({ args: args.length > 0 ? args : undefined }, message)
   },
 
   info(message: string, ...args: unknown[]): void {
-    log('info', message, ...args)
+    pinoLogger.info({ args: args.length > 0 ? args : undefined }, message)
   },
 
   warn(message: string, ...args: unknown[]): void {
-    log('warn', message, ...args)
+    pinoLogger.warn({ args: args.length > 0 ? args : undefined }, message)
   },
 
   error(message: string, ...args: unknown[]): void {
-    log('error', message, ...args)
+    pinoLogger.error({ args: args.length > 0 ? args : undefined }, message)
   },
 
   satellite(name: string, message: string): void {
-    if (!shouldLog('info')) return
-    const timestamp = formatTimestamp()
-    console.log(`${timestamp} ${chalk.cyan('📡')} ${chalk.bold(name)}: ${message}`)
+    pinoLogger.info({ satellite: name }, message)
   },
 
   pass(message: string): void {
-    if (!shouldLog('info')) return
-    const timestamp = formatTimestamp()
-    console.log(`${timestamp} ${chalk.green('🛰️ ')} ${message}`)
+    pinoLogger.info({ type: 'pass' }, message)
   },
 
   capture(message: string): void {
-    if (!shouldLog('info')) return
-    const timestamp = formatTimestamp()
-    console.log(`${timestamp} ${chalk.magenta('🎙️ ')} ${message}`)
+    pinoLogger.info({ type: 'capture' }, message)
   },
 
   image(message: string): void {
-    if (!shouldLog('info')) return
-    const timestamp = formatTimestamp()
-    console.log(`${timestamp} ${chalk.yellow('🖼️ ')} ${message}`)
+    pinoLogger.info({ type: 'image' }, message)
+  },
+
+  child(bindings: Record<string, unknown>) {
+    return pinoLogger.child(bindings)
   },
 }
+
+export type Logger = typeof logger

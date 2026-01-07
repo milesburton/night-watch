@@ -7,6 +7,7 @@
   --success: #22c55e;
   --warning: #f59e0b;
   --error: #ef4444;
+  --purple: #8b5cf6;
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --border: #334155;
@@ -76,7 +77,6 @@ h2 {
   color: var(--text-primary);
 }
 
-/* Status Section */
 .status-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -150,6 +150,12 @@ h2 {
   color: var(--text-primary);
 }
 
+.next-frequency {
+  color: var(--accent);
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
 .next-time {
   color: var(--text-secondary);
   margin: 0.5rem 0;
@@ -189,7 +195,106 @@ h2 {
   text-transform: uppercase;
 }
 
-/* Progress Section */
+.sstv-section {
+  margin-bottom: 2rem;
+}
+
+.sstv-card {
+  background: var(--bg-card);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+}
+
+.sstv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.sstv-header h2 {
+  margin-bottom: 0;
+}
+
+.sstv-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.sstv-badge.inactive {
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--text-secondary);
+}
+
+.sstv-badge.active {
+  background: rgba(139, 92, 246, 0.2);
+  color: var(--purple);
+}
+
+.sstv-description {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.sstv-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-secondary);
+  transition: 0.3s;
+  border-radius: 26px;
+  border: 1px solid var(--border);
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--text-secondary);
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: var(--purple);
+  border-color: var(--purple);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(22px);
+  background-color: white;
+}
+
 .progress-section {
   background: var(--bg-card);
   border-radius: 0.75rem;
@@ -223,7 +328,49 @@ h2 {
   color: var(--text-secondary);
 }
 
-/* Passes Table */
+.doppler-section {
+  background: var(--bg-card);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+}
+
+.doppler-container {
+  margin-top: 1rem;
+}
+
+.doppler-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  font-family: monospace;
+  color: var(--text-secondary);
+}
+
+.doppler-chart {
+  width: 100%;
+  height: 150px;
+  background: var(--bg-secondary);
+  border-radius: 0.5rem;
+}
+
+.doppler-zero-line {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 4 2;
+}
+
+.doppler-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.doppler-marker {
+  fill: var(--success);
+}
+
 .passes-section {
   background: var(--bg-card);
   border-radius: 0.75rem;
@@ -281,7 +428,26 @@ td {
   padding: 2rem !important;
 }
 
-/* Gallery Section */
+.signal-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.signal-apt {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--accent);
+}
+
+.signal-sstv {
+  background: rgba(139, 92, 246, 0.2);
+  color: var(--purple);
+}
+
 .gallery-section {
   background: var(--bg-card);
   border-radius: 0.75rem;
@@ -368,7 +534,6 @@ td {
   font-size: 0.75rem;
 }
 
-/* Footer */
 footer {
   text-align: center;
   padding: 2rem;
@@ -377,12 +542,10 @@ footer {
   border-top: 1px solid var(--border);
 }
 
-/* Utility */
 .hidden {
   display: none !important;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   header {
     flex-direction: column;
@@ -403,5 +566,10 @@ footer {
 
   .captures-gallery {
     grid-template-columns: 1fr;
+  }
+
+  .doppler-info {
+    flex-direction: column;
+    gap: 0.25rem;
   }
 }

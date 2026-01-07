@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NOAA Satellite Capture</title>
+  <title>RFCapture</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <header>
-    <h1>NOAA Satellite Capture</h1>
+    <h1>RFCapture</h1>
     <div id="connection-status" class="connection-status disconnected">Disconnected</div>
   </header>
 
@@ -21,6 +21,7 @@
         </div>
         <div id="current-pass" class="current-pass hidden">
           <p><strong>Current:</strong> <span id="current-satellite">-</span></p>
+          <p><strong>Frequency:</strong> <span id="current-frequency">-</span></p>
           <p><strong>Max Elevation:</strong> <span id="current-elevation">-</span></p>
         </div>
       </div>
@@ -29,6 +30,7 @@
         <h2>Next Pass</h2>
         <div id="next-pass-info">
           <p id="next-satellite" class="next-satellite">-</p>
+          <p id="next-frequency" class="next-frequency">-</p>
           <p id="next-time" class="next-time">-</p>
           <p id="next-countdown" class="next-countdown">-</p>
         </div>
@@ -53,6 +55,23 @@
       </div>
     </section>
 
+    <section class="sstv-section">
+      <div class="sstv-card">
+        <div class="sstv-header">
+          <h2>ISS SSTV</h2>
+          <span id="sstv-status-badge" class="sstv-badge inactive">Inactive</span>
+        </div>
+        <p class="sstv-description">Enable manual SSTV capture mode for ISS events (145.800 MHz)</p>
+        <div class="sstv-toggle-container">
+          <label class="toggle-switch">
+            <input type="checkbox" id="sstv-toggle">
+            <span class="toggle-slider"></span>
+          </label>
+          <span id="sstv-toggle-label">Disabled</span>
+        </div>
+      </div>
+    </section>
+
     <section id="progress-section" class="progress-section hidden">
       <h2>Capture Progress</h2>
       <div class="progress-container">
@@ -66,6 +85,21 @@
       </div>
     </section>
 
+    <section id="doppler-section" class="doppler-section hidden">
+      <h2>Doppler Shift</h2>
+      <div class="doppler-container">
+        <div class="doppler-info">
+          <span id="doppler-current">Current: -</span>
+          <span id="doppler-range">Range: -</span>
+        </div>
+        <svg id="doppler-chart" class="doppler-chart" viewBox="0 0 600 150" preserveAspectRatio="xMidYMid meet">
+          <line x1="0" y1="75" x2="600" y2="75" class="doppler-zero-line"/>
+          <polyline id="doppler-line" class="doppler-line" points=""/>
+          <circle id="doppler-marker" class="doppler-marker" cx="0" cy="75" r="4"/>
+        </svg>
+      </div>
+    </section>
+
     <section class="passes-section">
       <h2>Upcoming Passes</h2>
       <div class="table-container">
@@ -73,13 +107,15 @@
           <thead>
             <tr>
               <th>Satellite</th>
+              <th>Signal</th>
+              <th>Frequency</th>
               <th>Time</th>
               <th>Duration</th>
               <th>Max Elevation</th>
             </tr>
           </thead>
           <tbody id="passes-tbody">
-            <tr><td colspan="4" class="empty-message">No upcoming passes</td></tr>
+            <tr><td colspan="6" class="empty-message">No upcoming passes</td></tr>
           </tbody>
         </table>
       </div>
@@ -94,7 +130,7 @@
   </main>
 
   <footer>
-    <p>NOAA Satellite Capture System</p>
+    <p>RFCapture - Multi-Signal RF Capture System</p>
   </footer>
 
   <script src="/app.js"></script>

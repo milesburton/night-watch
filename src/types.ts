@@ -4,10 +4,25 @@ export interface Coordinates {
   altitude: number
 }
 
+export type SignalType = 'apt' | 'sstv'
+
+export type DemodulationType = 'fm' | 'am' | 'ssb'
+
+export interface SignalConfig {
+  type: SignalType
+  bandwidth: number
+  sampleRate: number
+  demodulation: DemodulationType
+}
+
 export interface SatelliteInfo {
   name: string
   noradId: number
   frequency: number
+  signalType: SignalType
+  signalConfig: SignalConfig
+  enabled: boolean
+  eventBased?: boolean
 }
 
 export interface TwoLineElement {
@@ -32,9 +47,22 @@ export interface SatellitePass {
   duration: number
 }
 
+export interface DopplerPoint {
+  timestamp: Date
+  frequency: number
+  shift: number
+}
+
+export interface DopplerData {
+  points: DopplerPoint[]
+  maxShift: number
+  minShift: number
+}
+
 export interface PassPrediction {
   pass: SatellitePass
   positions: SatellitePosition[]
+  doppler?: DopplerData
 }
 
 export interface CaptureResult {
@@ -103,6 +131,7 @@ export interface CaptureHistoryEntry {
   satelliteName: string
   satelliteNoradId: number
   frequency: number
+  signalType: SignalType
   aosTime: string
   losTime: string
   maxElevation: number
@@ -115,4 +144,19 @@ export interface CaptureHistoryEntry {
   errorMessage: string | null
   createdAt: string
   imagePaths: string[]
+}
+
+export interface SSTVEvent {
+  id: string
+  name: string
+  startTime: Date
+  endTime: Date
+  modes: string[]
+  active: boolean
+}
+
+export interface SSTVStatus {
+  manualEnabled: boolean
+  activeEvent: SSTVEvent | null
+  upcomingEvents: SSTVEvent[]
 }

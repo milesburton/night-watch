@@ -9,6 +9,28 @@ export interface SignalStrength {
   timestamp: Date
 }
 
+const parsePowerReadings = (stdout: string): { totalPower: number; count: number } =>
+  stdout
+    .trim()
+    .split('\n')
+    .reduce(
+      (acc, line) => {
+        const parts = line.split(',')
+        const power = parts.length >= 7 ? Number.parseFloat(parts[6] ?? '0') : Number.NaN
+
+        return !Number.isNaN(power) && Number.isFinite(power)
+          ? { totalPower: acc.totalPower + power, count: acc.count + 1 }
+          : acc
+      },
+      { totalPower: 0, count: 0 }
+    )
+
+const parsePowerFromLine = (line: string): number | null => {
+  const parts = line.split(',')
+  const power = parts.length >= 7 ? Number.parseFloat(parts[6] ?? '0') : Number.NaN
+  return !Number.isNaN(power) && Number.isFinite(power) ? power : null
+}
+
 export async function checkSignalStrength(
   satellite: SatelliteInfo,
   gain: number
@@ -30,39 +52,39 @@ export async function checkSignalStrength(
       '-',
     ])
 
-    if (result.exitCode !== 0) {
-      logger.warn(`Signal scan failed for ${satellite.name}`)
-      return null
-    }
+    const scanFailed = result.exitCode !== 0
+    scanFailed && logger.warn(`Signal scan failed for ${satellite.name}`)
 
-    const lines = result.stdout.trim().split('\n')
-    let totalPower = 0
-    let count = 0
+    const { totalPower, count } = scanFailed
+      ? { totalPower: 0, count: 0 }
+      : parsePowerReadings(result.stdout)
 
-    for (const line of lines) {
-      const parts = line.split(',')
-      if (parts.length >= 7) {
-        const power = Number.parseFloat(parts[6] ?? '0')
-        if (!Number.isNaN(power) && Number.isFinite(power)) {
-          totalPower += power
-          count++
-        }
-      }
-    }
-
-    if (count === 0) {
-      return null
-    }
-
-    return {
-      frequency: satellite.frequency,
-      power: totalPower / count,
-      timestamp: new Date(),
-    }
+    return count > 0
+      ? { frequency: satellite.frequency, power: totalPower / count, timestamp: new Date() }
+      : null
   } catch (error) {
     logger.error(`Error checking signal for ${satellite.name}:`, error)
     return null
   }
+}
+
+const checkSignalOnce = async (
+  satellite: SatelliteInfo,
+  gain: number,
+  minStrength: number,
+  attemptNum: number,
+  totalAttempts: number
+): Promise<boolean> => {
+  const strength = await checkSignalStrength(satellite, gain)
+  const isStrong = strength !== null && strength.power > minStrength
+
+  isStrong
+    ? logger.debug(
+        `Signal check ${attemptNum}/${totalAttempts}: ${strength.power.toFixed(1)} dB (pass)`
+      )
+    : logger.debug(`Signal check ${attemptNum}/${totalAttempts}: weak or no signal`)
+
+  return isStrong
 }
 
 export async function verifySignal(
@@ -71,24 +93,19 @@ export async function verifySignal(
   minStrength: number,
   attempts = 3
 ): Promise<boolean> {
-  let successCount = 0
+  const results: boolean[] = []
 
   for (let i = 0; i < attempts; i++) {
-    const strength = await checkSignalStrength(satellite, gain)
+    const isStrong = await checkSignalOnce(satellite, gain, minStrength, i + 1, attempts)
+    results.push(isStrong)
 
-    if (strength && strength.power > minStrength) {
-      successCount++
-      logger.debug(`Signal check ${i + 1}/${attempts}: ${strength.power.toFixed(1)} dB (pass)`)
-    } else {
-      logger.debug(`Signal check ${i + 1}/${attempts}: weak or no signal`)
-    }
-
-    if (i < attempts - 1) {
-      await Bun.sleep(2000)
-    }
+    const isNotLastAttempt = i < attempts - 1
+    isNotLastAttempt && (await Bun.sleep(2000))
   }
 
+  const successCount = results.filter(Boolean).length
   const passed = successCount >= Math.ceil(attempts / 2)
+
   logger.info(
     `Signal verification for ${satellite.name}: ${passed ? 'passed' : 'failed'} (${successCount}/${attempts})`
   )
@@ -122,15 +139,10 @@ export function startSignalMonitor(
     const lines = buffer.split('\n')
     buffer = lines.pop() ?? ''
 
-    for (const line of lines) {
-      const parts = line.split(',')
-      if (parts.length >= 7) {
-        const power = Number.parseFloat(parts[6] ?? '0')
-        if (!Number.isNaN(power) && Number.isFinite(power)) {
-          onReading(power)
-        }
-      }
-    }
+    lines.forEach((line) => {
+      const power = parsePowerFromLine(line)
+      power !== null && onReading(power)
+    })
   })
 
   return proc

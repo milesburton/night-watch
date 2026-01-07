@@ -1,7 +1,7 @@
 import { Database } from 'bun:sqlite'
 import { mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import type { CaptureHistoryEntry, CaptureResult, SatellitePass } from '../types'
+import type { CaptureHistoryEntry, CaptureResult, SatellitePass, SignalType } from '../types'
 
 export class CaptureDatabase {
   private db: Database
@@ -20,6 +20,7 @@ export class CaptureDatabase {
         satellite_name TEXT NOT NULL,
         satellite_norad_id INTEGER NOT NULL,
         frequency INTEGER NOT NULL,
+        signal_type TEXT NOT NULL DEFAULT 'apt',
         aos_time TEXT NOT NULL,
         los_time TEXT NOT NULL,
         max_elevation REAL NOT NULL,
@@ -33,6 +34,8 @@ export class CaptureDatabase {
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       )
     `)
+
+    this.migrateIfNeeded()
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS images (
@@ -56,16 +59,24 @@ export class CaptureDatabase {
     `)
   }
 
+  private migrateIfNeeded(): void {
+    const columns = this.db.query<{ name: string }, []>('PRAGMA table_info(captures)').all()
+    const hasSignalType = columns.some((c) => c.name === 'signal_type')
+    if (!hasSignalType) {
+      this.db.exec(`ALTER TABLE captures ADD COLUMN signal_type TEXT NOT NULL DEFAULT 'apt'`)
+    }
+  }
+
   saveCapture(result: CaptureResult, pass: SatellitePass): number {
     const passId = this.generatePassId(pass)
 
     const stmt = this.db.prepare(`
       INSERT INTO captures (
-        pass_id, satellite_name, satellite_norad_id, frequency,
+        pass_id, satellite_name, satellite_norad_id, frequency, signal_type,
         aos_time, los_time, max_elevation, duration_seconds,
         recording_path, start_time, end_time, max_signal_strength,
         success, error_message
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
     stmt.run(
@@ -73,6 +84,7 @@ export class CaptureDatabase {
       result.satellite.name,
       result.satellite.noradId,
       result.satellite.frequency,
+      result.satellite.signalType,
       pass.aos.toISOString(),
       pass.los.toISOString(),
       pass.maxElevation,
@@ -114,6 +126,7 @@ export class CaptureDatabase {
           satellite_name: string
           satellite_norad_id: number
           frequency: number
+          signal_type: string
           aos_time: string
           los_time: string
           max_elevation: number
@@ -146,6 +159,7 @@ export class CaptureDatabase {
       satelliteName: row.satellite_name,
       satelliteNoradId: row.satellite_norad_id,
       frequency: row.frequency,
+      signalType: (row.signal_type || 'apt') as SignalType,
       aosTime: row.aos_time,
       losTime: row.los_time,
       maxElevation: row.max_elevation,

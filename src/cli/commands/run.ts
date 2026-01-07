@@ -2,7 +2,8 @@ import chalk from 'chalk'
 import { loadConfig } from '../../config/config'
 import { closeDatabase, initializeDatabase } from '../../db/database'
 import { filterHighQualityPasses, formatPassesTable, predictPasses } from '../../prediction/passes'
-import { NOAA_SATELLITES } from '../../satellites/constants'
+import { SATELLITES } from '../../satellites/constants'
+import { isSstvActive } from '../../satellites/events'
 import { getTles } from '../../satellites/tle'
 import { runScheduler } from '../../scheduler/scheduler'
 import { stateManager } from '../../state/state-manager'
@@ -11,10 +12,11 @@ import { logger } from '../../utils/logger'
 import { checkDependencies } from '../../utils/shell'
 import { startWebServer } from '../../web/server'
 
-const REQUIRED_COMMANDS = ['rtl_fm', 'rtl_power', 'sox', 'aptdec']
+const REQUIRED_COMMANDS = ['rtl_fm', 'rtl_power', 'sox']
+const OPTIONAL_COMMANDS = ['aptdec', 'sstv']
 
 export async function runCommand(_args: string[]): Promise<void> {
-  console.log(chalk.bold.cyan('\n  NOAA Satellite Capture System\n'))
+  console.log(chalk.bold.cyan('\n  RFCapture - Multi-Signal RF Capture System\n'))
 
   const config = loadConfig()
   logger.setLevel(config.logLevel)
@@ -39,8 +41,14 @@ export async function runCommand(_args: string[]): Promise<void> {
   if (missing.length > 0) {
     logger.error(`Missing dependencies: ${missing.join(', ')}`)
     logger.info('Please install: sudo apt install rtl-sdr sox')
-    logger.info('For aptdec: https://github.com/Xerbo/aptdec')
     process.exit(1)
+  }
+
+  const optionalDeps = await checkDependencies(OPTIONAL_COMMANDS)
+  for (const [cmd, exists] of optionalDeps) {
+    if (!exists) {
+      logger.warn(`Optional decoder '${cmd}' not found - some signal types may not decode`)
+    }
   }
 
   // Start web server
@@ -63,12 +71,25 @@ export async function runCommand(_args: string[]): Promise<void> {
 
   while (true) {
     try {
+      const activeSatellites = SATELLITES.filter(
+        (sat) => sat.enabled && (!sat.eventBased || isSstvActive())
+      )
+
+      if (activeSatellites.length === 0) {
+        logger.info('No active satellites. Enable SSTV mode or check satellite configuration.')
+        stateManager.setStatus('idle')
+        await Bun.sleep(60 * 1000)
+        continue
+      }
+
+      logger.info(`Active satellites: ${activeSatellites.map((s) => s.name).join(', ')}`)
+
       logger.info('Fetching TLE data...')
-      const tles = await getTles(NOAA_SATELLITES, config.tle.updateIntervalHours)
+      const tles = await getTles(activeSatellites, config.tle.updateIntervalHours)
       logger.info(`Loaded TLEs for ${tles.length} satellites`)
 
       logger.info('Predicting satellite passes...')
-      const allPasses = predictPasses(NOAA_SATELLITES, tles, config.station, {
+      const allPasses = predictPasses(activeSatellites, tles, config.station, {
         minElevation: config.recording.minElevation,
         hoursAhead: 24,
       })

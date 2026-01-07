@@ -18,6 +18,23 @@ export function createObserver(coords: Coordinates): satellite.GeodeticLocation 
   }
 }
 
+const computeLookAngles = (
+  positionEci: satellite.EciVec3<number>,
+  observer: satellite.GeodeticLocation,
+  time: Date
+): SatellitePosition => {
+  const gmst = satellite.gstime(time)
+  const positionEcf = satellite.eciToEcf(positionEci, gmst)
+  const lookAngles = satellite.ecfToLookAngles(observer, positionEcf)
+
+  return {
+    azimuth: lookAngles.azimuth * RAD_TO_DEG,
+    elevation: lookAngles.elevation * RAD_TO_DEG,
+    rangeSat: lookAngles.rangeSat,
+    timestamp: time,
+  }
+}
+
 export function getSatellitePosition(
   tle: TwoLineElement,
   observer: satellite.GeodeticLocation,
@@ -26,22 +43,9 @@ export function getSatellitePosition(
   try {
     const satrec = satellite.twoline2satrec(tle.line1, tle.line2)
     const positionAndVelocity = satellite.propagate(satrec, time)
+    const position = positionAndVelocity.position
 
-    if (typeof positionAndVelocity.position === 'boolean') {
-      return null
-    }
-
-    const positionEci = positionAndVelocity.position
-    const gmst = satellite.gstime(time)
-    const positionEcf = satellite.eciToEcf(positionEci, gmst)
-    const lookAngles = satellite.ecfToLookAngles(observer, positionEcf)
-
-    return {
-      azimuth: lookAngles.azimuth * RAD_TO_DEG,
-      elevation: lookAngles.elevation * RAD_TO_DEG,
-      rangeSat: lookAngles.rangeSat,
-      timestamp: time,
-    }
+    return typeof position !== 'boolean' ? computeLookAngles(position, observer, time) : null
   } catch {
     return null
   }

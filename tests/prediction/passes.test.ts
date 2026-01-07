@@ -1,22 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { filterHighQualityPasses, formatPass, predictPasses } from '../../src/prediction/passes'
-import type { Coordinates, SatelliteInfo, SatellitePass, TwoLineElement } from '../../src/types'
-
-const TEST_STATION: Coordinates = {
-  latitude: 51.4761,
-  longitude: 0.1709,
-  altitude: 10,
-}
-
-const TEST_SATELLITES: SatelliteInfo[] = [{ name: 'NOAA 19', noradId: 33591, frequency: 137.1e6 }]
-
-const TEST_TLES: TwoLineElement[] = [
-  {
-    name: 'NOAA 19',
-    line1: '1 33591U 09005A   25085.56541919  .00000082  00000+0  69653-4 0  9990',
-    line2: '2 33591  99.1870 136.4258 0014198 103.3588 256.9118 14.12499278770708',
-  },
-]
+import type { SatellitePass } from '../../src/types'
+import { TEST_SATELLITE, TEST_SATELLITES, TEST_STATION, TEST_TLES } from '../fixtures'
 
 describe('pass prediction', () => {
   describe('predictPasses', () => {
@@ -39,7 +24,7 @@ describe('pass prediction', () => {
   describe('filterHighQualityPasses', () => {
     it('should keep high elevation passes', () => {
       const mockPass: SatellitePass = {
-        satellite: TEST_SATELLITES[0]!,
+        satellite: TEST_SATELLITE,
         aos: new Date(),
         los: new Date(Date.now() + 600000),
         maxElevation: 45,
@@ -53,7 +38,7 @@ describe('pass prediction', () => {
 
     it('should filter out low elevation passes', () => {
       const mockPass: SatellitePass = {
-        satellite: TEST_SATELLITES[0]!,
+        satellite: TEST_SATELLITE,
         aos: new Date(),
         los: new Date(Date.now() + 300000),
         maxElevation: 15,
@@ -69,7 +54,7 @@ describe('pass prediction', () => {
   describe('formatPass', () => {
     it('should format pass information correctly', () => {
       const mockPass: SatellitePass = {
-        satellite: { name: 'NOAA 19', noradId: 33591, frequency: 137.1e6 },
+        satellite: TEST_SATELLITE,
         aos: new Date('2025-03-27T10:30:00'),
         los: new Date('2025-03-27T10:45:00'),
         maxElevation: 65.5,

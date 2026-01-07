@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import ora from 'ora'
-import { decodeRecording } from '../capture/decoder'
+import { decodeRecording } from '../capture/decoders'
 import { recordPass } from '../capture/recorder'
 import { verifySignal } from '../capture/signal'
 import { getDatabase } from '../db/database'
@@ -124,12 +124,12 @@ export async function capturePass(
     spinner.succeed(`Recording complete: ${recordingPath}`)
 
     stateManager.setStatus('decoding')
-    const images = await decodeRecording(recordingPath, config.recording.imagesDir)
-    const imagePaths = images
-      ? [images.channelA, images.channelB, images.composite].filter(
-          (p): p is string => p !== undefined
-        )
-      : []
+    const decoderResult = await decodeRecording(
+      recordingPath,
+      config.recording.imagesDir,
+      satellite.signalType
+    )
+    const imagePaths = decoderResult?.outputPaths ?? []
 
     const result: CaptureResult = {
       satellite,

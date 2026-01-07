@@ -1,5 +1,5 @@
 {
-  "name": "NOAA Satellite Capture",
+  "name": "RFCapture",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."
@@ -12,8 +12,13 @@
       "extensions": ["ms-azuretools.vscode-docker", "eamodio.gitlens", "biomejs.biome"]
     }
   },
-  "mounts": ["source=/dev/bus/usb,target=/dev/bus/usb,type=bind"],
+  "mounts": [
+    "source=/dev/bus/usb,target=/dev/bus/usb,type=bind",
+    "source=rfcapture-data,target=/workspace/data,type=volume",
+    "source=rfcapture-images,target=/workspace/images,type=volume",
+    "source=rfcapture-recordings,target=/workspace/recordings,type=volume"
+  ],
   "runArgs": ["--privileged"],
-  "postCreateCommand": "bun install && echo '🛰️ Dev Container Ready! Run: bun start'",
+  "postCreateCommand": "bun install && echo 'RFCapture Dev Container Ready! Run: bun start'",
   "postStartCommand": "bun install"
 }

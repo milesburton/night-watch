@@ -1,6 +1,7 @@
 import { resolve } from 'node:path'
 import type { ServerWebSocket } from 'bun'
 import { getDatabase } from '../db/database'
+import { getSstvStatus, setManualSstvEnabled } from '../satellites/events'
 import { stateManager } from '../state/state-manager'
 import type { StateEvent } from '../types'
 
@@ -14,7 +15,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
     port,
     hostname: host,
 
-    fetch(req, server) {
+    async fetch(req, server) {
       const url = new URL(req.url)
 
       // WebSocket upgrade
@@ -73,6 +74,22 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
         }
       }
 
+      if (url.pathname === '/api/sstv/status') {
+        return jsonResponse(getSstvStatus())
+      }
+
+      if (url.pathname === '/api/sstv/toggle' && req.method === 'POST') {
+        try {
+          const body = (await req.json()) as { enabled?: boolean }
+          const enabled = body.enabled ?? !getSstvStatus().manualEnabled
+          setManualSstvEnabled(enabled)
+          broadcastSstvStatus()
+          return jsonResponse(getSstvStatus())
+        } catch {
+          return new Response('Bad Request', { status: 400 })
+        }
+      }
+
       return new Response('Not Found', { status: 404 })
     },
 
@@ -111,6 +128,20 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
   })
 
   return server
+}
+
+function broadcastSstvStatus() {
+  const message = JSON.stringify({
+    type: 'sstv_status',
+    status: getSstvStatus(),
+  })
+  for (const client of clients) {
+    try {
+      client.send(message)
+    } catch {
+      clients.delete(client)
+    }
+  }
 }
 
 function jsonResponse(data: unknown): Response {

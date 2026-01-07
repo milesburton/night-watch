@@ -13,19 +13,36 @@ interface TleCache {
   satellites: TwoLineElement[]
 }
 
+const parseTleText = (text: string, expectedName: string): TwoLineElement | null => {
+  const lines = text
+    .trim()
+    .split('\n')
+    .map((l) => l.trim())
+
+  const [line0, line1, line2] = lines
+
+  const isTwoLineFormat = lines.length === 2 && line0?.startsWith('1 ') && line1?.startsWith('2 ')
+  const isThreeLineFormat = lines.length >= 3 && line1?.startsWith('1 ') && line2?.startsWith('2 ')
+
+  return isTwoLineFormat && line0 && line1
+    ? { name: expectedName, line1: line0, line2: line1 }
+    : isThreeLineFormat && line1 && line2
+      ? { name: line0 ?? expectedName, line1, line2 }
+      : null
+}
+
 export async function fetchTle(satellite: SatelliteInfo): Promise<TwoLineElement | null> {
   const url = `${CELESTRAK_GP_API}?CATNR=${satellite.noradId}&FORMAT=TLE`
 
   try {
     const response = await fetch(url)
+    const responseOk = response.ok
 
-    if (!response.ok) {
-      logger.error(`Failed to fetch TLE for ${satellite.name}: ${response.statusText}`)
-      return null
-    }
+    !responseOk && logger.error(`Failed to fetch TLE for ${satellite.name}: ${response.statusText}`)
 
-    const text = await response.text()
-    return parseTleText(text, satellite.name)
+    const text = responseOk ? await response.text() : ''
+
+    return responseOk ? parseTleText(text, satellite.name) : null
   } catch (error) {
     logger.error(`Error fetching TLE for ${satellite.name}:`, error)
     return null
@@ -37,49 +54,18 @@ export async function fetchAllTles(satellites: SatelliteInfo[]): Promise<TwoLine
   return results.filter((tle): tle is TwoLineElement => tle !== null)
 }
 
-function parseTleText(text: string, expectedName: string): TwoLineElement | null {
-  const lines = text
-    .trim()
-    .split('\n')
-    .map((l) => l.trim())
-
-  if (lines.length < 2) {
-    return null
-  }
-
-  if (lines.length === 2 && lines[0]?.startsWith('1 ') && lines[1]?.startsWith('2 ')) {
-    return {
-      name: expectedName,
-      line1: lines[0],
-      line2: lines[1],
-    }
-  }
-
-  if (lines.length >= 3 && lines[1]?.startsWith('1 ') && lines[2]?.startsWith('2 ')) {
-    return {
-      name: lines[0] ?? expectedName,
-      line1: lines[1],
-      line2: lines[2],
-    }
-  }
-
-  return null
-}
-
 export async function loadCachedTles(maxAgeHours: number): Promise<TwoLineElement[] | null> {
   try {
     const cacheJson = await readTextFile(join(TLE_CACHE_DIR, 'cache.json'))
     const cache: TleCache = JSON.parse(cacheJson)
-
     const ageHours = (Date.now() - cache.fetchedAt) / (1000 * 60 * 60)
+    const isExpired = ageHours > maxAgeHours
 
-    if (ageHours > maxAgeHours) {
-      logger.debug(`TLE cache expired (${ageHours.toFixed(1)} hours old)`)
-      return null
-    }
+    isExpired
+      ? logger.debug(`TLE cache expired (${ageHours.toFixed(1)} hours old)`)
+      : logger.debug(`Using cached TLEs (${ageHours.toFixed(1)} hours old)`)
 
-    logger.debug(`Using cached TLEs (${ageHours.toFixed(1)} hours old)`)
-    return cache.satellites
+    return isExpired ? null : cache.satellites
   } catch {
     return null
   }
@@ -106,23 +92,25 @@ export async function getTles(
   maxAgeHours: number
 ): Promise<TwoLineElement[]> {
   const cached = await loadCachedTles(maxAgeHours)
+  const cacheIsValid = cached !== null && cached.length === satellites.length
 
-  if (cached && cached.length === satellites.length) {
-    return cached
+  const fresh = cacheIsValid
+    ? []
+    : await (async () => {
+        logger.info('Fetching fresh TLE data from CelesTrak...')
+        return fetchAllTles(satellites)
+      })()
+
+  const hasFresh = fresh.length > 0
+  hasFresh && (await saveTlesToCache(fresh))
+
+  const result = cacheIsValid ? cached : hasFresh ? fresh : cached
+
+  if (result === null) {
+    throw new Error('Failed to obtain TLE data')
   }
 
-  logger.info('Fetching fresh TLE data from CelesTrak...')
-  const fresh = await fetchAllTles(satellites)
+  !cacheIsValid && !hasFresh && cached && logger.warn('Using stale cached TLEs as fallback')
 
-  if (fresh.length > 0) {
-    await saveTlesToCache(fresh)
-    return fresh
-  }
-
-  if (cached) {
-    logger.warn('Using stale cached TLEs as fallback')
-    return cached
-  }
-
-  throw new Error('Failed to obtain TLE data')
+  return result
 }
