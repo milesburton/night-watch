@@ -365,6 +365,17 @@ class SatelliteMonitor {
     this.updateStatus('idle')
     document.getElementById('current-pass').classList.add('hidden')
     document.getElementById('doppler-section').classList.add('hidden')
+
+    // Remove completed pass from upcoming passes and update next pass
+    if (this.state?.upcomingPasses) {
+      this.state.upcomingPasses = this.state.upcomingPasses.filter(
+        (p) => new Date(p.aos).getTime() > Date.now()
+      )
+      this.state.nextPass = this.state.upcomingPasses[0] || null
+      this.updateNextPass(this.state.nextPass)
+      this.updatePassesList(this.state.upcomingPasses)
+    }
+
     this.loadCaptures()
     this.loadSummary()
   }
