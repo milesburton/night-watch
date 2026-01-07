@@ -17,6 +17,11 @@ Multi-signal RF capture platform for satellite imagery. Automatically captures a
 - VHF antenna (137MHz turnstile for APT, or 145MHz for SSTV)
 - Raspberry Pi or Linux machine
 
+## Prerequisites
+
+- Docker and Docker Compose v2 installed
+- RTL-SDR dongle connected via USB
+
 ## Quick Start
 
 ```bash
@@ -24,15 +29,12 @@ git clone https://github.com/milesburton/noaa-satellite-capture.git
 cd noaa-satellite-capture
 cp .env.example .env
 nano .env   # Set your coordinates (see Configuration below)
-```
-
-Start the container:
-
-```bash
 docker compose up -d
 ```
 
 Web dashboard: `http://localhost:3000`
+
+**Troubleshooting:** If you get "no configuration file provided", ensure you're in the project directory and have Docker Compose v2 installed (`docker compose version`). The project uses `compose.yaml` which requires Compose v2.
 
 ## Running Continuously
 
