@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Data directories (mounted as volumes)
+data/
+recordings/
+images/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Development
+.devcontainer/
+*.log
+*.tmp
+
+# Build artifacts
+dist/
+*.tsbuildinfo
+
+# Test files
+tests/
+coverage/
+
+# Documentation
+*.md
+!README.md
+
+# Misc
+.DS_Store
+Thumbs.db

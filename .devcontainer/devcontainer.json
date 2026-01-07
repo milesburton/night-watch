@@ -1,22 +1,24 @@
 {
-  "name": "NOAA Satellite Dev",
+  "name": "RFCapture",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-  "settings": {
-    "terminal.integrated.defaultProfile.linux": "bash"
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": ["ms-azuretools.vscode-docker", "eamodio.gitlens", "biomejs.biome"]
+    }
   },
-  "extensions": [
-    "ms-azuretools.vscode-docker",
-    "eamodio.gitlens"
-  ],
   "mounts": [
-    "source=/dev/bus/usb,target=/dev/bus/usb,type=bind,consistency=cached"
+    "source=/dev/bus/usb,target=/dev/bus/usb,type=bind",
+    "source=rfcapture-data,target=/workspace/data,type=volume",
+    "source=rfcapture-images,target=/workspace/images,type=volume",
+    "source=rfcapture-recordings,target=/workspace/recordings,type=volume"
   ],
-  "runArgs": [
-    "--device=/dev/bus/usb"
-  ],
-  "postCreateCommand": "echo '🚀 Dev Container Ready! Plug in RTL-SDR and start capturing!'"
+  "runArgs": ["--privileged"],
+  "postCreateCommand": "bun install && echo 'RFCapture Dev Container Ready! Run: bun start'",
+  "postStartCommand": "bun install"
 }
-

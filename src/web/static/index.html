@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RFCapture</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <h1>RFCapture</h1>
+    <div id="connection-status" class="connection-status disconnected">Disconnected</div>
+  </header>
+
+  <main>
+    <section class="status-section">
+      <div class="status-card">
+        <h2>System Status</h2>
+        <div class="status-indicator">
+          <span id="status-badge" class="status-badge status-idle">Idle</span>
+        </div>
+        <div id="current-pass" class="current-pass hidden">
+          <p><strong>Current:</strong> <span id="current-satellite">-</span></p>
+          <p><strong>Frequency:</strong> <span id="current-frequency">-</span></p>
+          <p><strong>Max Elevation:</strong> <span id="current-elevation">-</span></p>
+        </div>
+      </div>
+
+      <div class="status-card">
+        <h2>Next Pass</h2>
+        <div id="next-pass-info">
+          <p id="next-satellite" class="next-satellite">-</p>
+          <p id="next-frequency" class="next-frequency">-</p>
+          <p id="next-time" class="next-time">-</p>
+          <p id="next-countdown" class="next-countdown">-</p>
+        </div>
+      </div>
+
+      <div class="status-card">
+        <h2>Statistics</h2>
+        <div class="stats-grid">
+          <div class="stat">
+            <span id="stat-total" class="stat-value">0</span>
+            <span class="stat-label">Total</span>
+          </div>
+          <div class="stat">
+            <span id="stat-success" class="stat-value success">0</span>
+            <span class="stat-label">Success</span>
+          </div>
+          <div class="stat">
+            <span id="stat-failed" class="stat-value failed">0</span>
+            <span class="stat-label">Failed</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sstv-section">
+      <div class="sstv-card">
+        <div class="sstv-header">
+          <h2>ISS SSTV</h2>
+          <span id="sstv-status-badge" class="sstv-badge inactive">Inactive</span>
+        </div>
+        <p class="sstv-description">Enable manual SSTV capture mode for ISS events (145.800 MHz)</p>
+        <div class="sstv-toggle-container">
+          <label class="toggle-switch">
+            <input type="checkbox" id="sstv-toggle">
+            <span class="toggle-slider"></span>
+          </label>
+          <span id="sstv-toggle-label">Disabled</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="progress-section" class="progress-section hidden">
+      <h2>Capture Progress</h2>
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="progress-info">
+          <span id="progress-percent">0%</span>
+          <span id="progress-time">0:00 remaining</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="doppler-section" class="doppler-section hidden">
+      <h2>Doppler Shift</h2>
+      <div class="doppler-container">
+        <div class="doppler-info">
+          <span id="doppler-current">Current: -</span>
+          <span id="doppler-range">Range: -</span>
+        </div>
+        <svg id="doppler-chart" class="doppler-chart" viewBox="0 0 600 150" preserveAspectRatio="xMidYMid meet">
+          <line x1="0" y1="75" x2="600" y2="75" class="doppler-zero-line"/>
+          <polyline id="doppler-line" class="doppler-line" points=""/>
+          <circle id="doppler-marker" class="doppler-marker" cx="0" cy="75" r="4"/>
+        </svg>
+      </div>
+    </section>
+
+    <section class="passes-section">
+      <h2>Upcoming Passes</h2>
+      <div class="table-container">
+        <table id="passes-table">
+          <thead>
+            <tr>
+              <th>Satellite</th>
+              <th>Signal</th>
+              <th>Frequency</th>
+              <th>Time</th>
+              <th>Duration</th>
+              <th>Max Elevation</th>
+            </tr>
+          </thead>
+          <tbody id="passes-tbody">
+            <tr><td colspan="6" class="empty-message">No upcoming passes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="gallery-section">
+      <h2>Recent Captures</h2>
+      <div id="captures-gallery" class="captures-gallery">
+        <p class="empty-message">No captures yet</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>RFCapture - Multi-Signal RF Capture System</p>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

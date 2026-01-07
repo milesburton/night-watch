@@ -1,0 +1,41 @@
+services:
+  rfcapture:
+    build: .
+    container_name: rfcapture
+    restart: unless-stopped
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    privileged: true
+    ports:
+      - "3000:3000"
+    volumes:
+      - rfcapture-data:/app/data
+      - rfcapture-recordings:/app/recordings
+      - rfcapture-images:/app/images
+    environment:
+      - STATION_LATITUDE=${STATION_LATITUDE:-51.5069}
+      - STATION_LONGITUDE=${STATION_LONGITUDE:--0.1276}
+      - STATION_ALTITUDE=${STATION_ALTITUDE:-10}
+      - SDR_GAIN=${SDR_GAIN:-45}
+      - SDR_SAMPLE_RATE=${SDR_SAMPLE_RATE:-48000}
+      - SDR_PPM_CORRECTION=${SDR_PPM_CORRECTION:-0}
+      - MIN_ELEVATION=${MIN_ELEVATION:-20}
+      - MIN_SIGNAL_STRENGTH=${MIN_SIGNAL_STRENGTH:--20}
+      - RECORDINGS_DIR=/app/recordings
+      - IMAGES_DIR=/app/images
+      - DATABASE_PATH=/app/data/captures.db
+      - WEB_PORT=3000
+      - WEB_HOST=0.0.0.0
+      - TLE_UPDATE_INTERVAL_HOURS=${TLE_UPDATE_INTERVAL_HOURS:-24}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  rfcapture-data:
+  rfcapture-recordings:
+  rfcapture-images:

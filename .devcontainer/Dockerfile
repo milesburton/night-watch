@@ -1,47 +1,41 @@
-FROM debian:bullseye
+FROM debian:bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1️⃣ Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN echo "1" > /var/lib/dpkg/info/format \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean \
+    && apt-get update --allow-insecure-repositories \
+    && apt-get install -y --allow-unauthenticated ca-certificates gnupg curl \
+    && mkdir -p /etc/apt/keyrings \
+    && for key in 6ED0E7B82643E131 78DBA3BC47EF2265 F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8; do \
+         for i in 1 2 3 4 5; do \
+           gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $key && break || sleep 5; \
+         done; \
+       done \
+    && gpg --export 6ED0E7B82643E131 78DBA3BC47EF2265 F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8 | tee /etc/apt/trusted.gpg.d/debian.gpg > /dev/null \
+    && apt-get update \
+    && apt-get install -y \
     rtl-sdr \
     sox \
     git \
-    python3 \
-    python3-pip \
-    wget \
+    unzip \
     build-essential \
-    nginx \
-    noaa-apt \
-    cron \
-    predict \
-    tree \
-    vim \
-    && apt-get clean
+    cmake \
+    libsndfile-dev \
+    libpng-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# 2️⃣ Create working directories
-RUN mkdir -p /workspace/scripts /website /workspace/recordings /workspace/images \
-    && chown -R www-data:www-data /website
+RUN git clone --recursive https://github.com/Xerbo/aptdec.git /tmp/aptdec \
+    && cd /tmp/aptdec \
+    && cmake -B build \
+    && cmake --build build \
+    && cp build/aptdec /usr/local/bin/ \
+    && rm -rf /tmp/aptdec
 
-# 3️⃣ Copy scripts before setting up cron (for better caching)
-COPY ./scripts /workspace/scripts
-RUN chmod +x /workspace/scripts/*.sh
-
-# 4️⃣ Set up cron jobs (runs tle_update + schedule_passes every 6h)
-RUN bash /workspace/scripts/setup_cron.sh
-
-# 5️⃣ Serve website via Nginx
-RUN ln -s /website /var/www/html/noaa
-
-# 6️⃣ Optional: Run cron and nginx at startup
-CMD service cron start && service nginx start && tail -f /dev/null
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
 
 WORKDIR /workspace
 
-# Copy startup script
-COPY ./scripts/start_services.sh /start_services.sh
-RUN chmod +x /start_services.sh
-
-# CMD to start services and tail logs
-CMD ["/start_services.sh"]
-
+CMD ["bash"]

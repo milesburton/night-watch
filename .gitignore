@@ -1,20 +1,38 @@
-# Ignore all files in data directory
-data/*
+# Dependencies
+node_modules/
 
-# Ignore environment files
+# Build output
+dist/
+
+# Data directories
+data/*
+recordings/*
+images/*
+!data/.gitkeep
+!recordings/.gitkeep
+!images/.gitkeep
+
+# Environment files
 .env
 .env.local
 .env.*.local
 
-# Ignore sensitive configuration files
+# Sensitive configuration
 *.secret
 *.credentials
 
-# Ignore system and IDE files
+# System and IDE files
 .DS_Store
 .idea/
-.vscode/
+.vscode/settings.json
 
-# Ignore logs and temporary files
+# Logs and temporary files
 *.log
 *.tmp
+
+# TLE cache
+.tle-cache/
+
+# Bun
+bun.lockb
+.env.raspberrypi
