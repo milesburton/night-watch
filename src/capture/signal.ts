@@ -113,6 +113,48 @@ export async function verifySignal(
   return passed
 }
 
+/**
+ * Quick signal check at a specific frequency without full satellite info
+ * Used for scanning frequencies during idle time
+ */
+export async function verifySignalAtFrequency(
+  frequency: number,
+  gain: number,
+  minStrength: number
+): Promise<boolean> {
+  const freqMHz = frequency / 1e6
+  const startFreq = `${freqMHz}M`
+  const endFreq = `${freqMHz + 0.1}M` // Narrow scan for quick check
+
+  try {
+    const result = await runCommand('rtl_power', [
+      '-f',
+      `${startFreq}:${endFreq}:10k`,
+      '-g',
+      gain.toString(),
+      '-i',
+      '1',
+      '-e',
+      '2s', // Quick 2-second scan
+      '-',
+    ])
+
+    if (result.exitCode !== 0) {
+      return false
+    }
+
+    const { totalPower, count } = parsePowerReadings(result.stdout)
+    if (count === 0) return false
+
+    const avgPower = totalPower / count
+    logger.debug(`Signal at ${freqMHz.toFixed(3)} MHz: ${avgPower.toFixed(1)} dB`)
+    return avgPower > minStrength
+  } catch (error) {
+    logger.debug(`Error scanning ${freqMHz.toFixed(3)} MHz: ${error}`)
+    return false
+  }
+}
+
 export function startSignalMonitor(
   satellite: SatelliteInfo,
   gain: number,

@@ -151,8 +151,19 @@
     </section>
   </main>
 
-  <footer>
-    <p>RFCapture - Multi-Signal RF Capture System</p>
+  <footer class="status-bar">
+    <div class="status-bar-left">
+      <span class="status-bar-item">
+        <span class="status-indicator-dot" id="sdr-status-dot"></span>
+        <span id="sdr-status-text">SDR: Checking...</span>
+      </span>
+    </div>
+    <div class="status-bar-center">
+      <span id="status-bar-message">RFCapture - Multi-Signal RF Capture System</span>
+    </div>
+    <div class="status-bar-right">
+      <span class="status-bar-item" id="version-info">v-.-.- (---)</span>
+    </div>
   </footer>
 
   <script src="/app.js"></script>

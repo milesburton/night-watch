@@ -96,6 +96,19 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
         return jsonResponse(globe)
       }
 
+      if (url.pathname === '/api/version') {
+        try {
+          const versionFile = Bun.file('./version.json')
+          if (await versionFile.exists()) {
+            const version = await versionFile.json()
+            return jsonResponse(version)
+          }
+        } catch {
+          // Ignore errors reading version file
+        }
+        return jsonResponse({ version: 'dev', commit: 'unknown', buildTime: null })
+      }
+
       return new Response('Not Found', { status: 404 })
     },
 

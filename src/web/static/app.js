@@ -9,6 +9,8 @@ class SatelliteMonitor {
     this.countdownInterval = null
     this.globe = null
     this.globeInitialised = false
+    this.currentVersion = null
+    this.versionCheckInterval = null
   }
 
   connect() {
@@ -68,6 +70,7 @@ class SatelliteMonitor {
         break
       case 'status_change':
         this.updateStatus(data.status)
+        this.updateSdrStatus()
         break
       case 'capture_progress':
         this.updateProgress(data.progress, data.elapsed, data.total)
@@ -107,6 +110,9 @@ class SatelliteMonitor {
     this.startCountdown()
     this.setupSstvToggle()
     this.initGlobe()
+    this.loadVersion()
+    this.startVersionCheck()
+    this.updateSdrStatus()
   }
 
   formatFrequency(hz) {
@@ -528,6 +534,73 @@ class SatelliteMonitor {
           lng: globeState.station.longitude,
         },
       ])
+    }
+  }
+
+  async loadVersion() {
+    try {
+      const response = await fetch('/api/version')
+      const version = await response.json()
+      this.currentVersion = version
+      this.updateVersionDisplay(version)
+    } catch (error) {
+      console.error('Failed to load version:', error)
+      this.updateVersionDisplay({ version: 'unknown', commit: '---' })
+    }
+  }
+
+  updateVersionDisplay(version) {
+    const versionEl = document.getElementById('version-info')
+    const commitShort = version.commit ? version.commit.substring(0, 7) : '---'
+    versionEl.textContent = `v${version.version} (${commitShort})`
+  }
+
+  startVersionCheck() {
+    // Check for version changes every 30 seconds
+    this.versionCheckInterval = setInterval(() => this.checkVersion(), 30000)
+  }
+
+  async checkVersion() {
+    try {
+      const response = await fetch('/api/version')
+      const version = await response.json()
+
+      if (
+        this.currentVersion?.commit &&
+        version.commit &&
+        this.currentVersion.commit !== version.commit
+      ) {
+        console.log('New version detected, refreshing...')
+        // Silently refresh the page
+        window.location.reload()
+      }
+    } catch (error) {
+      // Ignore errors during version check
+    }
+  }
+
+  updateSdrStatus() {
+    const dot = document.getElementById('sdr-status-dot')
+    const text = document.getElementById('sdr-status-text')
+
+    // Update based on connection and system status
+    if (this.state) {
+      const isCapturing = this.state.status === 'capturing' || this.state.status === 'decoding'
+      const hasUpcomingPasses = this.state.upcomingPasses && this.state.upcomingPasses.length > 0
+
+      if (isCapturing) {
+        dot.className = 'status-indicator-dot online'
+        text.textContent = 'SDR: Active'
+      } else if (hasUpcomingPasses) {
+        dot.className = 'status-indicator-dot online'
+        text.textContent = 'SDR: Ready'
+      } else {
+        dot.className = 'status-indicator-dot checking'
+        text.textContent = 'SDR: Standby'
+      }
+    } else {
+      dot.className = 'status-indicator-dot checking'
+      text.textContent = 'SDR: Checking...'
     }
   }
 }

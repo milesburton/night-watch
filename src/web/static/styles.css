@@ -542,6 +542,67 @@ footer {
   border-top: 1px solid var(--border);
 }
 
+/* Status Bar */
+.status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  z-index: 1000;
+}
+
+.status-bar-left,
+.status-bar-center,
+.status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.status-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+}
+
+.status-indicator-dot.online {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+.status-indicator-dot.offline {
+  background: var(--error);
+}
+
+.status-indicator-dot.checking {
+  background: var(--warning);
+  animation: pulse 1s infinite;
+}
+
+#version-info {
+  font-family: monospace;
+  color: var(--text-secondary);
+}
+
+/* Add padding to main content to account for fixed status bar */
+main {
+  padding-bottom: 4rem;
+}
+
 .hidden {
   display: none !important;
 }

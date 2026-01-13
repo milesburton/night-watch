@@ -132,6 +132,7 @@ export interface ReceiverConfig {
     path: string
   }
   logLevel: LogLevel
+  issSstvEnabled: boolean
 }
 
 // System state types for web dashboard

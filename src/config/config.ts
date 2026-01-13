@@ -17,6 +17,10 @@ const envSchema = z.object({
   WEB_PORT: z.coerce.number().default(3000),
   WEB_HOST: z.string().default('0.0.0.0'),
   DATABASE_PATH: z.string().default('./data/captures.db'),
+  ISS_SSTV_ENABLED: z
+    .string()
+    .transform((v) => v === 'true')
+    .default('true'),
 })
 
 function parseEnv(): z.infer<typeof envSchema> {
@@ -61,5 +65,6 @@ export function loadConfig(): ReceiverConfig {
       path: env.DATABASE_PATH,
     },
     logLevel: env.LOG_LEVEL as LogLevel,
+    issSstvEnabled: env.ISS_SSTV_ENABLED,
   }
 }

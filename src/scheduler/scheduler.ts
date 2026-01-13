@@ -3,13 +3,17 @@ import ora from 'ora'
 import { decodeRecording } from '../capture/decoders'
 import { recordPass } from '../capture/recorder'
 import { verifySignal } from '../capture/signal'
+import { isSstvScannerRunning, scanForSstv, stopSstvScanner } from '../capture/sstv-scanner'
 import { getDatabase } from '../db/database'
 import { PASS_CONSTRAINTS } from '../satellites/constants'
 import { stateManager } from '../state/state-manager'
 import type { CaptureResult, ReceiverConfig, SatellitePass } from '../types'
 import { logger } from '../utils/logger'
 
-export async function waitForPass(pass: SatellitePass): Promise<void> {
+// Minimum idle time (in seconds) before starting SSTV scanning
+const MIN_IDLE_FOR_SSTV_SCAN = 180 // 3 minutes
+
+export async function waitForPass(pass: SatellitePass, config?: ReceiverConfig): Promise<void> {
   const now = Date.now()
   const passStart = pass.aos.getTime()
   const bufferMs = PASS_CONSTRAINTS.captureBufferSeconds * 1000
@@ -29,6 +33,51 @@ export async function waitForPass(pass: SatellitePass): Promise<void> {
     `Waiting ${formatDuration(waitSeconds)} for ${pass.satellite.name} (max elevation: ${pass.maxElevation.toFixed(1)}°)`
   )
 
+  // If we have enough idle time and config is provided, scan for 2m SSTV
+  if (config && waitSeconds > MIN_IDLE_FOR_SSTV_SCAN && !isSstvScannerRunning()) {
+    logger.info('Starting 2m SSTV scan during idle time...')
+
+    // Calculate max scan duration (leave 60s buffer before pass)
+    const maxScanDuration = Math.min(waitSeconds - 60, 120)
+
+    // Run SSTV scan in background - don't await, let it run while we wait
+    scanForSstv(config, maxScanDuration)
+      .then((result) => {
+        if (result?.success) {
+          logger.info(`2m SSTV scan captured image: ${result.imagePaths.join(', ')}`)
+        }
+      })
+      .catch((error) => {
+        logger.debug(`SSTV scan error: ${error}`)
+      })
+
+    // Wait for pass, stopping scanner if needed
+    const spinner = ora({
+      text: formatCountdown(waitSeconds),
+      color: 'cyan',
+    }).start()
+
+    const updateInterval = setInterval(() => {
+      const remaining = Math.ceil((targetTime - Date.now()) / 1000)
+      if (remaining > 0) {
+        spinner.text = `${formatCountdown(remaining)} (SSTV scanning)`
+      }
+      // Stop scanner 30s before pass to ensure SDR is free
+      if (remaining <= 30 && isSstvScannerRunning()) {
+        stopSstvScanner()
+        spinner.text = formatCountdown(remaining)
+      }
+    }, 1000)
+
+    await Bun.sleep(waitMs)
+
+    clearInterval(updateInterval)
+    stopSstvScanner() // Ensure scanner is stopped
+    spinner.succeed(chalk.green('Pass starting!'))
+    return
+  }
+
+  // Standard wait without SSTV scanning
   const spinner = ora({
     text: formatCountdown(waitSeconds),
     color: 'cyan',
@@ -190,7 +239,7 @@ export async function runScheduler(
       continue
     }
 
-    await waitForPass(pass)
+    await waitForPass(pass, config)
     const result = await capturePass(pass, config)
     results.push(result)
 

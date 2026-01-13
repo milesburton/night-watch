@@ -3,7 +3,7 @@ import { loadConfig } from '../../config/config'
 import { closeDatabase, initializeDatabase } from '../../db/database'
 import { filterHighQualityPasses, formatPassesTable, predictPasses } from '../../prediction/passes'
 import { SATELLITES } from '../../satellites/constants'
-import { isSstvActive } from '../../satellites/events'
+import { isSstvActive, setManualSstvEnabled } from '../../satellites/events'
 import { getTles } from '../../satellites/tle'
 import { runScheduler } from '../../scheduler/scheduler'
 import { stateManager } from '../../state/state-manager'
@@ -25,6 +25,12 @@ export async function runCommand(_args: string[]): Promise<void> {
   logger.info(
     `Station location: ${config.station.latitude.toFixed(4)}°N, ${config.station.longitude.toFixed(4)}°E`
   )
+
+  // Initialize ISS SSTV mode from config
+  if (config.issSstvEnabled) {
+    setManualSstvEnabled(true)
+    logger.info('ISS SSTV capture enabled by default')
+  }
 
   // Ensure directories exist
   await ensureDir(config.recording.recordingsDir)
