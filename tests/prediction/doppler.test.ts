@@ -1,18 +1,18 @@
-import { describe, expect, it } from 'bun:test'
 import {
   calculateDopplerShift,
   calculateRadialVelocity,
   formatDopplerShift,
   formatFrequency,
-} from '../../src/prediction/doppler'
-import type { SatellitePosition } from '../../src/types'
+} from '@backend/prediction/doppler'
+import type { SatellitePosition } from '@backend/types'
+import { describe, expect, it } from 'vitest'
 import { createTestPosition } from '../fixtures'
 
 describe('doppler calculations', () => {
   describe('calculateRadialVelocity', () => {
-    it('should return 0 when no next position', () => {
+    it('should return 0 when no prev or next position', () => {
       const pos = createTestPosition()
-      expect(calculateRadialVelocity(pos, undefined)).toBe(0)
+      expect(calculateRadialVelocity(undefined, pos, undefined)).toBe(0)
     })
 
     it('should calculate positive velocity when range increasing (moving away)', () => {
@@ -21,7 +21,7 @@ describe('doppler calculations', () => {
         rangeSat: 1010,
         timestamp: new Date('2024-01-01T12:00:01Z'),
       })
-      const velocity = calculateRadialVelocity(current, next)
+      const velocity = calculateRadialVelocity(undefined, current, next)
       expect(velocity).toBeGreaterThan(0)
       expect(velocity).toBeCloseTo(10000, 0)
     })
@@ -32,9 +32,20 @@ describe('doppler calculations', () => {
         rangeSat: 1000,
         timestamp: new Date('2024-01-01T12:00:01Z'),
       })
-      const velocity = calculateRadialVelocity(current, next)
+      const velocity = calculateRadialVelocity(undefined, current, next)
       expect(velocity).toBeLessThan(0)
       expect(velocity).toBeCloseTo(-10000, 0)
+    })
+
+    it('should use backward difference when no next position', () => {
+      const prev = createTestPosition({ rangeSat: 1000 })
+      const current = createTestPosition({
+        rangeSat: 1010,
+        timestamp: new Date('2024-01-01T12:00:01Z'),
+      })
+      const velocity = calculateRadialVelocity(prev, current, undefined)
+      expect(velocity).toBeGreaterThan(0)
+      expect(velocity).toBeCloseTo(10000, 0)
     })
   })
 
