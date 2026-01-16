@@ -22,6 +22,7 @@ interface DiagnosticsPanelProps {
 type TabId = 'console' | 'state' | 'network' | 'sdr' | 'passes'
 
 interface LogEntry {
+  id: string
   timestamp: Date
   level: 'info' | 'warn' | 'error' | 'debug'
   message: string
@@ -56,15 +57,26 @@ export function DiagnosticsPanel({
     if (systemState) {
       addLog('debug', `Status changed: ${systemState.status}`)
     }
-  }, [systemState?.status])
+  }, [systemState])
 
   const addLog = (level: LogEntry['level'], message: string) => {
-    setLogs((prev) => [...prev.slice(-100), { timestamp: new Date(), level, message }])
+    setLogs((prev) => {
+      const newLogs = [
+        ...prev.slice(-100),
+        {
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          timestamp: new Date(),
+          level,
+          message,
+        },
+      ]
+      // Scroll after state update
+      setTimeout(() => {
+        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 0)
+      return newLogs
+    })
   }
-
-  useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [logs])
 
   // Handle resize
   const handleMouseDown = () => {
@@ -141,8 +153,8 @@ export function DiagnosticsPanel({
             {logs.length === 0 ? (
               <p className="text-text-muted">No logs yet...</p>
             ) : (
-              logs.map((log, i) => (
-                <div key={i} className="flex gap-2">
+              logs.map((log) => (
+                <div key={log.id} className="flex gap-2">
                   <span className="text-text-muted shrink-0">
                     {log.timestamp.toLocaleTimeString()}
                   </span>
@@ -409,6 +421,7 @@ export function DiagnosticsPanel({
           className="p-2 text-text-secondary hover:text-text-primary"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <title>Close</title>
             <path
               strokeLinecap="round"
               strokeLinejoin="round"

@@ -31,10 +31,8 @@ export function useFavicon(status: SystemStatus) {
       case 'waiting':
         color = '#f59e0b' // amber - waiting
         break
-      case 'idle':
       default:
         color = '#64748b' // gray - idle
-        break
     }
 
     // Draw circular radar/dish icon

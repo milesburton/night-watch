@@ -387,6 +387,14 @@ function SpectrumWaterfall({
       height={500}
       className="w-full h-full rounded-lg cursor-pointer"
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleClick()
+        }
+      }}
+      role="button"
+      tabIndex={0}
       data-testid="spectrum-waterfall"
     />
   )

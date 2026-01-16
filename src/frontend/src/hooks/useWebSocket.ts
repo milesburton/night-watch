@@ -173,7 +173,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       console.error('WebSocket error:', error)
       setWsState((prev) => ({ ...prev, error: 'Connection error' }))
     }
-  }, [onMessage, reconnectDelay, maxReconnectAttempts])
+  }, [onMessage, onFFTData, reconnectDelay, maxReconnectAttempts])
 
   useEffect(() => {
     connect()

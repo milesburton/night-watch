@@ -13,7 +13,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 describe('fs utilities', () => {
-  const testDir = join(tmpdir(), 'rf-capture-test-' + Date.now())
+  const testDir = join(tmpdir(), `rf-capture-test-${Date.now()}`)
 
   beforeEach(async () => {
     await mkdir(testDir, { recursive: true })

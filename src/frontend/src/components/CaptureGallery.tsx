@@ -52,7 +52,8 @@ export function CaptureGallery() {
         <h2 className="text-lg font-semibold mb-4">Recent Captures</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {captures.map((capture) => (
-            <div
+            <button
+              type="button"
               key={capture.id}
               className="group relative aspect-square bg-bg-secondary rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-accent transition-all"
               onClick={() => capture.imagePath && setSelectedImage(capture.imagePath)}
@@ -67,6 +68,7 @@ export function CaptureGallery() {
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-text-muted">
                   <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <title>No Image Available</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -89,7 +91,7 @@ export function CaptureGallery() {
                   </span>
                 </div>
               )}
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -99,6 +101,11 @@ export function CaptureGallery() {
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setSelectedImage(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setSelectedImage(null)
+            }
+          }}
         >
           <button
             type="button"
@@ -106,6 +113,7 @@ export function CaptureGallery() {
             onClick={() => setSelectedImage(null)}
           >
             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <title>Close Image</title>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -119,6 +127,7 @@ export function CaptureGallery() {
             alt="Full size capture"
             className="max-w-full max-h-[90vh] object-contain rounded-lg"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
           />
         </div>
       )}

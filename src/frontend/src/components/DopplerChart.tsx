@@ -22,6 +22,7 @@ export function DopplerChart({ current, min, max, visible }: DopplerChartProps) 
           </span>
         </div>
         <svg className="w-full h-[100px]" viewBox="0 0 600 100" preserveAspectRatio="xMidYMid meet">
+          <title>Doppler Shift Chart</title>
           {/* Zero line */}
           <line
             x1="0"

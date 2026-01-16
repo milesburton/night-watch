@@ -96,6 +96,7 @@ export function StatusBar({
           title="Toggle Diagnostics Panel"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <title>Diagnostics Icon</title>
             <path
               strokeLinecap="round"
               strokeLinejoin="round"

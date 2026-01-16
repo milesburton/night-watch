@@ -71,7 +71,7 @@ export function WaterfallView({
       unsubscribeFFT()
       setIsSubscribed(false)
     }
-  }, [subscribeFFT, unsubscribeFFT]) // Re-run when functions change (e.g., after reconnect)
+  }, [subscribeFFT, unsubscribeFFT, fftRunning, frequency]) // Re-run when functions change (e.g., after reconnect)
 
   // Update frequency when it changes (e.g., during a satellite pass)
   useEffect(() => {
@@ -242,6 +242,14 @@ export function WaterfallView({
         className="rounded-lg bg-bg-secondary cursor-pointer"
         style={{ width: '100%', height: 'auto' }}
         onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handleClick()
+          }
+        }}
+        role="button"
+        tabIndex={0}
       />
       <div className="absolute top-2 right-2 flex items-center gap-2 bg-bg-primary/80 px-2 py-1 rounded text-xs">
         <span

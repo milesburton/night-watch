@@ -370,6 +370,7 @@ export default function App() {
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
+              <title>Toggle Diagnostics</title>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
