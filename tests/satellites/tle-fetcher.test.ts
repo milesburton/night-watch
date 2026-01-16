@@ -15,7 +15,7 @@ describe('TLE fetcher', () => {
         text: () => Promise.resolve(''),
       } as Response)
     )
-    globalThis.fetch = mockFetch as typeof fetch
+    globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
