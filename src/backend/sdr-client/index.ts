@@ -355,10 +355,7 @@ export class RemoteSDRProvider implements ISDRProvider {
   readonly signal: ISignalChecker
   private relayUrl: string
 
-  constructor(
-    relayUrl: string,
-    recordingsDir: string
-  ) {
+  constructor(relayUrl: string, recordingsDir: string) {
     this.relayUrl = relayUrl
     this.fft = new RemoteFFTStream(relayUrl)
     this.recorder = new RemoteRecorder(relayUrl, recordingsDir)
