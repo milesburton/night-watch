@@ -19,7 +19,7 @@ interface DiagnosticsPanelProps {
   onClose: () => void
 }
 
-type TabId = 'console' | 'state' | 'network' | 'sdr'
+type TabId = 'console' | 'state' | 'network' | 'sdr' | 'passes'
 
 interface LogEntry {
   timestamp: Date
@@ -95,10 +95,43 @@ export function DiagnosticsPanel({
 
   const tabs: { id: TabId; label: string; icon: string }[] = [
     { id: 'console', label: 'Console', icon: '>' },
+    { id: 'passes', label: 'Passes', icon: '🛰' },
     { id: 'state', label: 'State', icon: '{}' },
     { id: 'network', label: 'Network', icon: '↔' },
     { id: 'sdr', label: 'SDR', icon: '📡' },
   ]
+
+  const toDate = (d: Date | string) => (d instanceof Date ? d : new Date(d))
+
+  const formatTime = (date: Date | string) => {
+    return toDate(date).toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const formatDate = (date: Date | string) => {
+    return toDate(date).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+    })
+  }
+
+  const formatDuration = (aos: Date | string, los: Date | string) => {
+    const durationMs = toDate(los).getTime() - toDate(aos).getTime()
+    const mins = Math.floor(durationMs / 60000)
+    const secs = Math.floor((durationMs % 60000) / 1000)
+    return `${mins}m ${secs}s`
+  }
+
+  const formatCountdown = (aos: Date | string) => {
+    const msUntil = toDate(aos).getTime() - Date.now()
+    if (msUntil <= 0) return 'NOW'
+    const hours = Math.floor(msUntil / 3600000)
+    const mins = Math.floor((msUntil % 3600000) / 60000)
+    if (hours > 0) return `${hours}h ${mins}m`
+    return `${mins}m`
+  }
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -217,16 +250,26 @@ export function DiagnosticsPanel({
           </div>
         )
 
-      case 'sdr':
+      case 'sdr': {
+        // SDR is "active" when recording, scanning, or decoding
+        const sdrActive =
+          systemState?.status === 'recording' ||
+          systemState?.status === 'scanning' ||
+          systemState?.status === 'decoding'
+        // SDR is "ready" when idle or waiting (assuming hardware is present)
+        const sdrReady = systemState?.status === 'idle' || systemState?.status === 'waiting'
+        const sdrStatusText = sdrActive ? 'Active' : sdrReady ? 'Ready' : 'Unknown'
+        const sdrStatusColor = sdrActive
+          ? 'bg-success shadow-[0_0_6px_var(--success)]'
+          : sdrReady
+            ? 'bg-success'
+            : 'bg-warning'
+
         return (
           <div className="font-mono text-xs p-2 space-y-4">
             <div className="flex items-center gap-2 mb-4">
-              <span
-                className={`w-3 h-3 rounded-full ${
-                  systemState?.sdrConnected ? 'bg-success' : 'bg-error'
-                }`}
-              />
-              <span>SDR: {systemState?.sdrConnected ? 'Connected' : 'Not Connected'}</span>
+              <span className={`w-3 h-3 rounded-full ${sdrStatusColor}`} />
+              <span>SDR: {sdrStatusText}</span>
             </div>
             <div>
               <h4 className="text-text-secondary mb-1">Current Activity</h4>
@@ -240,6 +283,15 @@ export function DiagnosticsPanel({
                       MHz
                     </p>
                     <p>Max Elevation: {systemState.currentPass.maxElevation.toFixed(1)}°</p>
+                  </>
+                )}
+                {systemState?.status === 'scanning' && systemState?.scanningFrequency && (
+                  <>
+                    <p>Mode: 2M SSTV Scanning</p>
+                    <p>
+                      Frequency: {(systemState.scanningFrequency / 1e6).toFixed(3)} MHz (
+                      {systemState.scanningFrequencyName || 'Unknown'})
+                    </p>
                   </>
                 )}
                 {progress && (
@@ -260,6 +312,56 @@ export function DiagnosticsPanel({
                   </p>
                 </div>
               </div>
+            )}
+          </div>
+        )
+      }
+
+      case 'passes':
+        return (
+          <div className="font-mono text-xs p-2">
+            <div className="mb-2 text-text-secondary">{passes.length} upcoming passes</div>
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-text-muted border-b border-border">
+                  <th className="py-1 pr-4">Satellite</th>
+                  <th className="py-1 pr-4">Date</th>
+                  <th className="py-1 pr-4">AOS</th>
+                  <th className="py-1 pr-4">LOS</th>
+                  <th className="py-1 pr-4">Duration</th>
+                  <th className="py-1 pr-4">Max El</th>
+                  <th className="py-1 pr-4">Freq</th>
+                  <th className="py-1">In</th>
+                </tr>
+              </thead>
+              <tbody>
+                {passes.map((pass, idx) => (
+                  <tr
+                    key={`${pass.satellite.name}-${pass.aos}-${idx}`}
+                    className="border-b border-border/50 hover:bg-bg-tertiary"
+                  >
+                    <td
+                      className={`py-1 pr-4 ${pass.satellite.signalType === 'sstv' ? 'text-purple' : 'text-accent'}`}
+                    >
+                      {pass.satellite.name}
+                    </td>
+                    <td className="py-1 pr-4 text-text-muted">{formatDate(pass.aos)}</td>
+                    <td className="py-1 pr-4">{formatTime(pass.aos)}</td>
+                    <td className="py-1 pr-4">{formatTime(pass.los)}</td>
+                    <td className="py-1 pr-4 text-text-muted">
+                      {formatDuration(pass.aos, pass.los)}
+                    </td>
+                    <td className="py-1 pr-4">{pass.maxElevation.toFixed(0)}°</td>
+                    <td className="py-1 pr-4 text-text-muted">
+                      {(pass.satellite.frequency / 1e6).toFixed(3)}
+                    </td>
+                    <td className="py-1 text-warning">{formatCountdown(pass.aos)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {passes.length === 0 && (
+              <p className="text-center text-text-muted py-4">No upcoming passes</p>
             )}
           </div>
         )

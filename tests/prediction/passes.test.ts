@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'bun:test'
-import { filterHighQualityPasses, formatPass, predictPasses } from '../../src/prediction/passes'
-import type { SatellitePass } from '../../src/types'
+import { filterHighQualityPasses, formatPass, predictPasses } from '@backend/prediction/passes'
+import type { SatellitePass } from '@backend/types'
+import { describe, expect, it } from 'vitest'
 import { TEST_SATELLITE, TEST_SATELLITES, TEST_STATION, TEST_TLES } from '../fixtures'
 
 describe('pass prediction', () => {

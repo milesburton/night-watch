@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'bun:test'
-import { createObserver, findPasses, getSatellitePosition } from '../../src/prediction/orbit'
+import { createObserver, findPasses, getSatellitePosition } from '@backend/prediction/orbit'
+import { describe, expect, it } from 'vitest'
 import { TEST_SATELLITE, TEST_STATION, TEST_TLE } from '../fixtures'
 
 describe('orbit calculations', () => {

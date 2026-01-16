@@ -54,20 +54,25 @@ export function StatusBar({
     return { text: 'SDR: Standby', class: 'bg-warning animate-pulse' }
   }
 
-  const formatBuildDate = (buildTime: string | null): string => {
+  const formatBuildDateTime = (buildTime: string | null): string => {
     if (!buildTime) return ''
     const date = new Date(buildTime)
-    return date.toLocaleDateString('en-GB', {
+    const dateStr = date.toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
     })
+    const timeStr = date.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    return `${dateStr} ${timeStr}`
   }
 
   const sdrStatus = getSdrStatus()
   const commitShort = version?.commit?.substring(0, 7) || '---'
-  const buildDate = formatBuildDate(version?.buildTime ?? null)
-  const versionText = `v${version?.version || '-.-.-'} (${commitShort})${buildDate ? ` - ${buildDate}` : ''}`
+  const buildDateTime = formatBuildDateTime(version?.buildTime ?? null)
+  const versionText = `v${version?.version || '-.-.-'} (${commitShort})${buildDateTime ? ` - ${buildDateTime}` : ''}`
 
   return (
     <footer className="fixed bottom-0 left-0 right-0 bg-bg-secondary border-t border-border px-4 py-2 flex justify-between items-center text-xs z-50">

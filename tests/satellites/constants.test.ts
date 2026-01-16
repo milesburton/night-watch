@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'bun:test'
-import { CELESTRAK_GP_API, NOAA_SATELLITES, PASS_CONSTRAINTS } from '../../src/satellites/constants'
-import type { SatelliteInfo } from '../../src/types'
+import { CELESTRAK_GP_API, NOAA_SATELLITES, PASS_CONSTRAINTS } from '@backend/satellites/constants'
+import type { SatelliteInfo } from '@backend/types'
+import { describe, expect, it } from 'vitest'
 
 describe('satellite constants', () => {
   it('should have three NOAA satellites defined', () => {

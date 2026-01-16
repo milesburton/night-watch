@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+src/middleware/web/static-react/
 
 # Data directories
 data/*

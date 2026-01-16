@@ -48,7 +48,7 @@ export function CaptureGallery() {
 
   return (
     <>
-      <div className="card">
+      <div className="card" data-testid="capture-gallery">
         <h2 className="text-lg font-semibold mb-4">Recent Captures</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {captures.map((capture) => (

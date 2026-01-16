@@ -3,19 +3,22 @@
   "version": "2.0.0",
   "description": "Multi-signal RF capture platform for satellite imagery",
   "type": "module",
-  "main": "src/cli/main.ts",
+  "main": "src/backend/cli/main.ts",
   "scripts": {
-    "start": "bun run src/cli/main.ts run",
-    "dev": "bun run --watch src/cli/main.ts run",
-    "test": "bun test",
-    "test:watch": "bun test --watch",
+    "start": "bun run src/backend/cli/main.ts run",
+    "dev": "bun run --watch src/backend/cli/main.ts run",
+    "dev:ui": "cd frontend && bun run dev",
+    "build:ui": "cd frontend && bun run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "bunx biome check .",
     "lint:fix": "bunx biome check --write .",
     "format": "bunx biome format --write .",
     "typecheck": "bunx tsc --noEmit",
-    "predict": "bun run src/cli/main.ts predict",
-    "status": "bun run src/cli/main.ts status",
-    "serve": "bun run src/cli/main.ts serve",
+    "predict": "bun run src/backend/cli/main.ts predict",
+    "status": "bun run src/backend/cli/main.ts status",
+    "serve": "bun run src/backend/cli/main.ts serve",
     "prepare": "husky"
   },
   "dependencies": {
@@ -31,8 +34,10 @@
     "@commitlint/cli": "^20.3.0",
     "@commitlint/config-conventional": "^20.3.0",
     "@types/bun": "^1.1.14",
+    "@vitest/coverage-v8": "^4.0.17",
     "husky": "^9.1.7",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.17"
   },
   "engines": {
     "bun": ">=1.0.0"

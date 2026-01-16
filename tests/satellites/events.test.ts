@@ -1,4 +1,3 @@
-import { afterEach, describe, expect, it } from 'bun:test'
 import {
   addEvent,
   clearEvents,
@@ -9,8 +8,9 @@ import {
   isSstvActive,
   removeEvent,
   setManualSstvEnabled,
-} from '../../src/satellites/events'
-import type { SSTVEvent } from '../../src/types'
+} from '@backend/satellites/events'
+import type { SSTVEvent } from '@backend/types'
+import { afterEach, describe, expect, it } from 'vitest'
 
 describe('SSTV events', () => {
   afterEach(() => {

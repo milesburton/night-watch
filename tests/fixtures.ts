@@ -1,4 +1,4 @@
-import type { Coordinates, SatelliteInfo, SatellitePosition, TwoLineElement } from '../src/types'
+import type { Coordinates, SatelliteInfo, SatellitePosition, TwoLineElement } from '@backend/types'
 
 export const TEST_STATION: Coordinates = {
   latitude: 51.5069,

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'bun:test'
-import { getAllDecoders, getDecoder, hasDecoder } from '../../src/capture/decoders'
+import { getAllDecoders, getDecoder, hasDecoder } from '@backend/capture/decoders'
+import { describe, expect, it } from 'vitest'
 
 describe('decoder registry', () => {
   describe('getDecoder', () => {

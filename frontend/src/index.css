@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply min-h-screen antialiased;
+  }
+}
+
+@layer components {
+  .status-badge {
+    @apply inline-block px-4 py-2 rounded-lg font-semibold text-base;
+  }
+
+  .status-idle {
+    @apply bg-text-secondary/20 text-text-secondary;
+  }
+
+  .status-waiting {
+    @apply bg-warning/20 text-warning;
+  }
+
+  .status-capturing {
+    @apply bg-accent/20 text-accent animate-pulse-slow;
+  }
+
+  .status-recording {
+    @apply bg-accent/20 text-accent animate-pulse-slow;
+  }
+
+  .status-decoding {
+    @apply bg-success/20 text-success;
+  }
+
+  .status-scanning {
+    @apply bg-purple/20 text-purple animate-pulse-slow;
+  }
+
+  .signal-badge {
+    @apply inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide;
+  }
+
+  .signal-apt {
+    @apply bg-accent/20 text-accent;
+  }
+
+  .signal-sstv {
+    @apply bg-purple/20 text-purple;
+  }
+
+  .card {
+    @apply bg-bg-card rounded-xl p-6 border border-border;
+  }
+}
