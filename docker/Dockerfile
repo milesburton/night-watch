@@ -23,17 +23,14 @@ RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
 COPY package.json bun.lock* ./
 RUN /usr/local/bin/bun install --ignore-scripts
 
-# Build React frontend
-COPY frontend/package.json frontend/bun.lock* ./frontend/
-RUN cd frontend && /usr/local/bin/bun install
-
-COPY frontend ./frontend
-RUN cd frontend && /usr/local/bin/bun run build
-
-# Copy backend source and version
+# Copy source code and config
 COPY src ./src
 COPY tsconfig.json ./
 COPY version.json ./
+
+# Build React frontend
+RUN cd src/frontend && /usr/local/bin/bun install
+RUN cd src/frontend && /usr/local/bin/bun run build
 
 FROM debian:bookworm-slim
 

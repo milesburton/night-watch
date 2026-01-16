@@ -180,7 +180,7 @@ bunx biome check .  # Frontend warnings are non-blocking
 ### 4. Build Frontend
 
 ```bash
-cd frontend && bun run build
+cd src/frontend && bun run build
 # Should see: ✓ built in ~2s
 ```
 
@@ -333,19 +333,21 @@ docker compose -f docker/compose.yaml exec rfcapture bash
 ├── src/
 │   ├── backend/           # Backend services
 │   │   ├── capture/       # Signal capture
-│   │   ├── cli/           # CLI commands  
+│   │   ├── cli/           # CLI commands
 │   │   ├── prediction/    # Orbital mechanics
 │   │   ├── sdr-client/    # Remote SDR client
 │   │   └── ...
+│   ├── frontend/          # React frontend
+│   │   ├── src/           # React components
+│   │   └── package.json   # Frontend dependencies
 │   ├── middleware/        # Web server
 │   └── sdr-relay/         # SDR hardware interface
-├── frontend/              # React UI
 ├── docker/                # All Docker configs
 ├── deploy/                # Deployment scripts
 └── tests/                 # 149 tests
 
 Tests: 149 passing ✓
-TypeScript: 0 errors ✓  
+TypeScript: 0 errors ✓
 Architecture: Modular & scalable ✓
 ```
 

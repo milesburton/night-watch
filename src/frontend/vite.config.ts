@@ -27,7 +27,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../src/middleware/web/static-react',
+    outDir: '../middleware/web/static-react',
     emptyOutDir: true,
   },
 })

@@ -222,11 +222,14 @@ src/
 │   ├── state/         # Application state management
 │   ├── types.ts       # Shared type definitions
 │   └── utils/         # Utilities (logger, fs, shell)
+├── frontend/          # React frontend (Vite + Tailwind)
+│   ├── src/           # React components
+│   ├── package.json   # Frontend dependencies
+│   └── vite.config.ts # Vite build configuration
 ├── middleware/        # Web server and API
 │   └── web/           # HTTP server, WebSocket, static files
 └── sdr-relay/         # Lightweight SDR hardware interface (for sdr-relay mode)
 
-frontend/              # React frontend (Vite + Tailwind)
 docker/                # Docker configuration for all deployment modes
 tests/                 # Vitest test suites
 deploy/                # Deployment scripts (git submodule)

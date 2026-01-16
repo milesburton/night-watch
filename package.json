@@ -7,8 +7,8 @@
   "scripts": {
     "start": "bun run src/backend/cli/main.ts run",
     "dev": "bun run --watch src/backend/cli/main.ts run",
-    "dev:ui": "cd frontend && bun run dev",
-    "build:ui": "cd frontend && bun run build",
+    "dev:ui": "cd src/frontend && bun run dev",
+    "build:ui": "cd src/frontend && bun run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
