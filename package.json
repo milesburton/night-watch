@@ -1,7 +1,7 @@
 {
-  "name": "rf-capture",
+  "name": "ether-watch",
   "version": "2.0.0",
-  "description": "Multi-signal RF capture platform for satellite imagery",
+  "description": "Ether Watch - Automated satellite signal capture and decoding platform",
   "type": "module",
   "main": "src/backend/cli/main.ts",
   "scripts": {

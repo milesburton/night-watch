@@ -500,7 +500,6 @@ export function SatelliteTracking({
               ))}
             </div>
           )}
-
         </nav>
       </div>
 
