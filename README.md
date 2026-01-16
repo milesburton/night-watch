@@ -17,6 +17,19 @@ Multi-signal RF capture platform for satellite imagery. Automatically captures a
 - Modern React web dashboard with 3D globe visualization
 - SQLite database for capture history and statistics
 - Docker-based deployment for Raspberry Pi and Linux
+- **Flexible deployment modes**: Run everything on one device or split SDR hardware from processing
+
+## Deployment Modes
+
+RFCapture supports three deployment architectures controlled by the `SERVICE_MODE` environment variable:
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| **full** (default) | Everything on one machine | Single Raspberry Pi with SDR |
+| **sdr-relay** | Lightweight SDR hardware interface | Pi with SDR, connects to remote server |
+| **server** | API + Frontend + Scheduler | Powerful server, connects to remote SDR |
+
+This enables flexible deployments where SDR hardware runs on a Pi at your antenna location while compute-intensive processing runs on separate server hardware. See [docker/README.md](docker/README.md) for detailed deployment instructions.
 
 ## Supported Signals
 
@@ -53,15 +66,33 @@ docker compose version
 
 ## Quick Start
 
+### Single Machine Deployment (Full Mode)
+
 ```bash
 git clone https://github.com/milesburton/noaa-satellite-capture.git
 cd noaa-satellite-capture
-cp .env.example .env
-nano .env   # Set your coordinates
-docker compose up -d
+cp .appcontainer/.env.example .env
+nano .env   # Set your coordinates and deployment target
+docker compose -f docker/compose.yaml up -d
 ```
 
 Web dashboard: `http://localhost:8002`
+
+### Split Deployment (SDR Relay + Server)
+
+For better performance, run SDR on a Pi and processing on a server:
+
+**On Raspberry Pi (with SDR hardware):**
+```bash
+docker compose -f docker/compose.yaml --profile sdr-relay up -d
+```
+
+**On Server (without SDR):**
+```bash
+SDR_RELAY_URL=http://your-pi-ip:3001 docker compose -f docker/compose.yaml --profile server up -d
+```
+
+See [docker/README.md](docker/README.md) for detailed deployment options.
 
 ## Configuration
 
@@ -187,14 +218,18 @@ src/
 │   ├── prediction/    # Orbital mechanics and pass prediction
 │   ├── satellites/    # Satellite definitions and TLE fetching
 │   ├── scheduler/     # Pass scheduling
+│   ├── sdr-client/    # Client for remote SDR relay communication
 │   ├── state/         # Application state management
 │   ├── types.ts       # Shared type definitions
 │   └── utils/         # Utilities (logger, fs, shell)
-└── middleware/        # Web server and API
-    └── web/           # HTTP server, WebSocket, static files
+├── middleware/        # Web server and API
+│   └── web/           # HTTP server, WebSocket, static files
+└── sdr-relay/         # Lightweight SDR hardware interface (for sdr-relay mode)
 
 frontend/              # React frontend (Vite + Tailwind)
+docker/                # Docker configuration for all deployment modes
 tests/                 # Vitest test suites
+deploy/                # Deployment scripts (git submodule)
 ```
 
 ## Development
