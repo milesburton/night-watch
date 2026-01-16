@@ -54,7 +54,7 @@ class RemoteFFTStream implements IFFTStream {
   private connect(config: FFTStreamConfig): boolean {
     try {
       // Convert HTTP URL to WebSocket URL
-      const wsUrl = this.relayUrl.replace(/^http/, 'ws') + '/sdr/fft'
+      const wsUrl = `${this.relayUrl.replace(/^http/, 'ws')}/sdr/fft`
       this.ws = new WebSocket(wsUrl)
 
       this.ws.onopen = () => {
@@ -87,7 +87,7 @@ class RemoteFFTStream implements IFFTStream {
         // Attempt reconnection if we have a callback (meaning we want to stay connected)
         if (this.callback && this.reconnectAttempts < this.maxReconnectAttempts) {
           this.reconnectAttempts++
-          const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000)
+          const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 30000)
           logger.info(
             `Reconnecting to FFT stream in ${delay}ms (attempt ${this.reconnectAttempts})`
           )
@@ -402,7 +402,7 @@ let remoteProvider: RemoteSDRProvider | null = null
  * Get or create remote SDR provider
  */
 export function getRemoteSDRProvider(relayUrl: string, recordingsDir: string): RemoteSDRProvider {
-  if (!remoteProvider || remoteProvider['relayUrl'] !== relayUrl) {
+  if (!remoteProvider || remoteProvider.relayUrl !== relayUrl) {
     remoteProvider = new RemoteSDRProvider(relayUrl, recordingsDir)
   }
   return remoteProvider
