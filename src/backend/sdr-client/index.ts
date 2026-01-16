@@ -353,14 +353,20 @@ export class RemoteSDRProvider implements ISDRProvider {
   readonly fft: IFFTStream
   readonly recorder: IRecorder
   readonly signal: ISignalChecker
+  private relayUrl: string
 
   constructor(
-    private relayUrl: string,
+    relayUrl: string,
     recordingsDir: string
   ) {
+    this.relayUrl = relayUrl
     this.fft = new RemoteFFTStream(relayUrl)
     this.recorder = new RemoteRecorder(relayUrl, recordingsDir)
     this.signal = new RemoteSignalChecker(relayUrl)
+  }
+
+  getRelayUrl(): string {
+    return this.relayUrl
   }
 
   async getStatus(): Promise<SDRStatus> {
@@ -402,7 +408,7 @@ let remoteProvider: RemoteSDRProvider | null = null
  * Get or create remote SDR provider
  */
 export function getRemoteSDRProvider(relayUrl: string, recordingsDir: string): RemoteSDRProvider {
-  if (!remoteProvider || remoteProvider.relayUrl !== relayUrl) {
+  if (!remoteProvider || remoteProvider.getRelayUrl() !== relayUrl) {
     remoteProvider = new RemoteSDRProvider(relayUrl, recordingsDir)
   }
   return remoteProvider
