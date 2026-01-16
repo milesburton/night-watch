@@ -40,7 +40,7 @@ export function StatusBar({
       case 'scanning':
         return 'Scanning 2m SSTV'
       default:
-        return 'Ether Watch - Satellite Signal Capture Station'
+        return 'Night Watch - Satellite Signal Capture Station'
     }
   }
 

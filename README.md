@@ -1,4 +1,4 @@
-# Ether Watch
+# Night Watch
 
 [![CI](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/ci.yml/badge.svg)](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/docker-build.yml/badge.svg)](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/docker-build.yml)
@@ -6,7 +6,7 @@
 [![Bun](https://img.shields.io/badge/runtime-Bun-f9f1e1?logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)](https://www.typescriptlang.org/)
 
-**Ether Watch** is an automated satellite signal capture and decoding platform. It tracks, receives, and decodes APT imagery from NOAA weather satellites and SSTV transmissions from the ISS - all through an elegant web interface with real-time spectrum analysis.
+**Night Watch** is an automated satellite signal capture and decoding platform. It tracks, receives, and decodes APT imagery from NOAA weather satellites and SSTV transmissions from the ISS - all through an elegant web interface with real-time spectrum analysis.
 
 ## Features
 
@@ -21,7 +21,7 @@
 
 ## Deployment Modes
 
-Ether Watch supports three deployment architectures controlled by the `SERVICE_MODE` environment variable:
+Night Watch supports three deployment architectures controlled by the `SERVICE_MODE` environment variable:
 
 | Mode | Description | Use Case |
 |------|-------------|----------|

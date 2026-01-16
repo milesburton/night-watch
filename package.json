@@ -1,7 +1,7 @@
 {
-  "name": "ether-watch",
+  "name": "night-watch",
   "version": "2.0.0",
-  "description": "Ether Watch - Automated satellite signal capture and decoding platform",
+  "description": "Night Watch - Automated satellite signal capture and decoding platform",
   "type": "module",
   "main": "src/backend/cli/main.ts",
   "scripts": {
