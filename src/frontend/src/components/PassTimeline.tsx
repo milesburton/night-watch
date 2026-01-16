@@ -19,6 +19,14 @@ export function PassTimeline({ passes, hoursAhead = 12 }: PassTimelineProps) {
     return () => clearInterval(interval)
   }, [])
 
+  // Get short satellite name (e.g. "NOAA 15" -> "N15", "ISS" -> "ISS")
+  const getShortName = (name: string): string => {
+    if (name.includes('NOAA')) {
+      return `N${name.split(' ')[1]}`
+    }
+    return name.substring(0, 3).toUpperCase()
+  }
+
   const now = Date.now()
   const endTime = now + hoursAhead * 60 * 60 * 1000
   const timeRange = endTime - now
@@ -86,14 +94,14 @@ export function PassTimeline({ passes, hoursAhead = 12 }: PassTimelineProps) {
   return (
     <div
       ref={containerRef}
-      className="relative h-4 bg-bg-tertiary border-b border-border px-2"
+      className="relative h-8 bg-bg-tertiary border-b border-border px-2"
       onMouseMove={handleMouseMove}
       data-testid="pass-timeline"
     >
       {/* Timeline track */}
       <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-0.5 bg-border rounded">
         {/* Now marker */}
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-2 bg-success rounded-full" />
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3 bg-success rounded-full" />
 
         {/* Hour markers */}
         {hourMarkers.map(({ hour, pos }) => (
@@ -108,24 +116,46 @@ export function PassTimeline({ passes, hoursAhead = 12 }: PassTimelineProps) {
         ))}
       </div>
 
-      {/* Pass dots */}
+      {/* Pass markers with labels */}
       {visiblePasses.map((pass, idx) => {
         const pos = getPassPosition(pass)
         const color = getPassColor(pass)
         const isHovered = hoveredPass === pass
+        const shortName = getShortName(pass.satellite.name)
+
+        // Show labels for first 3 passes
+        const showLabel = idx < 3
 
         return (
           <div
             key={`${pass.satellite.name}-${pass.aos}-${idx}`}
-            className={cn(
-              'absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full cursor-pointer transition-all',
-              color,
-              isHovered ? 'w-2.5 h-2.5 z-10' : 'w-1.5 h-1.5'
-            )}
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 cursor-pointer z-10"
             style={{ left: `calc(${pos}% + 8px)` }}
             onMouseEnter={(e) => handleMouseEnter(e, pass)}
             onMouseLeave={() => setHoveredPass(null)}
-          />
+          >
+            {/* Dot */}
+            <div
+              className={cn(
+                'rounded-full transition-all mx-auto',
+                color,
+                isHovered ? 'w-3 h-3' : 'w-2 h-2'
+              )}
+            />
+            {/* Label for first 3 passes */}
+            {showLabel && (
+              <div
+                className={cn(
+                  'absolute top-full mt-0.5 left-1/2 -translate-x-1/2 text-[8px] font-medium whitespace-nowrap px-1 rounded',
+                  pass.satellite.signalType === 'sstv'
+                    ? 'text-purple bg-purple/10'
+                    : 'text-accent bg-accent/10'
+                )}
+              >
+                {shortName}
+              </div>
+            )}
+          </div>
         )
       })}
 

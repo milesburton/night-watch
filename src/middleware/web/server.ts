@@ -109,7 +109,14 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
         const offset = Number(url.searchParams.get('offset')) || 0
         try {
           const db = getDatabase()
-          return jsonResponse(db.getRecentCaptures(limit, offset))
+          const captures = db.getRecentCaptures(limit, offset)
+          // Map database fields to frontend CaptureRecord type
+          const mapped = captures.map((c) => ({
+            ...c,
+            satellite: c.satelliteName, // Add satellite field for frontend
+            timestamp: c.startTime, // Map startTime to timestamp for frontend
+          }))
+          return jsonResponse(mapped)
         } catch {
           return jsonResponse([])
         }

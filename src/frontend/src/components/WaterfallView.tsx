@@ -239,7 +239,8 @@ export function WaterfallView({
         ref={canvasRef}
         width={600}
         height={350}
-        className="w-full rounded-lg bg-bg-secondary cursor-pointer"
+        className="rounded-lg bg-bg-secondary cursor-pointer"
+        style={{ width: '100%', height: 'auto' }}
         onClick={handleClick}
       />
       <div className="absolute top-2 right-2 flex items-center gap-2 bg-bg-primary/80 px-2 py-1 rounded text-xs">

@@ -501,23 +501,6 @@ export function SatelliteTracking({
             </div>
           )}
 
-          {/* Legend - shown on satellite tab */}
-          {mode === 'satellite' && (
-            <div className="flex items-center gap-3 ml-auto pr-4 text-xs">
-              <div className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-success" />
-                <span className="text-text-muted">QTH</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-accent" />
-                <span className="text-text-muted">APT</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-purple" />
-                <span className="text-text-muted">SSTV</span>
-              </div>
-            </div>
-          )}
         </nav>
       </div>
 
@@ -525,21 +508,23 @@ export function SatelliteTracking({
       <div className="p-2">
         {mode === 'satellite' ? (
           /* Satellite View - Sky View + Waterfall side by side */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            <div className="flex justify-center items-center">
-              <div className="aspect-square w-full max-w-[350px]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex justify-center items-start">
+              <div className="aspect-square w-full max-w-[500px]">
                 <SkyView globeState={globeState} />
               </div>
             </div>
-            <div data-testid="waterfall-container">
-              <WaterfallView
-                frequency={currentFrequency}
-                isActive={isCapturing}
-                subscribeFFT={subscribeFFT}
-                unsubscribeFFT={unsubscribeFFT}
-                fftRunning={fftRunning}
-                latestFFTData={latestFFTData}
-              />
+            <div data-testid="waterfall-container" className="flex items-start">
+              <div className="w-full">
+                <WaterfallView
+                  frequency={currentFrequency}
+                  isActive={isCapturing}
+                  subscribeFFT={subscribeFFT}
+                  unsubscribeFFT={unsubscribeFFT}
+                  fftRunning={fftRunning}
+                  latestFFTData={latestFFTData}
+                />
+              </div>
             </div>
           </div>
         ) : (
