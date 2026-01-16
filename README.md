@@ -6,236 +6,169 @@
 [![Bun](https://img.shields.io/badge/runtime-Bun-f9f1e1?logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)](https://www.typescriptlang.org/)
 
-**Night Watch** is an automated satellite signal capture and decoding platform. It tracks, receives, and decodes APT imagery from NOAA weather satellites and SSTV transmissions from the ISS - all through an elegant web interface with real-time spectrum analysis.
+**Night Watch** - an automated satellite signal capture and decoding platform inspired by maritime tradition. Like mariners keeping watch under the stars, Night Watch tracks satellites across the sky, receiving and decoding weather imagery from NOAA satellites and SSTV transmissions from the ISS.
 
-## Features
+![Night Watch Dashboard](https://via.placeholder.com/800x400?text=Night+Watch+Dashboard)
 
-- Automatic satellite pass prediction using SGP4/SDP4 orbital mechanics
-- Real-time capture scheduling with Doppler shift compensation
-- APT signal decoding for NOAA weather satellites
-- ISS SSTV event-based capture support
-- Modern React web dashboard with 3D globe visualization
-- SQLite database for capture history and statistics
-- Docker-based deployment for Raspberry Pi and Linux
-- **Flexible deployment modes**: Run everything on one device or split SDR hardware from processing
+## ✨ Features
 
-## Deployment Modes
+- **Autonomous Operation**: Automatically predicts, schedules, and captures satellite passes
+- **Real-Time Visualization**: Modern React dashboard with live 3D globe, FFT waterfall, and pass timeline
+- **Multi-Signal Support**: APT (NOAA weather satellites) and SSTV (ISS) decoding
+- **Flexible Architecture**: Three deployment modes for single-device or distributed setups
+- **Dynamic Status Indicators**: Favicon changes color based on capture status (green=active, amber=waiting)
+- **Comprehensive History**: SQLite database tracks all captures with detailed metadata
 
-Night Watch supports three deployment architectures controlled by the `SERVICE_MODE` environment variable:
+## 🛰️ Supported Satellites
+
+| Satellite | Signal | Frequency | Details |
+|-----------|--------|-----------|---------|
+| **NOAA 15** | APT | 137.6125 MHz | Weather imagery (IR + visible) |
+| **NOAA 18** | APT | 137.9125 MHz | Weather imagery (IR + visible) |
+| **NOAA 19** | APT | 137.1000 MHz | Weather imagery (IR + visible) |
+| **ISS** | SSTV | 145.800 MHz | Event-based SSTV transmissions |
+| **2m SSTV** | SSTV | 144.5 / 145.5 MHz | Ground SSTV scanning |
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- RTL-SDR dongle (RTL2832U-based)
+- VHF antenna (137MHz for NOAA, 145MHz for ISS)
+- Docker and Docker Compose v2
+- Raspberry Pi 4/5 or Linux machine
+
+### Single Machine Setup
+
+```bash
+# Clone repository
+git clone https://github.com/milesburton/noaa-satellite-capture.git
+cd noaa-satellite-capture
+
+# Configure environment
+cp .appcontainer/.env.example .env
+nano .env  # Set your coordinates
+
+# Start Night Watch
+docker compose -f docker/compose.yaml up -d
+
+# Access dashboard
+open http://localhost:8002
+```
+
+That's it! Night Watch will automatically:
+1. Fetch TLE data from CelesTrak
+2. Predict upcoming passes
+3. Capture and decode signals
+4. Display imagery in the web dashboard
+
+## 🏗️ Deployment Modes
+
+Night Watch supports three architectures for flexible deployment:
 
 | Mode | Description | Use Case |
 |------|-------------|----------|
-| **full** (default) | Everything on one machine | Single Raspberry Pi with SDR |
-| **sdr-relay** | Lightweight SDR hardware interface | Pi with SDR, connects to remote server |
-| **server** | API + Frontend + Scheduler | Powerful server, connects to remote SDR |
+| **full** (default) | All-in-one | Single Raspberry Pi with SDR |
+| **sdr-relay** | Hardware interface only | Pi at antenna, server elsewhere |
+| **server** | Processing + UI only | Powerful server, remote SDR |
 
-This enables flexible deployments where SDR hardware runs on a Pi at your antenna location while compute-intensive processing runs on separate server hardware. See [docker/README.md](docker/README.md) for detailed deployment instructions.
-
-## Supported Signals
-
-| Satellite | Signal | Frequency |
-|-----------|--------|-----------|
-| NOAA 15 | APT | 137.6125 MHz |
-| NOAA 18 | APT | 137.9125 MHz |
-| NOAA 19 | APT | 137.1000 MHz |
-| ISS | SSTV | 145.800 MHz |
-
-## Hardware Requirements
-
-- RTL-SDR dongle (RTL2832U-based)
-- VHF antenna (137MHz turnstile/QFH for APT, or 145MHz for SSTV)
-- Raspberry Pi 4/5 or Linux machine with USB port
-
-## Prerequisites
-
-- Docker and Docker Compose v2
-- RTL-SDR dongle connected via USB
-
-### Installing Docker (Raspberry Pi / Debian / Ubuntu)
+**Example: Split Deployment**
 
 ```bash
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-```
-
-Log out and back in (or reboot) for group changes to take effect:
-
-```bash
-docker compose version
-```
-
-## Quick Start
-
-### Single Machine Deployment (Full Mode)
-
-```bash
-git clone https://github.com/milesburton/noaa-satellite-capture.git
-cd noaa-satellite-capture
-cp .appcontainer/.env.example .env
-nano .env   # Set your coordinates and deployment target
-docker compose -f docker/compose.yaml up -d
-```
-
-Web dashboard: `http://localhost:8002`
-
-### Split Deployment (SDR Relay + Server)
-
-For better performance, run SDR on a Pi and processing on a server:
-
-**On Raspberry Pi (with SDR hardware):**
-```bash
+# On Pi (with SDR hardware)
 docker compose -f docker/compose.yaml --profile sdr-relay up -d
+
+# On Server
+SDR_RELAY_URL=http://pi.local:3001 \
+docker compose -f docker/compose.yaml --profile server up -d
 ```
 
-**On Server (without SDR):**
-```bash
-SDR_RELAY_URL=http://your-pi-ip:3001 docker compose -f docker/compose.yaml --profile server up -d
-```
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed deployment scenarios.
 
-See [docker/README.md](docker/README.md) for detailed deployment options.
+## ⚙️ Configuration
 
-## Configuration
-
-All configuration is via environment variables in `.env`:
+All configuration via `.env` environment variables:
 
 ```env
-# Ground station location
-STATION_LATITUDE=51.5069      # Your latitude (-90 to 90)
-STATION_LONGITUDE=-0.1276     # Your longitude (-180 to 180)
-STATION_ALTITUDE=10           # Altitude in metres
+# Station Location (required)
+STATION_LATITUDE=51.5069       # Your latitude
+STATION_LONGITUDE=-0.1276      # Your longitude
+STATION_ALTITUDE=10            # Altitude in meters
 
-# SDR configuration
-SDR_GAIN=45                   # RTL-SDR gain (0-50, or 'auto')
-SDR_PPM_CORRECTION=0          # Frequency correction in PPM
-SDR_SAMPLE_RATE=48000         # Sample rate in Hz
+# SDR Hardware
+SDR_GAIN=45                    # Gain 0-50 (or 'auto')
+SDR_PPM_CORRECTION=0           # Frequency correction
+SDR_SAMPLE_RATE=48000          # Sample rate in Hz
 
-# Capture settings
-MIN_ELEVATION=20              # Minimum pass elevation in degrees
-MIN_SIGNAL_STRENGTH=-20       # Minimum signal strength in dB
+# Capture Thresholds
+MIN_ELEVATION=20               # Minimum pass elevation (degrees)
+MIN_SIGNAL_STRENGTH=-30        # Minimum signal strength (dB)
+SKIP_SIGNAL_CHECK=false        # Skip signal check (for testing)
 
-# Paths
-RECORDINGS_DIR=/app/recordings
-IMAGES_DIR=/app/images
-DATABASE_PATH=/app/data/captures.db
-
-# Web server
-WEB_PORT=3000
-DEPLOY_PORT=8002              # External port mapping
-
-# Other
-TLE_UPDATE_INTERVAL_HOURS=24  # TLE refresh interval
-LOG_LEVEL=info                # debug, info, warn, error
+# Web Interface
+WEB_PORT=3000                  # Internal port
+DEPLOY_PORT=8002               # External port mapping
 ```
 
-## Docker Commands
-
-```bash
-# Start in background
-docker compose up -d
-
-# View live logs
-docker compose logs -f
-
-# Stop container
-docker compose stop
-
-# Restart container
-docker compose restart
-
-# Stop and remove (data persists in volumes)
-docker compose down
-
-# Stop and remove including volumes (deletes all data)
-docker compose down -v
-```
-
-### Running Commands Inside Container
-
-```bash
-# Show upcoming passes
-docker compose exec rfcapture bun run predict
-
-# Check system status
-docker compose exec rfcapture bun run status
-
-# Run tests
-docker compose exec rfcapture bun test
-
-# Interactive shell
-docker compose exec rfcapture bash
-```
-
-### Health Check
-
-```bash
-docker inspect --format='{{json .State.Health.Status}}' rfcapture
-```
-
-## Data Persistence
-
-RFCapture uses Docker named volumes to persist data:
-
-| Volume | Container Path | Contents |
-|--------|---------------|----------|
-| `rfcapture-data` | `/app/data` | SQLite database |
-| `rfcapture-recordings` | `/app/recordings` | Raw WAV recordings |
-| `rfcapture-images` | `/app/images` | Decoded satellite images |
-
-### Backup Data
-
-```bash
-# Backup images
-docker run --rm -v rfcapture-images:/data -v $(pwd):/backup alpine \
-  tar czf /backup/images-backup.tar.gz -C /data .
-
-# Backup database
-docker run --rm -v rfcapture-data:/data -v $(pwd):/backup alpine \
-  tar czf /backup/database-backup.tar.gz -C /data .
-```
-
-## Web Dashboard
+## 📊 Dashboard Features
 
 The React-based web dashboard provides:
 
-- Real-time system status with capture progress
-- 3D globe with satellite positions and ground tracks
-- Upcoming passes with frequency and signal information
-- Doppler shift visualization during captures
-- ISS SSTV toggle for event-based capture
-- Image gallery with capture history
-- Diagnostics panel for debugging
+- **Live System Status**: Real-time capture state with dynamic favicon
+- **3D Globe View**: Satellite positions with ground tracks
+- **Pass Timeline**: Visual timeline showing next 12 hours with satellite labels (N15, N18, N19, ISS)
+- **FFT Waterfall**: Real-time spectrum analysis with adjustable frequency
+- **Signal Monitoring**: 2m SSTV scanning on 144.5 / 145.5 MHz
+- **Capture Gallery**: All decoded imagery with metadata
+- **Diagnostics Panel**: System logs and WebSocket status
+- **Doppler Visualization**: Frequency shift during passes
 
-## Project Structure
+## 🔧 Docker Commands
 
-```
-src/
-├── backend/           # Node.js/Bun backend
-│   ├── capture/       # Signal capture and decoding
-│   │   └── decoders/  # APT and SSTV decoders
-│   ├── cli/           # Command-line interface
-│   ├── config/        # Configuration management
-│   ├── db/            # SQLite database
-│   ├── prediction/    # Orbital mechanics and pass prediction
-│   ├── satellites/    # Satellite definitions and TLE fetching
-│   ├── scheduler/     # Pass scheduling
-│   ├── sdr-client/    # Client for remote SDR relay communication
-│   ├── state/         # Application state management
-│   ├── types.ts       # Shared type definitions
-│   └── utils/         # Utilities (logger, fs, shell)
-├── frontend/          # React frontend (Vite + Tailwind)
-│   ├── src/           # React components
-│   ├── package.json   # Frontend dependencies
-│   └── vite.config.ts # Vite build configuration
-├── middleware/        # Web server and API
-│   └── web/           # HTTP server, WebSocket, static files
-└── sdr-relay/         # Lightweight SDR hardware interface (for sdr-relay mode)
+```bash
+# Start in background
+docker compose -f docker/compose.yaml up -d
 
-docker/                # Docker configuration for all deployment modes
-tests/                 # Vitest test suites
-deploy/                # Deployment scripts (git submodule)
+# View logs
+docker compose -f docker/compose.yaml logs -f
+
+# Restart
+docker compose -f docker/compose.yaml restart
+
+# Stop (data persists)
+docker compose -f docker/compose.yaml down
+
+# Run commands inside container
+docker compose -f docker/compose.yaml exec rfcapture bun run predict
+docker compose -f docker/compose.yaml exec rfcapture bun test
+
+# Health check
+docker inspect --format='{{json .State.Health.Status}}' rfcapture
 ```
 
-## Development
+## 📁 Project Structure
+
+```
+night-watch/
+├── src/
+│   ├── backend/           # Node.js/Bun backend
+│   │   ├── capture/       # Signal capture & FFT streaming
+│   │   ├── cli/           # Command-line interface
+│   │   ├── prediction/    # SGP4 orbit propagation
+│   │   ├── satellites/    # TLE fetching & SSTV events
+│   │   ├── scheduler/     # Pass scheduling
+│   │   └── sdr-client/    # Remote SDR client
+│   ├── frontend/          # React + Vite + Tailwind
+│   │   └── src/           # Components, hooks, types
+│   ├── middleware/        # Web server & WebSocket
+│   └── sdr-relay/         # Lightweight SDR interface
+├── docker/                # Docker configurations
+├── docs/                  # Documentation
+├── scripts/               # Deployment scripts
+└── tests/                 # Vitest test suites (149 tests)
+```
+
+## 🧪 Development
 
 ### Local Development
 
@@ -243,159 +176,153 @@ deploy/                # Deployment scripts (git submodule)
 # Install dependencies
 bun install
 
-# Start backend in development mode
+# Start backend (watch mode)
 bun run dev
 
-# Start frontend development server (separate terminal)
+# Start frontend dev server (separate terminal)
 bun run dev:ui
 
 # Run tests
 bun test
 
-# Run tests with coverage
-bun run test:coverage
-
-# Type check
+# Type checking
 bun run typecheck
 
-# Lint
-bun run lint
+# Linting
 bun run lint:fix
 ```
 
 ### VS Code Dev Container
 
-1. Install the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension
-2. Open the project in VS Code
-3. Click "Reopen in Container" when prompted
+1. Install [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension
+2. Open project in VS Code
+3. Click "Reopen in Container"
 
 ### Testing
 
-Tests use [Vitest](https://vitest.dev/) with 145+ test cases covering:
-
-- Orbital mechanics and pass prediction
+Night Watch includes 149 test cases covering:
+- Orbital mechanics (SGP4/SDP4)
 - Doppler shift calculations
+- Pass prediction accuracy
 - Ground track computation
 - State management
-- TLE fetching
-- File system utilities
-- Shell command execution
 - Decoder registry
+- File system operations
 
 ```bash
-# Run all tests
-bun test
-
-# Run tests in watch mode
-bun test:watch
-
-# Run with coverage report
-bun run test:coverage
+bun test              # Run all tests
+bun test:watch        # Watch mode
+bun run test:coverage # Coverage report
 ```
 
-## Architecture
+## 🏛️ Architecture
 
-### Signal Flow
+### Signal Processing Pipeline
 
 ```
-RTL-SDR → rtl_fm → sox → WAV file → aptdec → PNG images
-                                          ↓
-                                    SQLite database
-                                          ↓
-                                    Web dashboard
+RTL-SDR → rtl_fm → sox → WAV → aptdec → PNG
+          (FM demod) (resample)  (decode)  (images)
+                                     ↓
+                              SQLite Database
+                                     ↓
+                              Web Dashboard
 ```
 
-### Pass Prediction
+### Real-Time Communication
 
-1. Fetch TLE (Two-Line Element) data from CelesTrak
-2. Propagate satellite position using SGP4/SDP4 algorithm
-3. Calculate pass times (AOS/LOS) for ground station
-4. Filter passes by minimum elevation
-5. Schedule captures with Doppler compensation
+WebSocket events keep the UI synchronized:
 
-### WebSocket Events
-
-The backend emits real-time events to connected clients:
-
-- `status_change` - System status updates
-- `pass_start` - Capture beginning
+- `status_change` - System state updates
+- `pass_start` / `pass_complete` - Capture lifecycle
 - `capture_progress` - Recording progress
-- `pass_complete` - Capture finished
 - `passes_updated` - New pass predictions
-- `satellite_positions` - Real-time satellite positions
+- `fft_data` - Spectrum data for waterfall
 
-## API Endpoints
+## 🌐 API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/status` | GET | System status |
-| `/api/passes` | GET | Upcoming passes |
-| `/api/captures` | GET | Capture history |
-| `/api/images` | GET | Image gallery |
-| `/api/satellites` | GET | Satellite list |
-| `/api/sstv/status` | GET | SSTV status |
-| `/api/sstv/toggle` | POST | Toggle SSTV capture |
-| `/ws` | WebSocket | Real-time updates |
+| `/api/status` | GET | Current system status |
+| `/api/passes` | GET | Upcoming passes (next 24h) |
+| `/api/captures` | GET | Capture history with pagination |
+| `/api/images/:filename` | GET | Decoded satellite imagery |
+| `/api/sstv/status` | GET | SSTV status & events |
+| `/api/sstv/toggle` | POST | Enable/disable ISS SSTV |
+| `/api/fft/start` | POST | Start FFT stream |
+| `/api/fft/stop` | POST | Stop FFT stream |
+| `/ws` | WebSocket | Real-time bidirectional updates |
 
-## Troubleshooting
+## 🐛 Troubleshooting
 
-### Container won't start
+### No RTL-SDR Detected
 
 ```bash
-# Check logs
-docker compose logs rfcapture
-
 # Verify USB device
 lsusb | grep RTL
-```
 
-### No RTL-SDR detected
-
-```bash
-# Ensure device is accessible
+# Test in container
 docker compose exec rfcapture rtl_test -t
 
 # Check permissions
 sudo chmod 666 /dev/bus/usb/*/*
 ```
 
-### Poor signal quality
+### Poor Signal Quality
 
-- Check antenna connection and positioning
-- Adjust `SDR_GAIN` (try 30-50)
-- Calibrate `SDR_PPM_CORRECTION` using known FM stations
-- Ensure minimum 20 degree elevation (`MIN_ELEVATION`)
+- Check antenna positioning (clear line of sight)
+- Adjust `SDR_GAIN` (try 30-50, or 'auto')
+- Calibrate `SDR_PPM_CORRECTION` using FM stations
+- Ensure minimum 20° elevation
 
-### TLE fetch failures
-
-TLEs are cached for 24 hours. If fetching fails:
+### Container Won't Start
 
 ```bash
-# Check network connectivity
-docker compose exec rfcapture curl -I https://celestrak.org
+# View detailed logs
+docker compose -f docker/compose.yaml logs rfcapture
 
-# Force TLE refresh by restarting
-docker compose restart
+# Check environment
+docker compose -f docker/compose.yaml config
+
+# Verify volume mounts
+docker volume ls | grep rfcapture
 ```
 
-## References
+## 📚 Documentation
 
-- [aptdec](https://github.com/Xerbo/aptdec) - APT signal decoder
-- [satellite.js](https://github.com/shashwatak/satellite-js) - SGP4 orbital mechanics
-- [RTL-SDR Quick Start](https://www.rtl-sdr.com/rtl-sdr-quick-start-guide/)
-- [NOAA APT Protocol](https://www.sigidwiki.com/wiki/Automatic_Picture_Transmission_(APT))
-- [CelesTrak](https://celestrak.org/) - TLE data source
+- [Deployment Guide](docs/DEPLOYMENT.md) - Comprehensive deployment scenarios
+- [Final Review](docs/FINAL_REVIEW.md) - v2.0.0 release review
+- [Docker README](docker/README.md) - Container configuration details
 
-## Contributing
+## 🤝 Contributing
+
+Contributions welcome! Please follow these guidelines:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Follow [Conventional Commits](https://www.conventionalcommits.org/) format
+4. Ensure tests pass (`bun test`)
+5. Submit a Pull Request
 
-The project uses [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
+**Commit Format:**
+```
+feat: add amazing feature
+fix: resolve bug in decoder
+docs: update README
+refactor: reorganize file structure
+test: add orbital mechanics tests
+```
 
-## License
+## 🙏 Acknowledgments
 
-MIT - see [LICENSE](LICENSE) for details.
+- [aptdec](https://github.com/Xerbo/aptdec) - APT signal decoder
+- [satellite.js](https://github.com/shashwatak/satellite-js) - SGP4 implementation
+- [CelesTrak](https://celestrak.org/) - TLE data provider
+- RTL-SDR community for hardware support
+
+## 📄 License
+
+MIT © 2025 - See [LICENSE](LICENSE) for details.
+
+---
+
+**Night Watch** - *Keeping vigil under the stars, one satellite at a time* 🌙✨
