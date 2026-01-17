@@ -515,14 +515,14 @@ export function SatelliteTracking({
       <div className="p-2">
         {mode === 'satellite' ? (
           /* Satellite View - Sky View + Waterfall side by side */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex justify-center items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="flex justify-center items-center">
               <div className="aspect-square w-full max-w-[500px]">
                 <SkyView globeState={globeState} />
               </div>
             </div>
-            <div data-testid="waterfall-container" className="flex items-start">
-              <div className="w-full">
+            <div data-testid="waterfall-container" className="flex items-center justify-center">
+              <div className="w-full max-w-[600px]">
                 <WaterfallView
                   frequency={currentFrequency}
                   isActive={isCapturing}
