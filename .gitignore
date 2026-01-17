@@ -26,6 +26,7 @@ images/*
 .DS_Store
 .idea/
 .vscode/settings.json
+.claude/
 
 # Logs and temporary files
 *.log
