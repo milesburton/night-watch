@@ -8,6 +8,7 @@ import {
 } from '@/components'
 import { useApi } from '@/hooks/useApi'
 import { useFavicon } from '@/hooks/useFavicon'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { cn } from '@/lib/utils'
 import type { FFTData, VersionInfo } from '@/types'
@@ -47,8 +48,12 @@ export default function App() {
   const [serverTime, setServerTime] = useState<string>('')
   const [, setTick] = useState(0)
 
-  // Dynamic favicon based on system status
+  // Dynamic favicon and page title based on system status
   useFavicon(systemState?.status || 'idle')
+  usePageTitle(
+    systemState?.status || 'idle',
+    systemState?.currentPass?.satellite.name || systemState?.nextPass?.satellite.name
+  )
 
   // SSTV toggle states
   const [issEnabled, setIssEnabled] = useState(false)
