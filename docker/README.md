@@ -106,18 +106,52 @@ docker compose -f docker/compose.yaml build
 
 ### Two-Tier Build (Faster Deploys)
 
-1. Build the base image once (contains OS, Bun, dependencies):
+The images are split into two layers:
+- **Base image** (`Dockerfile.base`): OS, rtl-sdr tools, aptdec decoder, Bun runtime. Build rarely.
+- **App image** (`Dockerfile.app`): Application code only. Fast to rebuild.
+
+1. Build the base image once (contains OS, system tools, Bun):
 
 ```bash
 # From project root
-docker build -f docker/Dockerfile.base -t rfcapture-base:latest .
+docker build -f docker/Dockerfile.base -t ghcr.io/milesburton/noaa-satellite-capture-base:latest .
 ```
 
-2. Build the app image (just copies source code):
+2. Build the app image (copies source code, extends base):
 
 ```bash
-docker build -f docker/Dockerfile.app -t rfcapture:latest .
+docker build -f docker/Dockerfile.app \
+  --build-arg BASE_IMAGE=ghcr.io/milesburton/noaa-satellite-capture-base:latest \
+  -t ghcr.io/milesburton/noaa-satellite-capture:latest .
 ```
+
+### ARM64 / Raspberry Pi Deployment
+
+**Important**: The base image must be built **natively** on ARM64 hardware (e.g., Raspberry Pi). QEMU cross-compilation via GitHub Actions produces binaries that fail with `ENOEXEC` errors on actual ARM hardware.
+
+For Raspberry Pi deployment:
+
+```bash
+# On the Raspberry Pi itself:
+cd ~/noaa-satellite-capture
+
+# Build base image natively (slow, ~10-20 min, but only needed once)
+docker build -f docker/Dockerfile.base -t ghcr.io/milesburton/noaa-satellite-capture-base:latest .
+
+# Build app image (fast, ~2-3 min)
+docker build -f docker/Dockerfile.app \
+  --build-arg BASE_IMAGE=ghcr.io/milesburton/noaa-satellite-capture-base:latest \
+  -t ghcr.io/milesburton/noaa-satellite-capture:latest .
+
+# Start the container
+docker compose -f docker/compose.yaml up -d
+```
+
+**Why native builds are required:**
+- `rtl_power`, `rtl_fm`, and `aptdec` are compiled C/C++ binaries
+- QEMU cross-compilation produces x86_64 binaries masked as ARM64
+- These binaries crash with "exec format error" on real ARM hardware
+- Native compilation on the Pi produces correct ARM64 binaries
 
 ## Volumes
 
@@ -143,6 +177,40 @@ All services include health checks:
 - **SDR Relay mode**: `curl -f http://localhost:3001/health`
 
 ## Troubleshooting
+
+### Common Issues
+
+#### FFT/rtl_power fails with "ENOEXEC" or "exec format error"
+
+This indicates architecture mismatch - the binaries were cross-compiled for the wrong platform.
+
+**Solution**: Build the base image natively on your ARM64 device:
+```bash
+docker build -f docker/Dockerfile.base -t ghcr.io/milesburton/noaa-satellite-capture-base:latest .
+```
+
+#### Pi crashes during Docker build (undervoltage)
+
+Compiling aptdec and other tools requires significant CPU power. If your Pi is powered via USB from a hub or weak power supply, it may throttle or crash.
+
+**Solution**: Use a dedicated 5V 3A+ power supply (ideally USB-C PD for Pi 4/5).
+
+Check for throttling:
+```bash
+dmesg | grep -i voltage
+```
+
+#### FFT stream exits with code 1
+
+Check the logs for specific rtl_power errors:
+```bash
+docker logs rfcapture 2>&1 | grep -i "rtl_power\|fft\|error"
+```
+
+Common causes:
+- SDR device not connected or not passed through (`/dev/bus/usb`)
+- Another process using the SDR (only one can access at a time)
+- Invalid rtl_power parameters
 
 ### View Logs
 
