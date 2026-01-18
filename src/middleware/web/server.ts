@@ -48,6 +48,16 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
     staticDir = dir
   })
 
+  // Add default notch filters for known interference frequencies
+  // These can be managed via the API endpoints
+  const defaultNotchFilters = [
+    { frequency: 144.42e6, width: 10000 }, // Local interference ~144.42 MHz (±10 kHz)
+  ]
+  for (const filter of defaultNotchFilters) {
+    addNotchFilter(filter.frequency, filter.width)
+  }
+  logger.info(`Initialized ${defaultNotchFilters.length} default notch filter(s)`)
+
   const server = Bun.serve({
     port,
     hostname: host,

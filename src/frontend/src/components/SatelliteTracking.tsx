@@ -171,8 +171,8 @@ function SpectrumWaterfall({
   const [fftHistory, setFftHistory] = useState<FFTData[]>([])
   const lastProcessedTimestamp = useRef<number>(0)
 
-  const MAX_HISTORY_ROWS = 200
-  const SPECTRUM_HEIGHT = 100
+  const MAX_HISTORY_ROWS = 100
+  const SPECTRUM_HEIGHT = 80
 
   // Process incoming FFT data
   useEffect(() => {
@@ -383,9 +383,10 @@ function SpectrumWaterfall({
   return (
     <canvas
       ref={canvasRef}
-      width={800}
-      height={500}
-      className="w-full h-full rounded-lg cursor-pointer"
+      width={1200}
+      height={400}
+      className="w-full rounded-lg cursor-pointer"
+      style={{ height: 'auto', aspectRatio: '3 / 1' }}
       onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -525,6 +526,11 @@ export function SatelliteTracking({
               <div className="w-full max-w-[600px]">
                 <WaterfallView
                   frequency={currentFrequency}
+                  frequencyName={
+                    isScanning
+                      ? scanningFrequencyName
+                      : currentPass?.satellite?.name
+                  }
                   isActive={isCapturing}
                   isScanning={isScanning}
                   subscribeFFT={subscribeFFT}
@@ -537,7 +543,7 @@ export function SatelliteTracking({
           </div>
         ) : (
           /* 2M SSTV View - Full-width layered spectrum + waterfall */
-          <div className="w-full" style={{ height: '500px' }}>
+          <div className="w-full">
             <SpectrumWaterfall
               frequency={currentFrequency}
               frequencyName={

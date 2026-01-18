@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface WaterfallViewProps {
   frequency: number | null
+  frequencyName?: string
   isActive: boolean
   isScanning?: boolean
   subscribeFFT: (frequency?: number) => void
@@ -16,6 +17,7 @@ const DEFAULT_FREQUENCY = 137500000 // 137.5 MHz
 
 export function WaterfallView({
   frequency,
+  frequencyName,
   isActive,
   isScanning = false,
   subscribeFFT,
@@ -199,10 +201,13 @@ export function WaterfallView({
       ctx.stroke()
     }
 
-    // Center frequency label
-    ctx.fillStyle = '#22c55e'
+    // Center frequency label with optional name
+    ctx.fillStyle = isScanning ? '#8b5cf6' : '#22c55e'
     ctx.font = 'bold 12px monospace'
-    ctx.fillText(`Center: ${centerFreqMHz.toFixed(3)} MHz`, width / 2, historyHeight + 40)
+    const centerLabel = frequencyName
+      ? `${centerFreqMHz.toFixed(3)} MHz - ${frequencyName}`
+      : `Center: ${centerFreqMHz.toFixed(3)} MHz`
+    ctx.fillText(centerLabel, width / 2, historyHeight + 40)
 
     // Status indicator
     ctx.fillStyle = fftRunning ? (isScanning ? '#8b5cf6' : '#22c55e') : '#64748b'
@@ -224,7 +229,7 @@ export function WaterfallView({
       ctx.textAlign = 'right'
       ctx.fillText(`Peak: ${peakValue.toFixed(1)} dB`, width - 10, historyHeight + 40)
     }
-  }, [fftHistory, frequency, isActive, isScanning, fftRunning, currentConfig, getWaterfallColor])
+  }, [fftHistory, frequency, frequencyName, isActive, isScanning, fftRunning, currentConfig, getWaterfallColor])
 
   // Redraw on data change
   useEffect(() => {
