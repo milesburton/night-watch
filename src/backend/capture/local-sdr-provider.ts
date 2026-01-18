@@ -38,7 +38,7 @@ import {
  * Local FFT stream implementation
  */
 class LocalFFTStream implements IFFTStream {
-  start(config: FFTStreamConfig, callback: FFTCallback): boolean {
+  async start(config: FFTStreamConfig, callback: FFTCallback): Promise<boolean> {
     return startFFTStream(config, callback)
   }
 
@@ -54,7 +54,7 @@ class LocalFFTStream implements IFFTStream {
     return getFFTStreamConfig()
   }
 
-  updateFrequency(frequency: number): boolean {
+  async updateFrequency(frequency: number): Promise<boolean> {
     return updateFFTFrequency(frequency)
   }
 }

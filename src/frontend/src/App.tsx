@@ -348,9 +348,7 @@ export default function App() {
             onClick={toggleDiagnostics}
             className={cn(
               'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] transition-colors',
-              diagnosticsOpen
-                ? 'bg-accent/20 text-accent'
-                : 'hover:bg-bg-tertiary text-text-muted'
+              diagnosticsOpen ? 'bg-accent/20 text-accent' : 'hover:bg-bg-tertiary text-text-muted'
             )}
             data-testid="diagnostics-toggle"
             title={diagnosticsOpen ? 'Close dev tools' : 'Open dev tools'}

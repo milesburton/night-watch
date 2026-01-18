@@ -58,7 +58,10 @@ function applyHammingWindow(samples: Float32Array): void {
   const n = samples.length
   for (let i = 0; i < n; i++) {
     const multiplier = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (n - 1))
-    samples[i] *= multiplier
+    const current = samples[i]
+    if (current !== undefined) {
+      samples[i] = current * multiplier
+    }
   }
 }
 
@@ -256,11 +259,11 @@ export async function startFFTStream(
 
           // Perform FFT
           if (!fftProcessor) return
-          const fftOutput = fftProcessor.createComplexArray()
+          const fftOutput = fftProcessor.createComplexArray() as number[]
           fftProcessor.transform(fftOutput, complexData as unknown as number[])
 
           // Compute power spectrum
-          const spectrum = computePowerSpectrum(fftOutput as Float32Array, fftSize)
+          const spectrum = computePowerSpectrum(new Float32Array(fftOutput), fftSize)
 
           // Calculate frequency range
           const binWidth = SAMPLE_RATE / fftSize

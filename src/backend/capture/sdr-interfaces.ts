@@ -25,7 +25,7 @@ export interface IFFTStream {
    * @param callback Function to receive FFT data
    * @returns true if started successfully
    */
-  start(config: import('./fft-stream').FFTStreamConfig, callback: FFTCallback): boolean
+  start(config: import('./fft-stream').FFTStreamConfig, callback: FFTCallback): Promise<boolean>
 
   /**
    * Stop the FFT stream
@@ -47,7 +47,7 @@ export interface IFFTStream {
    * @param frequency New center frequency in Hz
    * @returns true if updated successfully
    */
-  updateFrequency(frequency: number): boolean
+  updateFrequency(frequency: number): Promise<boolean>
 }
 
 /**

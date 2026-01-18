@@ -45,7 +45,7 @@ class RemoteFFTStream implements IFFTStream {
 
   constructor(private relayUrl: string) {}
 
-  start(config: FFTStreamConfig, callback: FFTCallback): boolean {
+  async start(config: FFTStreamConfig, callback: FFTCallback): Promise<boolean> {
     this.callback = callback
     this.currentConfig = config
     return this.connect(config)
@@ -142,7 +142,7 @@ class RemoteFFTStream implements IFFTStream {
     return this.currentConfig
   }
 
-  updateFrequency(frequency: number): boolean {
+  async updateFrequency(frequency: number): Promise<boolean> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return false
     }

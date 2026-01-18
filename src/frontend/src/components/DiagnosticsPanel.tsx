@@ -39,12 +39,8 @@ export function DiagnosticsPanel({
   isOpen,
   onClose,
 }: DiagnosticsPanelProps) {
-  const {
-    diagnosticsTab,
-    setDiagnosticsTab,
-    diagnosticsPanelHeight,
-    setDiagnosticsPanelHeight,
-  } = useUIStore()
+  const { diagnosticsTab, setDiagnosticsTab, diagnosticsPanelHeight, setDiagnosticsPanelHeight } =
+    useUIStore()
 
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [isResizing, setIsResizing] = useState(false)
