@@ -1,8 +1,14 @@
 import { resolve } from 'node:path'
 import {
   type FFTData,
+  type NotchFilter,
+  addNotchFilter,
+  clearNotchFilters,
   getFFTStreamConfig,
+  getNotchFilters,
   isFFTStreamRunning,
+  removeNotchFilter,
+  setNotchFilterEnabled,
   startFFTStream,
   stopFFTStream,
 } from '@backend/capture/fft-stream'
@@ -245,6 +251,76 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
         return jsonResponse({ success: true, running: false })
       }
 
+      // Get notch filters
+      if (url.pathname === '/api/fft/notch' && req.method === 'GET') {
+        return jsonResponse({ filters: getNotchFilters() })
+      }
+
+      // Add notch filter
+      if (url.pathname === '/api/fft/notch' && req.method === 'POST') {
+        try {
+          const body = (await req.json()) as {
+            frequency?: number
+            width?: number
+          }
+          const frequency = body.frequency
+          const width = body.width || 5000
+
+          if (!frequency || typeof frequency !== 'number') {
+            return new Response('frequency required', { status: 400 })
+          }
+
+          addNotchFilter(frequency, width)
+          return jsonResponse({ success: true, filters: getNotchFilters() })
+        } catch {
+          return new Response('Bad Request', { status: 400 })
+        }
+      }
+
+      // Remove notch filter
+      if (url.pathname === '/api/fft/notch' && req.method === 'DELETE') {
+        try {
+          const body = (await req.json()) as { frequency?: number }
+          const frequency = body.frequency
+
+          if (!frequency || typeof frequency !== 'number') {
+            return new Response('frequency required', { status: 400 })
+          }
+
+          const removed = removeNotchFilter(frequency)
+          return jsonResponse({ success: removed, filters: getNotchFilters() })
+        } catch {
+          return new Response('Bad Request', { status: 400 })
+        }
+      }
+
+      // Toggle notch filter
+      if (url.pathname === '/api/fft/notch/toggle' && req.method === 'POST') {
+        try {
+          const body = (await req.json()) as {
+            frequency?: number
+            enabled?: boolean
+          }
+          const frequency = body.frequency
+          const enabled = body.enabled
+
+          if (!frequency || typeof frequency !== 'number' || typeof enabled !== 'boolean') {
+            return new Response('frequency and enabled required', { status: 400 })
+          }
+
+          const updated = setNotchFilterEnabled(frequency, enabled)
+          return jsonResponse({ success: updated, filters: getNotchFilters() })
+        } catch {
+          return new Response('Bad Request', { status: 400 })
+        }
+      }
+
+      // Clear all notch filters
+      if (url.pathname === '/api/fft/notch/clear' && req.method === 'POST') {
+        clearNotchFilters()
+        return jsonResponse({ success: true, filters: [] })
+      }
+
       return new Response('Not Found', { status: 404 })
     },
 
@@ -257,7 +333,11 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             type: 'init',
             state: stateManager.getState(),
             globe: getGlobeState(),
-            fft: { running: isFFTStreamRunning(), config: getFFTStreamConfig() },
+            fft: {
+              running: isFFTStreamRunning(),
+              config: getFFTStreamConfig(),
+              notchFilters: getNotchFilters(),
+            },
           })
         )
       },
