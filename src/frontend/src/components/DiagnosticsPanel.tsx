@@ -1,3 +1,4 @@
+import { useUIStore } from '@/store'
 import type {
   CaptureProgress,
   GlobeState,
@@ -38,13 +39,22 @@ export function DiagnosticsPanel({
   isOpen,
   onClose,
 }: DiagnosticsPanelProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('console')
+  const {
+    diagnosticsTab,
+    setDiagnosticsTab,
+    diagnosticsPanelHeight,
+    setDiagnosticsPanelHeight,
+  } = useUIStore()
+
   const [logs, setLogs] = useState<LogEntry[]>([])
-  const [panelHeight, setPanelHeight] = useState(300)
   const [isResizing, setIsResizing] = useState(false)
   const logsEndRef = useRef<HTMLDivElement>(null)
 
-  // Add logs based on state changes
+  const activeTab = diagnosticsTab
+  const setActiveTab = setDiagnosticsTab
+  const panelHeight = diagnosticsPanelHeight
+  const setPanelHeight = setDiagnosticsPanelHeight
+
   useEffect(() => {
     if (wsState.connected) {
       addLog('info', 'WebSocket connected')
@@ -70,7 +80,6 @@ export function DiagnosticsPanel({
           message,
         },
       ]
-      // Scroll after state update
       setTimeout(() => {
         logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       }, 0)
@@ -78,7 +87,6 @@ export function DiagnosticsPanel({
     })
   }
 
-  // Handle resize
   const handleMouseDown = () => {
     setIsResizing(true)
   }
@@ -86,8 +94,9 @@ export function DiagnosticsPanel({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return
-      const newHeight = window.innerHeight - e.clientY
-      setPanelHeight(Math.max(150, Math.min(600, newHeight)))
+      const topOffset = 68
+      const newHeight = e.clientY - topOffset
+      setPanelHeight(Math.max(150, Math.min(500, newHeight)))
     }
 
     const handleMouseUp = () => {
@@ -103,7 +112,7 @@ export function DiagnosticsPanel({
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [isResizing])
+  }, [isResizing, setPanelHeight])
 
   const tabs: { id: TabId; label: string; icon: string }[] = [
     { id: 'console', label: 'Console', icon: '>' },
@@ -263,12 +272,10 @@ export function DiagnosticsPanel({
         )
 
       case 'sdr': {
-        // SDR is "active" when recording, scanning, or decoding
         const sdrActive =
           systemState?.status === 'recording' ||
           systemState?.status === 'scanning' ||
           systemState?.status === 'decoding'
-        // SDR is "ready" when idle or waiting (assuming hardware is present)
         const sdrReady = systemState?.status === 'idle' || systemState?.status === 'waiting'
         const sdrStatusText = sdrActive ? 'Active' : sdrReady ? 'Ready' : 'Unknown'
         const sdrStatusColor = sdrActive
@@ -387,15 +394,9 @@ export function DiagnosticsPanel({
 
   return (
     <div
-      className="fixed left-0 right-0 z-40 bg-bg-primary border-t border-border shadow-2xl"
-      style={{ height: panelHeight, bottom: 40 }}
+      className="fixed left-0 right-0 z-40 bg-bg-primary border-b border-border shadow-2xl"
+      style={{ height: panelHeight, top: 68 }}
     >
-      {/* Resize Handle */}
-      <div
-        className="absolute top-0 left-0 right-0 h-1 cursor-ns-resize hover:bg-accent/50 transition-colors"
-        onMouseDown={handleMouseDown}
-      />
-
       {/* Tab Bar */}
       <div className="flex items-center justify-between border-b border-border px-2">
         <div className="flex">
@@ -433,9 +434,15 @@ export function DiagnosticsPanel({
       </div>
 
       {/* Content */}
-      <div className="overflow-auto" style={{ height: panelHeight - 41 }}>
+      <div className="overflow-auto" style={{ height: panelHeight - 49 }}>
         {renderTabContent()}
       </div>
+
+      {/* Resize Handle at bottom */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-1 cursor-ns-resize hover:bg-accent/50 transition-colors"
+        onMouseDown={handleMouseDown}
+      />
     </div>
   )
 }

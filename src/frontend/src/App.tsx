@@ -2,6 +2,7 @@ import {
   CaptureGallery,
   DiagnosticsPanel,
   DopplerChart,
+  Footer,
   PassTimeline,
   ProgressSection,
   SatelliteTracking,
@@ -11,6 +12,7 @@ import { useFavicon } from '@/hooks/useFavicon'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { cn } from '@/lib/utils'
+import { useUIStore } from '@/store'
 import type { FFTData, VersionInfo } from '@/types'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -44,24 +46,22 @@ export default function App() {
 
   const { getVersion, getSstvStatus, toggleSstv, toggleGroundScan } = useApi()
   const [version, setVersion] = useState<VersionInfo | null>(null)
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const [serverTime, setServerTime] = useState<string>('')
   const [, setTick] = useState(0)
 
-  // Dynamic favicon and page title based on system status
+  const { diagnosticsOpen, toggleDiagnostics, setDiagnosticsOpen } = useUIStore()
+
   useFavicon(systemState?.status || 'idle')
   usePageTitle(
     systemState?.status || 'idle',
     systemState?.currentPass?.satellite.name || systemState?.nextPass?.satellite.name
   )
 
-  // SSTV toggle states
   const [issEnabled, setIssEnabled] = useState(false)
   const [groundEnabled, setGroundEnabled] = useState(true)
-  const [noaaEnabled, setNoaaEnabled] = useState(true) // NOAA is always enabled by default
+  const [noaaEnabled, setNoaaEnabled] = useState(true)
   const [sstvLoading, setSstvLoading] = useState<string | null>(null)
 
-  // Load initial SSTV status
   useEffect(() => {
     const fetchSstvStatus = async () => {
       const status = await getSstvStatus()
@@ -73,7 +73,6 @@ export default function App() {
     fetchSstvStatus()
   }, [getSstvStatus])
 
-  // Update from WebSocket
   useEffect(() => {
     if (sstvStatus) {
       setIssEnabled(sstvStatus.enabled)
@@ -81,11 +80,9 @@ export default function App() {
     }
   }, [sstvStatus])
 
-  // Force re-render every second for countdown and update server time
   useEffect(() => {
     const updateTime = () => {
       setTick((t) => t + 1)
-      // Use UTC time as "server time" (Pi runs on UTC)
       const now = new Date()
       setServerTime(
         now.toLocaleTimeString('en-GB', {
@@ -113,7 +110,6 @@ export default function App() {
     fetchVersion()
   }, [getVersion])
 
-  // Auto-refresh on version change
   useEffect(() => {
     if (!version) return
 
@@ -124,7 +120,7 @@ export default function App() {
           window.location.reload()
         }
       } catch {
-        // Ignore errors during version check
+        // Ignore errors
       }
     }
 
@@ -133,8 +129,6 @@ export default function App() {
   }, [version, getVersion])
 
   const showProgress = systemState?.status === 'recording' || systemState?.status === 'decoding'
-
-  // Status helpers
   const status = systemState?.status || 'idle'
   const sdrConnected = systemState?.sdrConnected ?? false
   const nextPass = passes[0] || null
@@ -199,7 +193,6 @@ export default function App() {
   const sdrStatus = getSdrStatus()
   const versionText = `${version?.version || '-.-.-'}`
 
-  // SSTV toggle handlers
   const handleIssToggle = async () => {
     setSstvLoading('iss')
     const result = await toggleSstv(!issEnabled)
@@ -215,11 +208,9 @@ export default function App() {
   }
 
   const handleNoaaToggle = () => {
-    // NOAA is always enabled, but we could add a toggle in the future
     setNoaaEnabled(!noaaEnabled)
   }
 
-  // Toggle button component with tooltip
   const ToggleChip = ({
     label,
     enabled,
@@ -259,7 +250,6 @@ export default function App() {
         data-testid="status-bar"
       >
         <div className="flex items-center gap-3">
-          {/* Capture Mode Toggles - fixed position on left */}
           <div className="flex items-center gap-1">
             <ToggleChip
               label="NOAA"
@@ -286,19 +276,15 @@ export default function App() {
             />
           </div>
 
-          {/* Status indicators */}
           <div className="flex items-center gap-3 border-l border-border pl-3">
-            {/* Status */}
             <div className="flex items-center gap-1" data-testid="system-status">
               <span className={cn('w-1.5 h-1.5 rounded-full', getStatusColor())} />
               <span className="font-mono text-[10px]">{getStatusText()}</span>
             </div>
-            {/* SDR */}
             <div className="flex items-center gap-1" data-testid="sdr-status">
               <span className={cn('w-1.5 h-1.5 rounded-full', sdrStatus.class)} />
               <span className="text-[10px]">{sdrStatus.text}</span>
             </div>
-            {/* WS */}
             <div className="flex items-center gap-1" data-testid="ws-status">
               <span
                 className={cn(
@@ -308,7 +294,6 @@ export default function App() {
               />
               <span className="text-[10px]">{wsState.connected ? 'WS' : 'WS!'}</span>
             </div>
-            {/* Current Frequency */}
             <div className="flex items-center gap-1 font-mono" data-testid="current-frequency">
               {status === 'scanning' && systemState?.scanningFrequency ? (
                 <>
@@ -338,7 +323,6 @@ export default function App() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* Next Pass */}
           {nextPass && (
             <div
               className="flex items-center gap-1.5 font-mono text-[10px]"
@@ -349,7 +333,6 @@ export default function App() {
               <span className="text-text-muted">{nextPass.maxElevation.toFixed(0)}°</span>
             </div>
           )}
-          {/* Server Time (UTC) */}
           <span
             className="font-mono text-text-muted text-[10px]"
             data-testid="server-time"
@@ -357,28 +340,29 @@ export default function App() {
           >
             {serverTime} UTC
           </span>
-          {/* Version */}
           <span className="font-mono text-text-muted text-[10px]" data-testid="version">
             {versionText}
           </span>
-          {/* Diagnostics toggle chevron */}
           <button
             type="button"
-            onClick={() => setDiagnosticsOpen(!diagnosticsOpen)}
-            className="p-1 rounded hover:bg-bg-tertiary transition-transform"
+            onClick={toggleDiagnostics}
+            className={cn(
+              'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] transition-colors',
+              diagnosticsOpen
+                ? 'bg-accent/20 text-accent'
+                : 'hover:bg-bg-tertiary text-text-muted'
+            )}
             data-testid="diagnostics-toggle"
-            title={diagnosticsOpen ? 'Close diagnostics' : 'Open diagnostics'}
+            title={diagnosticsOpen ? 'Close dev tools' : 'Open dev tools'}
           >
+            <span className="font-medium">Dev</span>
             <svg
-              className={cn(
-                'w-3 h-3 text-text-muted transition-transform',
-                diagnosticsOpen && 'rotate-180'
-              )}
+              className={cn('w-3 h-3 transition-transform', diagnosticsOpen && 'rotate-180')}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
+              aria-hidden="true"
             >
-              <title>Toggle Diagnostics</title>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -390,16 +374,12 @@ export default function App() {
         </div>
       </header>
 
-      {/* Pass Timeline */}
       <PassTimeline passes={passes} hoursAhead={12} />
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-auto p-2 space-y-2">
-        {/* Top Row - Tracking & Status */}
+      <main className="flex-1 overflow-auto p-2 pb-10 space-y-2">
         <div
           className={cn('grid gap-2', showProgress ? 'grid-cols-1 xl:grid-cols-3' : 'grid-cols-1')}
         >
-          {/* Satellite Tracking (Sky View + Waterfall) */}
           <div className={showProgress ? 'xl:col-span-2' : ''}>
             <SatelliteTracking
               globeState={globeState}
@@ -415,10 +395,13 @@ export default function App() {
             />
           </div>
 
-          {/* Right Panel - Progress & Doppler (only shown during capture) */}
           {showProgress && (
             <div className="space-y-2">
-              <ProgressSection progress={progress} visible={showProgress} />
+              <ProgressSection
+                progress={progress}
+                visible={showProgress}
+                currentPass={systemState?.currentPass}
+              />
               {systemState?.doppler && (
                 <DopplerChart
                   current={systemState.doppler.current}
@@ -431,11 +414,9 @@ export default function App() {
           )}
         </div>
 
-        {/* Capture Gallery */}
         <CaptureGallery />
       </main>
 
-      {/* Diagnostics Panel */}
       <DiagnosticsPanel
         wsState={wsState}
         systemState={systemState}
@@ -446,6 +427,8 @@ export default function App() {
         isOpen={diagnosticsOpen}
         onClose={() => setDiagnosticsOpen(false)}
       />
+
+      <Footer version={version?.version} />
     </div>
   )
 }

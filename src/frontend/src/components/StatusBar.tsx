@@ -23,7 +23,6 @@ export function StatusBar({
 }: StatusBarProps) {
   const [, setTick] = useState(0)
 
-  // Force re-render every second for countdown
   useEffect(() => {
     const interval = setInterval(() => setTick((t) => t + 1), 1000)
     return () => clearInterval(interval)

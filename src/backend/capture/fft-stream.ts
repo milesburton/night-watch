@@ -45,7 +45,7 @@ let fftProcessor: FFT | null = null
 const DEFAULT_CONFIG: Partial<FFTStreamConfig> = {
   bandwidth: 200000, // 200 kHz
   fftSize: 1024, // 1024-point FFT
-  updateRate: 10, // 10 updates per second
+  updateRate: 30, // 30 updates per second for smooth real-time display
 }
 
 // Sample rate - must be high enough for bandwidth but not too high for Pi CPU
@@ -83,29 +83,24 @@ function convertIQToComplex(buffer: Buffer, fftSize: number): Float32Array {
   return complexData
 }
 
-/**
- * Compute power spectrum from FFT output
- */
 function computePowerSpectrum(fftOutput: Float32Array, fftSize: number): number[] {
   const spectrum: number[] = new Array(fftSize)
+  const normFactor = fftSize * fftSize
 
   for (let i = 0; i < fftSize; i++) {
     const realIdx = i * 2
     const imagIdx = i * 2 + 1
     const real = fftOutput[realIdx] ?? 0
     const imag = fftOutput[imagIdx] ?? 0
-    // Power in dB (10 * log10 of magnitude squared)
-    const magnitude = real * real + imag * imag
-    spectrum[i] = magnitude > 0 ? 10 * Math.log10(magnitude) : -100
+    const magSquared = (real * real + imag * imag) / normFactor
+    spectrum[i] = magSquared > 1e-15 ? 10 * Math.log10(magSquared) - 60 : -120
   }
 
-  // FFT output is centered at DC, reorder to center the spectrum
-  // Move negative frequencies to the left side
   const reordered: number[] = new Array(fftSize)
   const halfSize = fftSize / 2
   for (let i = 0; i < halfSize; i++) {
-    reordered[i] = spectrum[i + halfSize] ?? -100
-    reordered[i + halfSize] = spectrum[i] ?? -100
+    reordered[i] = spectrum[i + halfSize] ?? -120
+    reordered[i + halfSize] = spectrum[i] ?? -120
   }
 
   return reordered

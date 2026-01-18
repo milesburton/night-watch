@@ -372,7 +372,6 @@ class SatelliteMonitor {
     document.getElementById('current-pass').classList.add('hidden')
     document.getElementById('doppler-section').classList.add('hidden')
 
-    // Remove completed pass from upcoming passes and update next pass
     if (this.state?.upcomingPasses) {
       this.state.upcomingPasses = this.state.upcomingPasses.filter(
         (p) => new Date(p.aos).getTime() > Date.now()
@@ -556,7 +555,6 @@ class SatelliteMonitor {
   }
 
   startVersionCheck() {
-    // Check for version changes every 30 seconds
     this.versionCheckInterval = setInterval(() => this.checkVersion(), 30000)
   }
 
@@ -571,7 +569,6 @@ class SatelliteMonitor {
         this.currentVersion.commit !== version.commit
       ) {
         console.log('New version detected, refreshing...')
-        // Silently refresh the page
         window.location.reload()
       }
     } catch (error) {
@@ -583,7 +580,6 @@ class SatelliteMonitor {
     const dot = document.getElementById('sdr-status-dot')
     const text = document.getElementById('sdr-status-text')
 
-    // Update based on connection and system status
     if (this.state) {
       const isCapturing = this.state.status === 'capturing' || this.state.status === 'decoding'
       const hasUpcomingPasses = this.state.upcomingPasses && this.state.upcomingPasses.length > 0

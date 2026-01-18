@@ -13,7 +13,7 @@ interface WaterfallViewProps {
 }
 
 const MAX_HISTORY_ROWS = 150
-const DEFAULT_FREQUENCY = 137500000 // 137.5 MHz
+const DEFAULT_FREQUENCY = 137500000
 
 export function WaterfallView({
   frequency,
@@ -35,7 +35,6 @@ export function WaterfallView({
   const lastDataRef = useRef<FFTData | null>(null)
   const lastProcessedTimestamp = useRef<number>(0)
 
-  // Process incoming FFT data from props
   useEffect(() => {
     if (!latestFFTData || latestFFTData.timestamp === lastProcessedTimestamp.current) {
       return
@@ -54,16 +53,11 @@ export function WaterfallView({
     })
   }, [latestFFTData])
 
-  // Subscribe to FFT data - retry if not running
   useEffect(() => {
     const targetFreq = frequency || DEFAULT_FREQUENCY
-
-    // Initial subscription attempt
     subscribeFFT(targetFreq)
     setIsSubscribed(true)
 
-    // Retry subscription if FFT isn't running after initial attempt
-    // This handles the case where WebSocket wasn't ready on first try
     const retryTimer = setTimeout(() => {
       if (!fftRunning) {
         subscribeFFT(targetFreq)
@@ -75,16 +69,14 @@ export function WaterfallView({
       unsubscribeFFT()
       setIsSubscribed(false)
     }
-  }, [subscribeFFT, unsubscribeFFT, fftRunning, frequency]) // Re-run when functions change (e.g., after reconnect)
+  }, [subscribeFFT, unsubscribeFFT, fftRunning, frequency])
 
-  // Update frequency when it changes (e.g., during a satellite pass)
   useEffect(() => {
     if (frequency && isSubscribed) {
       subscribeFFT(frequency)
     }
   }, [frequency, isSubscribed, subscribeFFT])
 
-  // Auto-retry if FFT should be running but isn't
   useEffect(() => {
     if (isSubscribed && !fftRunning) {
       const retryTimer = setInterval(() => {
@@ -95,7 +87,6 @@ export function WaterfallView({
     }
   }, [isSubscribed, fftRunning, frequency, subscribeFFT])
 
-  // Color mapping for waterfall display (blue -> cyan -> green -> yellow -> red)
   const getWaterfallColor = useCallback((normalized: number): string => {
     if (normalized < 0.2) {
       const t = normalized / 0.2
@@ -117,7 +108,6 @@ export function WaterfallView({
     return `rgb(255, ${Math.floor(155 - t * 155)}, 0)`
   }, [])
 
-  // Draw the waterfall display
   const drawWaterfall = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -126,14 +116,12 @@ export function WaterfallView({
     if (!ctx) return
 
     const { width, height } = canvas
-    const historyHeight = height - 60 // Reserve space for frequency scale
+    const historyHeight = height - 60
 
-    // Clear canvas
     ctx.fillStyle = '#1a2332'
     ctx.fillRect(0, 0, width, height)
 
     if (fftHistory.length === 0) {
-      // No data yet
       ctx.fillStyle = '#64748b'
       ctx.font = '14px sans-serif'
       ctx.textAlign = 'center'
@@ -147,13 +135,36 @@ export function WaterfallView({
       return
     }
 
-    // Draw waterfall history
     const rowHeight = Math.max(1, historyHeight / Math.max(fftHistory.length, 50))
 
-    // Use fixed reference range for consistent display
-    // Typical SDR signals: noise floor around -40 to -30 dB, strong signals up to 0 dB
-    const refMin = -50 // Noise floor reference
-    const refMax = 0 // Strong signal reference
+    let allMin = -80
+    let allMax = -40
+    if (fftHistory.length > 0) {
+      const recentRows = fftHistory.slice(-30)
+      let measuredMin = 0
+      let measuredMax = -150
+      for (const row of recentRows) {
+        if (row.minPower > -150 && row.minPower < 0) {
+          measuredMin = Math.min(measuredMin, row.minPower)
+        }
+        if (row.maxPower > -150 && row.maxPower < 0) {
+          measuredMax = Math.max(measuredMax, row.maxPower)
+        }
+      }
+      if (measuredMin < -10 && measuredMax < 0) {
+        allMin = measuredMin - 5
+        allMax = measuredMax + 10
+      }
+      if (allMax - allMin < 30) {
+        const mid = (allMin + allMax) / 2
+        allMin = mid - 20
+        allMax = mid + 15
+      }
+      allMin = Math.max(allMin, -120)
+      allMax = Math.min(allMax, -10)
+    }
+    const refMin = allMin
+    const refMax = allMax
 
     fftHistory.forEach((row, rowIndex) => {
       const y = rowIndex * rowHeight
@@ -161,14 +172,12 @@ export function WaterfallView({
 
       row.bins.forEach((power, binIndex) => {
         const x = binIndex * binWidth
-        // Normalize power to 0-1 range using fixed reference
         const normalized = Math.max(0, Math.min(1, (power - refMin) / (refMax - refMin)))
         ctx.fillStyle = getWaterfallColor(normalized)
         ctx.fillRect(x, y, binWidth + 1, rowHeight + 1)
       })
     })
 
-    // Draw frequency scale at bottom
     ctx.fillStyle = '#1a2332'
     ctx.fillRect(0, historyHeight, width, 60)
 
@@ -179,7 +188,6 @@ export function WaterfallView({
     ctx.lineTo(width, historyHeight)
     ctx.stroke()
 
-    // Frequency labels
     const centerFreqMHz = (currentConfig?.centerFreq || frequency || DEFAULT_FREQUENCY) / 1e6
     const bandwidthMHz = (currentConfig?.bandwidth || 50000) / 1e6
 
@@ -194,14 +202,12 @@ export function WaterfallView({
       const labelFreq = (centerFreqMHz + freqOffset).toFixed(3)
       ctx.fillText(`${labelFreq}`, x, historyHeight + 20)
 
-      // Tick marks
       ctx.beginPath()
       ctx.moveTo(x, historyHeight)
       ctx.lineTo(x, historyHeight + 5)
       ctx.stroke()
     }
 
-    // Center frequency label with optional name
     ctx.fillStyle = isScanning ? '#8b5cf6' : '#22c55e'
     ctx.font = 'bold 12px monospace'
     const centerLabel = frequencyName
@@ -209,7 +215,6 @@ export function WaterfallView({
       : `Center: ${centerFreqMHz.toFixed(3)} MHz`
     ctx.fillText(centerLabel, width / 2, historyHeight + 40)
 
-    // Status indicator
     ctx.fillStyle = fftRunning ? (isScanning ? '#8b5cf6' : '#22c55e') : '#64748b'
     ctx.font = '11px sans-serif'
     ctx.textAlign = 'left'
@@ -222,7 +227,6 @@ export function WaterfallView({
       : 'OFFLINE'
     ctx.fillText(statusText, 10, historyHeight + 40)
 
-    // Signal strength indicator (current peak)
     if (lastDataRef.current) {
       const peakValue = lastDataRef.current.maxPower
       ctx.fillStyle = '#94a3b8'
@@ -240,12 +244,10 @@ export function WaterfallView({
     getWaterfallColor,
   ])
 
-  // Redraw on data change
   useEffect(() => {
     drawWaterfall()
   }, [drawWaterfall])
 
-  // Handle click to start/restart FFT
   const handleClick = useCallback(() => {
     const targetFreq = frequency || DEFAULT_FREQUENCY
     subscribeFFT(targetFreq)

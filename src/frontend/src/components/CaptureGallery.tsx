@@ -20,8 +20,6 @@ export function CaptureGallery() {
       }
     }
     fetchCaptures()
-
-    // Refresh every 30 seconds
     const interval = setInterval(fetchCaptures, 30000)
     return () => clearInterval(interval)
   }, [getCaptures])

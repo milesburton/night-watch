@@ -1,6 +1,7 @@
 import { useApi } from '@/hooks/useApi'
 import type { SstvStatus } from '@/types'
 import { useEffect, useState } from 'react'
+import { Tooltip } from './Tooltip'
 
 interface SstvToggleProps {
   sstvStatus: SstvStatus | null
@@ -15,7 +16,6 @@ export function SstvToggle({ sstvStatus, onToggle }: SstvToggleProps) {
   const [groundScanEnabled, setGroundScanEnabled] = useState(true)
   const [initialLoaded, setInitialLoaded] = useState(false)
 
-  // Fetch initial status from API on mount
   useEffect(() => {
     const fetchInitialStatus = async () => {
       const status = await getSstvStatus()
@@ -28,7 +28,6 @@ export function SstvToggle({ sstvStatus, onToggle }: SstvToggleProps) {
     fetchInitialStatus()
   }, [getSstvStatus])
 
-  // Update from WebSocket status if available
   useEffect(() => {
     if (sstvStatus && initialLoaded) {
       setEnabled(sstvStatus.enabled)
@@ -92,20 +91,22 @@ export function SstvToggle({ sstvStatus, onToggle }: SstvToggleProps) {
           Enable capture for ISS SSTV events (145.800 MHz)
         </p>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleToggle}
-            disabled={isLoading}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-primary ${
-              enabled ? 'bg-accent' : 'bg-bg-tertiary'
-            } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                enabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
+          <Tooltip content="Toggle ISS SSTV capture on scheduled events" position="right">
+            <button
+              type="button"
+              onClick={handleToggle}
+              disabled={isLoading}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-primary ${
+                enabled ? 'bg-accent' : 'bg-bg-tertiary'
+              } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  enabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </Tooltip>
           <span className="text-sm text-text-secondary">
             {isLoading ? 'Updating...' : enabled ? 'Enabled' : 'Disabled'}
           </span>
@@ -133,20 +134,25 @@ export function SstvToggle({ sstvStatus, onToggle }: SstvToggleProps) {
           145.8 MHz)
         </p>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleGroundScanToggle}
-            disabled={isLoadingGround}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-primary ${
-              groundScanEnabled ? 'bg-purple' : 'bg-bg-tertiary'
-            } ${isLoadingGround ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          <Tooltip
+            content="Scan for ground-based SSTV signals when no satellite passes are scheduled"
+            position="right"
           >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                groundScanEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
+            <button
+              type="button"
+              onClick={handleGroundScanToggle}
+              disabled={isLoadingGround}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-primary ${
+                groundScanEnabled ? 'bg-purple' : 'bg-bg-tertiary'
+              } ${isLoadingGround ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  groundScanEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </Tooltip>
           <span className="text-sm text-text-secondary">
             {isLoadingGround ? 'Updating...' : groundScanEnabled ? 'Enabled' : 'Disabled'}
           </span>

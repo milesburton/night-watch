@@ -1,12 +1,12 @@
 import { cn } from '@/lib/utils'
 import type { FFTData, GlobeState, SatellitePass, SystemStatus } from '@/types'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Tooltip } from './Tooltip'
 import { WaterfallView } from './WaterfallView'
 
-// 2M SSTV frequencies to scan (in Hz) - ISS is handled as a scheduled pass
 const SSTV_2M_FREQUENCIES = [
-  { freq: 144500000, label: '144.500' }, // SSB SSTV (UK/EU)
-  { freq: 145500000, label: '145.500' }, // FM SSTV calling
+  { freq: 144500000, label: '144.500', tooltip: 'SSB SSTV calling frequency (UK/EU)' },
+  { freq: 145500000, label: '145.500', tooltip: 'FM SSTV calling frequency' },
 ]
 
 type ViewMode = 'satellite' | 'sstv-2m'
@@ -24,7 +24,6 @@ interface SatelliteTrackingProps {
   onFrequencyChange?: (freq: number | null, mode: ViewMode) => void
 }
 
-// Sky view canvas component
 function SkyView({ globeState }: { globeState: GlobeState | null }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -40,11 +39,9 @@ function SkyView({ globeState }: { globeState: GlobeState | null }) {
     const centerY = height / 2
     const radius = Math.min(width, height) / 2 - 15
 
-    // Clear canvas
     ctx.fillStyle = '#1a2332'
     ctx.fillRect(0, 0, width, height)
 
-    // Draw concentric elevation circles (90°, 60°, 30°, 0°)
     ctx.strokeStyle = '#334155'
     ctx.lineWidth = 1
     for (let elev = 0; elev <= 90; elev += 30) {
@@ -53,7 +50,6 @@ function SkyView({ globeState }: { globeState: GlobeState | null }) {
       ctx.arc(centerX, centerY, r, 0, Math.PI * 2)
       ctx.stroke()
 
-      // Labels
       if (elev > 0 && elev < 90) {
         ctx.fillStyle = '#64748b'
         ctx.font = '9px sans-serif'
@@ -61,7 +57,6 @@ function SkyView({ globeState }: { globeState: GlobeState | null }) {
       }
     }
 
-    // Draw cardinal directions
     ctx.strokeStyle = '#334155'
     ctx.lineWidth = 1
     ctx.beginPath()
@@ -71,7 +66,6 @@ function SkyView({ globeState }: { globeState: GlobeState | null }) {
     ctx.lineTo(centerX + radius, centerY)
     ctx.stroke()
 
-    // Cardinal labels
     ctx.fillStyle = '#94a3b8'
     ctx.font = 'bold 10px sans-serif'
     ctx.textAlign = 'center'
@@ -80,20 +74,17 @@ function SkyView({ globeState }: { globeState: GlobeState | null }) {
     ctx.fillText('E', centerX + radius + 8, centerY + 3)
     ctx.fillText('W', centerX - radius - 8, centerY + 3)
 
-    // Draw horizon circle
     ctx.strokeStyle = '#22c55e'
     ctx.lineWidth = 2
     ctx.beginPath()
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
     ctx.stroke()
 
-    // Station marker at center
     ctx.fillStyle = '#22c55e'
     ctx.beginPath()
     ctx.arc(centerX, centerY, 4, 0, Math.PI * 2)
     ctx.fill()
 
-    // Draw satellites
     for (const sat of globeState.satellites) {
       const stationLat = globeState.station.latitude
       const stationLon = globeState.station.longitude
@@ -149,7 +140,6 @@ function SkyView({ globeState }: { globeState: GlobeState | null }) {
   )
 }
 
-// Layered Spectrum + Waterfall component for 2M SSTV
 function SpectrumWaterfall({
   frequency,
   frequencyName,
@@ -174,7 +164,6 @@ function SpectrumWaterfall({
   const MAX_HISTORY_ROWS = 100
   const SPECTRUM_HEIGHT = 80
 
-  // Process incoming FFT data
   useEffect(() => {
     if (!latestFFTData || latestFFTData.timestamp === lastProcessedTimestamp.current) {
       return
@@ -189,7 +178,6 @@ function SpectrumWaterfall({
     })
   }, [latestFFTData])
 
-  // Subscribe to FFT
   useEffect(() => {
     subscribeFFT(frequency)
     const retryTimer = setTimeout(() => {
@@ -201,7 +189,6 @@ function SpectrumWaterfall({
     }
   }, [frequency, subscribeFFT, unsubscribeFFT, fftRunning])
 
-  // Color mapping
   const getColor = useCallback((normalized: number): string => {
     if (normalized < 0.2) {
       const t = normalized / 0.2
@@ -223,7 +210,6 @@ function SpectrumWaterfall({
     return `rgb(255, ${Math.floor(155 - t * 155)}, 0)`
   }, [])
 
-  // Draw spectrum + waterfall
   const draw = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -231,18 +217,31 @@ function SpectrumWaterfall({
     if (!ctx) return
 
     const { width, height } = canvas
-    const waterfallHeight = height - SPECTRUM_HEIGHT - 40 // 40 for freq scale
+    const waterfallHeight = height - SPECTRUM_HEIGHT - 40
 
-    // Clear
     ctx.fillStyle = '#0f1419'
     ctx.fillRect(0, 0, width, height)
 
-    const refMin = -50
-    const refMax = 0
-    const centerFreqMHz = frequency / 1e6
-    const bandwidthMHz = 0.2 // 200 kHz
+    let refMin = -60
+    let refMax = -20
+    if (fftHistory.length > 0) {
+      const recentRows = fftHistory.slice(-20)
+      for (const row of recentRows) {
+        if (row.minPower > -100) refMin = Math.min(refMin, row.minPower)
+        refMax = Math.max(refMax, row.maxPower)
+      }
+      refMin = Math.max(refMin - 5, -80)
+      refMax = Math.min(refMax + 5, 0)
+      if (refMax - refMin < 20) {
+        const mid = (refMin + refMax) / 2
+        refMin = mid - 15
+        refMax = mid + 15
+      }
+    }
 
-    // Draw waterfall (bottom section)
+    const centerFreqMHz = frequency / 1e6
+    const bandwidthMHz = 0.2
+
     if (fftHistory.length > 0) {
       const rowHeight = Math.max(1, waterfallHeight / Math.min(fftHistory.length, MAX_HISTORY_ROWS))
 
@@ -259,11 +258,9 @@ function SpectrumWaterfall({
       })
     }
 
-    // Draw spectrum scope (top section) - layered on top with transparency
     ctx.fillStyle = 'rgba(15, 20, 25, 0.85)'
     ctx.fillRect(0, 0, width, SPECTRUM_HEIGHT)
 
-    // Grid lines for spectrum
     ctx.strokeStyle = '#1e293b'
     ctx.lineWidth = 1
     for (let i = 0; i <= 4; i++) {
@@ -274,7 +271,6 @@ function SpectrumWaterfall({
       ctx.stroke()
     }
 
-    // dB scale on left
     ctx.fillStyle = '#64748b'
     ctx.font = '9px monospace'
     ctx.textAlign = 'right'
@@ -284,7 +280,6 @@ function SpectrumWaterfall({
       ctx.fillText(`${db.toFixed(0)}`, 25, y + 4)
     }
 
-    // Draw current spectrum line
     if (latestFFTData && latestFFTData.bins.length > 0) {
       ctx.beginPath()
       ctx.strokeStyle = '#8b5cf6'
@@ -303,7 +298,6 @@ function SpectrumWaterfall({
       })
       ctx.stroke()
 
-      // Fill under the curve with gradient
       ctx.lineTo(width, SPECTRUM_HEIGHT)
       ctx.lineTo(0, SPECTRUM_HEIGHT)
       ctx.closePath()
@@ -314,7 +308,6 @@ function SpectrumWaterfall({
       ctx.fill()
     }
 
-    // Frequency scale at bottom
     const scaleY = height - 40
     ctx.fillStyle = '#0f1419'
     ctx.fillRect(0, scaleY, width, 40)
@@ -341,7 +334,6 @@ function SpectrumWaterfall({
       ctx.stroke()
     }
 
-    // Center marker
     ctx.strokeStyle = '#8b5cf6'
     ctx.lineWidth = 2
     ctx.setLineDash([4, 4])
@@ -351,14 +343,12 @@ function SpectrumWaterfall({
     ctx.stroke()
     ctx.setLineDash([])
 
-    // Status
     ctx.fillStyle = isScanning ? '#8b5cf6' : fftRunning ? '#22c55e' : '#64748b'
     ctx.font = 'bold 11px sans-serif'
     ctx.textAlign = 'left'
     const statusText = isScanning ? '● SCANNING' : fftRunning ? '● MONITORING' : '○ OFFLINE'
     ctx.fillText(statusText, 10, scaleY + 35)
 
-    // Show frequency name if available
     if (frequencyName) {
       ctx.fillStyle = '#8b5cf6'
       ctx.font = '10px sans-serif'
@@ -419,7 +409,6 @@ export function SatelliteTracking({
   const isCapturing = !!currentPass
   const isScanning = systemStatus === 'scanning'
 
-  // Auto-switch tabs based on system status
   useEffect(() => {
     if (isScanning) {
       setMode('sstv-2m')
@@ -430,16 +419,12 @@ export function SatelliteTracking({
     ) {
       setMode('satellite')
     }
-    // Don't auto-switch on idle - let user stay on their current tab
   }, [systemStatus, isScanning])
 
-  // Get current frequency based on mode
-  // When scanning, use the backend's scanning frequency
   const getCurrentFrequency = useCallback(() => {
     if (mode === 'satellite') {
       return currentPass?.satellite?.frequency ?? 137500000
     }
-    // For 2M SSTV mode, prefer the backend's scanning frequency if available
     if (isScanning && scanningFrequency) {
       return scanningFrequency
     }
@@ -448,12 +433,10 @@ export function SatelliteTracking({
 
   const currentFrequency = getCurrentFrequency()
 
-  // Notify parent of frequency changes
   useEffect(() => {
     onFrequencyChange?.(currentFrequency, mode)
   }, [currentFrequency, mode, onFrequencyChange])
 
-  // Switch frequency when mode or SSTV freq changes
   useEffect(() => {
     if (fftRunning) {
       subscribeFFT(currentFrequency)
@@ -461,61 +444,69 @@ export function SatelliteTracking({
   }, [currentFrequency, fftRunning, subscribeFFT])
 
   const tabs = [
-    { id: 'satellite' as const, label: 'Satellites', color: 'accent' },
-    { id: 'sstv-2m' as const, label: '2M SSTV', color: 'purple' },
+    {
+      id: 'satellite' as const,
+      label: 'Satellites',
+      color: 'accent',
+      tooltip: 'Track NOAA weather satellites and ISS passes',
+    },
+    {
+      id: 'sstv-2m' as const,
+      label: '2M SSTV',
+      color: 'purple',
+      tooltip: 'Monitor 2-meter amateur radio SSTV frequencies',
+    },
   ]
 
   return (
     <div className="card" data-testid="satellite-tracking">
-      {/* Tab Navigation - Tailwind-style tabs */}
       <div className="border-b border-border">
         <nav className="flex -mb-px" aria-label="Tabs">
           {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setMode(tab.id)}
-              className={cn(
-                'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors',
-                mode === tab.id
-                  ? tab.color === 'purple'
-                    ? 'border-purple text-purple'
-                    : 'border-accent text-accent'
-                  : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border'
-              )}
-            >
-              {tab.label}
-            </button>
+            <Tooltip key={tab.id} content={tab.tooltip} position="bottom">
+              <button
+                type="button"
+                onClick={() => setMode(tab.id)}
+                className={cn(
+                  'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors',
+                  mode === tab.id
+                    ? tab.color === 'purple'
+                      ? 'border-purple text-purple'
+                      : 'border-accent text-accent'
+                    : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border'
+                )}
+              >
+                {tab.label}
+              </button>
+            </Tooltip>
           ))}
 
-          {/* 2M SSTV frequency selector - shown in tab bar when on 2M tab */}
           {mode === 'sstv-2m' && (
             <div className="flex items-center gap-2 ml-auto pr-4">
               <span className="text-xs text-text-muted">Freq:</span>
               {SSTV_2M_FREQUENCIES.map((f, idx) => (
-                <button
-                  key={f.freq}
-                  type="button"
-                  onClick={() => setSstvFreqIndex(idx)}
-                  className={cn(
-                    'px-2 py-1 text-xs font-mono rounded transition-colors',
-                    sstvFreqIndex === idx
-                      ? 'bg-purple text-white'
-                      : 'bg-bg-tertiary text-text-secondary hover:bg-bg-secondary'
-                  )}
-                >
-                  {f.label}
-                </button>
+                <Tooltip key={f.freq} content={f.tooltip} position="bottom">
+                  <button
+                    type="button"
+                    onClick={() => setSstvFreqIndex(idx)}
+                    className={cn(
+                      'px-2 py-1 text-xs font-mono rounded transition-colors',
+                      sstvFreqIndex === idx
+                        ? 'bg-purple text-white'
+                        : 'bg-bg-tertiary text-text-secondary hover:bg-bg-secondary'
+                    )}
+                  >
+                    {f.label}
+                  </button>
+                </Tooltip>
               ))}
             </div>
           )}
         </nav>
       </div>
 
-      {/* Tab Content */}
       <div className="p-2">
         {mode === 'satellite' ? (
-          /* Satellite View - Sky View + Waterfall side by side */
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="flex justify-center items-center">
               <div className="aspect-square w-full max-w-[500px]">
@@ -538,7 +529,6 @@ export function SatelliteTracking({
             </div>
           </div>
         ) : (
-          /* 2M SSTV View - Full-width layered spectrum + waterfall */
           <div className="w-full">
             <SpectrumWaterfall
               frequency={currentFrequency}

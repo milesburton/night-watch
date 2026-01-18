@@ -447,7 +447,7 @@ function debouncedFFTStart(frequency: number) {
     pendingFFTStart = null
     const gain = Number(process.env.SDR_GAIN) || 45
     await startFFTStream(
-      { frequency, bandwidth: 200000, fftSize: 1024, gain, updateRate: 10 },
+      { frequency, bandwidth: 200000, fftSize: 1024, gain, updateRate: 30 },
       broadcastFFTData
     )
   }, FFT_START_DEBOUNCE_MS)

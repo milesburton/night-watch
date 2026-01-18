@@ -2,6 +2,7 @@ import { useApi } from '@/hooks/useApi'
 import { cn, formatCountdown, formatFrequency } from '@/lib/utils'
 import type { CaptureSummary, SatellitePass, StationConfig, SystemState } from '@/types'
 import { useEffect, useState } from 'react'
+import { Tooltip } from './Tooltip'
 
 interface StatusCardsProps {
   systemState: SystemState | null
@@ -17,7 +18,6 @@ export function StatusCards({ systemState, nextPass }: StatusCardsProps) {
   const status = systemState?.status || 'idle'
   const currentPass = systemState?.currentPass || null
 
-  // Fetch summary and config on mount
   useEffect(() => {
     const fetchData = async () => {
       const [summaryData, configData] = await Promise.all([getSummary(), getConfig()])
@@ -80,20 +80,32 @@ export function StatusCards({ systemState, nextPass }: StatusCardsProps) {
         )}
         {config && (
           <div className="pt-4 border-t border-border space-y-1 text-sm">
-            <p className="text-text-secondary">
-              <strong className="text-text-primary">QTH:</strong>{' '}
-              <span className="font-mono">
-                {config.station.latitude.toFixed(4)}°, {config.station.longitude.toFixed(4)}°
-              </span>
-            </p>
-            <p className="text-text-secondary">
-              <strong className="text-text-primary">SDR Gain:</strong>{' '}
-              <span className="font-mono">{config.sdr.gain}</span>
-            </p>
-            <p className="text-text-secondary">
-              <strong className="text-text-primary">Min Elevation:</strong>{' '}
-              <span className="font-mono">{config.recording.minElevation}°</span>
-            </p>
+            <Tooltip content="Ground station coordinates (latitude, longitude)" position="right">
+              <p className="text-text-secondary cursor-help">
+                <strong className="text-text-primary">QTH:</strong>{' '}
+                <span className="font-mono">
+                  {config.station.latitude.toFixed(4)}°, {config.station.longitude.toFixed(4)}°
+                </span>
+              </p>
+            </Tooltip>
+            <Tooltip
+              content="RTL-SDR receiver gain setting (higher = more sensitive but more noise)"
+              position="right"
+            >
+              <p className="text-text-secondary cursor-help">
+                <strong className="text-text-primary">SDR Gain:</strong>{' '}
+                <span className="font-mono">{config.sdr.gain}</span>
+              </p>
+            </Tooltip>
+            <Tooltip
+              content="Minimum satellite elevation above horizon to start recording"
+              position="right"
+            >
+              <p className="text-text-secondary cursor-help">
+                <strong className="text-text-primary">Min Elevation:</strong>{' '}
+                <span className="font-mono">{config.recording.minElevation}°</span>
+              </p>
+            </Tooltip>
           </div>
         )}
       </div>
@@ -119,20 +131,29 @@ export function StatusCards({ systemState, nextPass }: StatusCardsProps) {
       <div className="card">
         <h2 className="text-lg font-semibold mb-4">Statistics</h2>
         <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <span className="block text-3xl font-bold">{summary?.total || 0}</span>
-            <span className="text-xs text-text-secondary uppercase">Total</span>
-          </div>
-          <div>
-            <span className="block text-3xl font-bold text-success">
-              {summary?.successful || 0}
-            </span>
-            <span className="text-xs text-text-secondary uppercase">Success</span>
-          </div>
-          <div>
-            <span className="block text-3xl font-bold text-error">{summary?.failed || 0}</span>
-            <span className="text-xs text-text-secondary uppercase">Failed</span>
-          </div>
+          <Tooltip content="Total number of satellite passes captured" position="bottom">
+            <div className="cursor-help">
+              <span className="block text-3xl font-bold">{summary?.total || 0}</span>
+              <span className="text-xs text-text-secondary uppercase">Total</span>
+            </div>
+          </Tooltip>
+          <Tooltip content="Passes with successfully decoded images" position="bottom">
+            <div className="cursor-help">
+              <span className="block text-3xl font-bold text-success">
+                {summary?.successful || 0}
+              </span>
+              <span className="text-xs text-text-secondary uppercase">Success</span>
+            </div>
+          </Tooltip>
+          <Tooltip
+            content="Passes that failed to decode or had poor signal quality"
+            position="bottom"
+          >
+            <div className="cursor-help">
+              <span className="block text-3xl font-bold text-error">{summary?.failed || 0}</span>
+              <span className="text-xs text-text-secondary uppercase">Failed</span>
+            </div>
+          </Tooltip>
         </div>
       </div>
     </div>
