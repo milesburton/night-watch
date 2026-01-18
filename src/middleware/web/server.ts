@@ -242,14 +242,18 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             frequency?: number
             bandwidth?: number
             gain?: number
+            fftSize?: number
+            updateRate?: number
           }
 
           const frequency = body.frequency || 137500000 // Default to 137.5 MHz
-          const bandwidth = body.bandwidth || 50000 // 50 kHz
+          const bandwidth = body.bandwidth || 200000 // 200 kHz
           const gain = body.gain || Number(process.env.SDR_GAIN) || 45
+          const fftSize = body.fftSize || 1024
+          const updateRate = body.updateRate || 10
 
           const success = await startFFTStream(
-            { frequency, bandwidth, binSize: 1000, gain, interval: 1 },
+            { frequency, bandwidth, fftSize, gain, updateRate },
             broadcastFFTData
           )
 
@@ -443,7 +447,7 @@ function debouncedFFTStart(frequency: number) {
     pendingFFTStart = null
     const gain = Number(process.env.SDR_GAIN) || 45
     await startFFTStream(
-      { frequency, bandwidth: 200000, binSize: 500, gain, interval: 1 },
+      { frequency, bandwidth: 200000, fftSize: 1024, gain, updateRate: 10 },
       broadcastFFTData
     )
   }, FFT_START_DEBOUNCE_MS)

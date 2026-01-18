@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "chalk": "^5.3.0",
+    "fft.js": "^4.0.4",
     "ora": "^8.0.1",
     "pino": "^10.1.0",
     "pino-pretty": "^13.1.3",

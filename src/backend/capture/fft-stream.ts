@@ -1,4 +1,5 @@
 import { type ChildProcess, spawn } from 'node:child_process'
+import FFT from 'fft.js'
 import { logger } from '../utils/logger'
 
 export interface FFTData {
@@ -11,10 +12,10 @@ export interface FFTData {
 
 export interface FFTStreamConfig {
   frequency: number // Center frequency in Hz
-  bandwidth: number // Bandwidth in Hz (default 50kHz)
-  binSize: number // FFT bin size in Hz (default 1kHz)
+  bandwidth: number // Bandwidth in Hz (default 200kHz)
+  fftSize: number // FFT size (power of 2, default 1024)
   gain: number // SDR gain
-  interval: number // Update interval in seconds
+  updateRate: number // Target updates per second (default 10)
 }
 
 export interface NotchFilter {
@@ -25,12 +26,12 @@ export interface NotchFilter {
 
 type FFTCallback = (data: FFTData) => void
 
-let fftProcess: ChildProcess | null = null
+let sdrProcess: ChildProcess | null = null
 let currentCallback: FFTCallback | null = null
 let currentConfig: FFTStreamConfig | null = null
 let isRunning = false
-let isStarting = false // Mutex to prevent concurrent start attempts
-let lastStopTime = 0 // Track when we last stopped to prevent rapid restarts
+let isStarting = false
+let lastStopTime = 0
 
 // Minimum delay between stop and start (ms) to allow USB device to be released
 const MIN_RESTART_DELAY_MS = 2000
@@ -38,46 +39,109 @@ const MIN_RESTART_DELAY_MS = 2000
 // Notch filters to remove persistent interference
 const notchFilters: NotchFilter[] = []
 
+// FFT processor instance
+let fftProcessor: FFT | null = null
+
 const DEFAULT_CONFIG: Partial<FFTStreamConfig> = {
-  bandwidth: 200000, // 200 kHz for better view
-  binSize: 500, // 500 Hz bins = ~400 bins for good resolution
-  interval: 1, // 1 second (rtl_power minimum)
+  bandwidth: 200000, // 200 kHz
+  fftSize: 1024, // 1024-point FFT
+  updateRate: 10, // 10 updates per second
+}
+
+// Sample rate - must be high enough for bandwidth but not too high for Pi CPU
+const SAMPLE_RATE = 250000 // 250 kHz sample rate
+
+/**
+ * Apply Hamming window to reduce spectral leakage
+ */
+function applyHammingWindow(samples: Float32Array): void {
+  const n = samples.length
+  for (let i = 0; i < n; i++) {
+    const multiplier = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (n - 1))
+    samples[i] *= multiplier
+  }
+}
+
+/**
+ * Convert raw I/Q bytes to complex samples
+ * RTL-SDR outputs unsigned 8-bit I/Q pairs
+ */
+function convertIQToComplex(buffer: Buffer, fftSize: number): Float32Array {
+  const complexData = new Float32Array(fftSize * 2)
+  const samplesToProcess = Math.min(buffer.length / 2, fftSize)
+
+  for (let i = 0; i < samplesToProcess; i++) {
+    // Convert unsigned 8-bit to signed float (-1 to 1)
+    const iIdx = i * 2
+    const qIdx = i * 2 + 1
+    const iVal = ((buffer[iIdx] ?? 127) - 127.5) / 127.5
+    const qVal = ((buffer[qIdx] ?? 127) - 127.5) / 127.5
+    complexData[iIdx] = iVal // Real
+    complexData[qIdx] = qVal // Imaginary
+  }
+
+  return complexData
+}
+
+/**
+ * Compute power spectrum from FFT output
+ */
+function computePowerSpectrum(fftOutput: Float32Array, fftSize: number): number[] {
+  const spectrum: number[] = new Array(fftSize)
+
+  for (let i = 0; i < fftSize; i++) {
+    const realIdx = i * 2
+    const imagIdx = i * 2 + 1
+    const real = fftOutput[realIdx] ?? 0
+    const imag = fftOutput[imagIdx] ?? 0
+    // Power in dB (10 * log10 of magnitude squared)
+    const magnitude = real * real + imag * imag
+    spectrum[i] = magnitude > 0 ? 10 * Math.log10(magnitude) : -100
+  }
+
+  // FFT output is centered at DC, reorder to center the spectrum
+  // Move negative frequencies to the left side
+  const reordered: number[] = new Array(fftSize)
+  const halfSize = fftSize / 2
+  for (let i = 0; i < halfSize; i++) {
+    reordered[i] = spectrum[i + halfSize] ?? -100
+    reordered[i + halfSize] = spectrum[i] ?? -100
+  }
+
+  return reordered
 }
 
 /**
  * Apply notch filters to FFT data
- * Replaces bins at notched frequencies with interpolated values from neighbors
  */
-function applyNotchFilters(data: FFTData, startFreq: number, binSize: number): FFTData {
+function applyNotchFilters(data: FFTData, startFreq: number, binWidth: number): FFTData {
   if (notchFilters.length === 0) return data
 
   const filteredBins = [...data.bins]
   const enabledFilters = notchFilters.filter((f) => f.enabled)
 
   for (const filter of enabledFilters) {
-    // Calculate which bins fall within the notch
     const notchStart = filter.frequency - filter.width
     const notchEnd = filter.frequency + filter.width
 
     for (let i = 0; i < filteredBins.length; i++) {
-      const binFreq = startFreq + i * binSize
+      const binFreq = startFreq + i * binWidth
       if (binFreq >= notchStart && binFreq <= notchEnd) {
-        // Replace with interpolated value from neighbors outside the notch
-        const leftIdx = Math.max(0, Math.floor((notchStart - startFreq) / binSize) - 1)
+        // Find neighbors outside the notch
+        const leftIdx = Math.max(0, Math.floor((notchStart - startFreq) / binWidth) - 2)
         const rightIdx = Math.min(
           filteredBins.length - 1,
-          Math.ceil((notchEnd - startFreq) / binSize) + 1
+          Math.ceil((notchEnd - startFreq) / binWidth) + 2
         )
 
-        // Use average of neighbors (or just neighbor if at edge)
-        const leftVal = data.bins[leftIdx] ?? data.bins[0] ?? 0
-        const rightVal = data.bins[rightIdx] ?? data.bins[data.bins.length - 1] ?? 0
+        const leftVal = data.bins[leftIdx] ?? data.bins[0] ?? -100
+        const rightVal = data.bins[rightIdx] ?? data.bins[data.bins.length - 1] ?? -100
         filteredBins[i] = (leftVal + rightVal) / 2
       }
     }
   }
 
-  // Recalculate min/max after filtering
+  // Recalculate min/max
   let minPower = Number.POSITIVE_INFINITY
   let maxPower = Number.NEGATIVE_INFINITY
   for (const power of filteredBins) {
@@ -94,81 +158,28 @@ function applyNotchFilters(data: FFTData, startFreq: number, binSize: number): F
 }
 
 /**
- * Parse rtl_power CSV output line into FFT data
- * Format: date, time, Hz low, Hz high, Hz step, samples, dB, dB, dB, ...
- */
-function parseRtlPowerLine(line: string, centerFreq: number, applyFilters = true): FFTData | null {
-  const parts = line.trim().split(',')
-  if (parts.length < 7) return null
-
-  // Skip header/metadata lines
-  const hzLow = Number.parseFloat(parts[2] ?? '0')
-  if (Number.isNaN(hzLow)) return null
-
-  // Get the bin size (Hz step) from rtl_power output
-  const hzStep = Number.parseFloat(parts[4] ?? '0')
-  if (Number.isNaN(hzStep) || hzStep <= 0) return null
-
-  // Extract power readings (starting from index 6)
-  const bins: number[] = []
-  let minPower = Number.POSITIVE_INFINITY
-  let maxPower = Number.NEGATIVE_INFINITY
-
-  for (let i = 6; i < parts.length; i++) {
-    const power = Number.parseFloat(parts[i] ?? '0')
-    if (!Number.isNaN(power) && Number.isFinite(power)) {
-      bins.push(power)
-      minPower = Math.min(minPower, power)
-      maxPower = Math.max(maxPower, power)
-    }
-  }
-
-  if (bins.length === 0) return null
-
-  let fftData: FFTData = {
-    timestamp: Date.now(),
-    centerFreq,
-    bins,
-    minPower: minPower === Number.POSITIVE_INFINITY ? -100 : minPower,
-    maxPower: maxPower === Number.NEGATIVE_INFINITY ? -50 : maxPower,
-  }
-
-  // Apply notch filters if enabled
-  if (applyFilters && notchFilters.length > 0) {
-    fftData = applyNotchFilters(fftData, hzLow, hzStep)
-  }
-
-  return fftData
-}
-
-/**
- * Start FFT streaming from the SDR
- * Returns true if started successfully, false if already running or starting
+ * Start FFT streaming using rtl_sdr + JavaScript FFT
  */
 export async function startFFTStream(
   config: FFTStreamConfig,
   callback: FFTCallback
 ): Promise<boolean> {
-  // Prevent concurrent start attempts
   if (isStarting) {
     logger.debug('FFT stream start already in progress, ignoring')
     return false
   }
 
-  // If already running with same frequency, just update the callback
   if (isRunning && currentConfig?.frequency === config.frequency) {
     logger.debug('FFT stream already running at same frequency, updating callback')
     currentCallback = callback
     return true
   }
 
-  // If running at different frequency, stop first
   if (isRunning) {
     logger.info('FFT stream running at different frequency, restarting')
     stopFFTStream()
   }
 
-  // Wait for USB device to be released if we recently stopped
   const timeSinceStop = Date.now() - lastStopTime
   if (timeSinceStop < MIN_RESTART_DELAY_MS && lastStopTime > 0) {
     const waitTime = MIN_RESTART_DELAY_MS - timeSinceStop
@@ -178,87 +189,151 @@ export async function startFFTStream(
 
   isStarting = true
 
-  const fullConfig = { ...DEFAULT_CONFIG, ...config }
-  const { frequency, bandwidth, binSize, gain, interval } = fullConfig as Required<FFTStreamConfig>
+  const fullConfig = { ...DEFAULT_CONFIG, ...config } as Required<FFTStreamConfig>
+  const { frequency, fftSize, gain, updateRate } = fullConfig
+
+  // Initialize FFT processor
+  fftProcessor = new FFT(fftSize)
+
+  // Calculate bytes needed per FFT frame (2 bytes per I/Q sample)
+  const bytesPerFrame = fftSize * 2
+  // Calculate how many samples to read per update
+  const samplesPerSecond = SAMPLE_RATE
+  const samplesPerUpdate = Math.floor(samplesPerSecond / updateRate)
+  const blockSize = Math.max(bytesPerFrame, samplesPerUpdate * 2)
 
   const freqMHz = frequency / 1e6
-  const halfBandwidthMHz = bandwidth / 2 / 1e6
-  const startFreq = `${(freqMHz - halfBandwidthMHz).toFixed(3)}M`
-  const endFreq = `${(freqMHz + halfBandwidthMHz).toFixed(3)}M`
-
-  logger.info(`Starting FFT stream: ${startFreq} to ${endFreq}, bin ${binSize}Hz, gain ${gain}dB`)
+  logger.info(
+    `Starting FFT stream: ${freqMHz.toFixed(3)} MHz, FFT size ${fftSize}, ${updateRate} Hz update rate`
+  )
 
   try {
-    // Use rtl_power for FFT
-    // -c 0.5 crops 50% to reduce DC spike artifacts
-    fftProcess = spawn(
-      'rtl_power',
+    // Use rtl_sdr to capture raw I/Q samples
+    sdrProcess = spawn(
+      'rtl_sdr',
       [
         '-f',
-        `${startFreq}:${endFreq}:${binSize}`,
+        frequency.toString(),
+        '-s',
+        SAMPLE_RATE.toString(),
         '-g',
         gain.toString(),
-        '-i',
-        interval.toString(),
+        '-b',
+        blockSize.toString(),
         '-', // Output to stdout
       ],
       { stdio: ['ignore', 'pipe', 'pipe'] }
     )
 
     currentCallback = callback
-    currentConfig = fullConfig as FFTStreamConfig
+    currentConfig = fullConfig
     isRunning = true
     isStarting = false
 
-    let buffer = ''
+    let buffer = Buffer.alloc(0)
+    let lastUpdateTime = Date.now()
+    const minUpdateInterval = 1000 / updateRate
 
-    fftProcess.stdout?.on('data', (data: Buffer) => {
-      buffer += data.toString()
-      const lines = buffer.split('\n')
-      buffer = lines.pop() ?? ''
+    sdrProcess.stdout?.on('data', (data: Buffer) => {
+      buffer = Buffer.concat([buffer, data])
 
-      for (const line of lines) {
-        if (line.trim() && currentCallback) {
-          const fftData = parseRtlPowerLine(line, frequency)
-          if (fftData) {
+      // Process when we have enough data for an FFT frame
+      while (buffer.length >= bytesPerFrame) {
+        const now = Date.now()
+
+        // Rate limit updates
+        if (now - lastUpdateTime >= minUpdateInterval) {
+          const frameBuffer = buffer.subarray(0, bytesPerFrame)
+
+          // Convert to complex samples
+          const complexData = convertIQToComplex(frameBuffer, fftSize)
+
+          // Apply window function to reduce spectral leakage
+          // Apply to real parts only for simplicity
+          const realPart = new Float32Array(fftSize)
+          for (let i = 0; i < fftSize; i++) {
+            realPart[i] = complexData[i * 2] ?? 0
+          }
+          applyHammingWindow(realPart)
+          for (let i = 0; i < fftSize; i++) {
+            complexData[i * 2] = realPart[i] ?? 0
+          }
+
+          // Perform FFT
+          if (!fftProcessor) return
+          const fftOutput = fftProcessor.createComplexArray()
+          fftProcessor.transform(fftOutput, complexData as unknown as number[])
+
+          // Compute power spectrum
+          const spectrum = computePowerSpectrum(fftOutput as Float32Array, fftSize)
+
+          // Calculate frequency range
+          const binWidth = SAMPLE_RATE / fftSize
+          const startFreq = frequency - SAMPLE_RATE / 2
+
+          let fftData: FFTData = {
+            timestamp: now,
+            centerFreq: frequency,
+            bins: spectrum,
+            minPower: Math.min(...spectrum),
+            maxPower: Math.max(...spectrum),
+          }
+
+          // Apply notch filters
+          if (notchFilters.length > 0) {
+            fftData = applyNotchFilters(fftData, startFreq, binWidth)
+          }
+
+          if (currentCallback) {
             currentCallback(fftData)
           }
+
+          lastUpdateTime = now
         }
+
+        // Remove processed bytes
+        buffer = buffer.subarray(bytesPerFrame)
+      }
+
+      // Prevent buffer from growing too large
+      if (buffer.length > bytesPerFrame * 10) {
+        buffer = buffer.subarray(buffer.length - bytesPerFrame)
       }
     })
 
-    fftProcess.stderr?.on('data', (data: Buffer) => {
+    sdrProcess.stderr?.on('data', (data: Buffer) => {
       const msg = data.toString().trim()
-      // Log important errors, filter out normal startup messages
       if (
         msg.includes('error') ||
         msg.includes('failed') ||
         msg.includes('usb_') ||
         msg.includes('No supported')
       ) {
-        logger.error(`rtl_power error: ${msg}`)
+        logger.error(`rtl_sdr error: ${msg}`)
       } else if (
         !msg.includes('Found') &&
         !msg.includes('Using device') &&
-        !msg.includes('Tuner gain')
+        !msg.includes('Tuner gain') &&
+        !msg.includes('Sampling at') &&
+        !msg.includes('Allocating')
       ) {
-        logger.debug(`rtl_power: ${msg}`)
+        logger.debug(`rtl_sdr: ${msg}`)
       }
     })
 
-    fftProcess.on('error', (error) => {
+    sdrProcess.on('error', (error) => {
       logger.error(`FFT stream error: ${error.message}`)
       isRunning = false
       isStarting = false
     })
 
-    fftProcess.on('close', (code) => {
+    sdrProcess.on('close', (code) => {
       if (code !== 0 && code !== null) {
         logger.warn(`FFT stream exited with code ${code}`)
       }
       isRunning = false
       isStarting = false
-      fftProcess = null
+      sdrProcess = null
       lastStopTime = Date.now()
     })
 
@@ -275,22 +350,23 @@ export async function startFFTStream(
  * Stop the FFT stream
  */
 export function stopFFTStream(): void {
-  if (fftProcess && !fftProcess.killed) {
+  if (sdrProcess && !sdrProcess.killed) {
     logger.info('Stopping FFT stream')
-    fftProcess.kill('SIGTERM')
-    fftProcess = null
+    sdrProcess.kill('SIGTERM')
+    sdrProcess = null
     lastStopTime = Date.now()
   }
   currentCallback = null
   currentConfig = null
   isRunning = false
+  fftProcessor = null
 }
 
 /**
  * Check if FFT stream is running
  */
 export function isFFTStreamRunning(): boolean {
-  return isRunning && fftProcess !== null && !fftProcess.killed
+  return isRunning && sdrProcess !== null && !sdrProcess.killed
 }
 
 /**
@@ -301,7 +377,7 @@ export function getFFTStreamConfig(): FFTStreamConfig | null {
 }
 
 /**
- * Update FFT stream frequency (restarts stream with new frequency)
+ * Update FFT stream frequency
  */
 export async function updateFFTFrequency(frequency: number): Promise<boolean> {
   if (!currentConfig || !currentCallback) {
@@ -316,13 +392,7 @@ export async function updateFFTFrequency(frequency: number): Promise<boolean> {
 // Notch Filter Management
 // ============================================
 
-/**
- * Add a notch filter to remove interference at a specific frequency
- * @param frequency - Center frequency to notch in Hz
- * @param width - Width of notch in Hz (applied +/- from center), default 5000 (5 kHz)
- */
 export function addNotchFilter(frequency: number, width = 5000): void {
-  // Check if filter already exists for this frequency
   const existing = notchFilters.find((f) => Math.abs(f.frequency - frequency) < 1000)
   if (existing) {
     existing.width = width
@@ -339,10 +409,6 @@ export function addNotchFilter(frequency: number, width = 5000): void {
   )
 }
 
-/**
- * Remove a notch filter
- * @param frequency - Center frequency of filter to remove in Hz
- */
 export function removeNotchFilter(frequency: number): boolean {
   const index = notchFilters.findIndex((f) => Math.abs(f.frequency - frequency) < 1000)
   if (index >= 0) {
@@ -355,9 +421,6 @@ export function removeNotchFilter(frequency: number): boolean {
   return false
 }
 
-/**
- * Enable or disable a notch filter
- */
 export function setNotchFilterEnabled(frequency: number, enabled: boolean): boolean {
   const filter = notchFilters.find((f) => Math.abs(f.frequency - frequency) < 1000)
   if (filter) {
@@ -370,16 +433,10 @@ export function setNotchFilterEnabled(frequency: number, enabled: boolean): bool
   return false
 }
 
-/**
- * Get all configured notch filters
- */
 export function getNotchFilters(): NotchFilter[] {
   return [...notchFilters]
 }
 
-/**
- * Clear all notch filters
- */
 export function clearNotchFilters(): void {
   notchFilters.length = 0
   logger.info('Cleared all notch filters')
