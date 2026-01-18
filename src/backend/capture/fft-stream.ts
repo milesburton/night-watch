@@ -65,8 +65,8 @@ function applyNotchFilters(data: FFTData, startFreq: number, binSize: number): F
         )
 
         // Use average of neighbors (or just neighbor if at edge)
-        const leftVal = data.bins[leftIdx] ?? data.bins[0]
-        const rightVal = data.bins[rightIdx] ?? data.bins[data.bins.length - 1]
+        const leftVal = data.bins[leftIdx] ?? data.bins[0] ?? 0
+        const rightVal = data.bins[rightIdx] ?? data.bins[data.bins.length - 1] ?? 0
         filteredBins[i] = (leftVal + rightVal) / 2
       }
     }
@@ -309,7 +309,9 @@ export function removeNotchFilter(frequency: number): boolean {
   const index = notchFilters.findIndex((f) => Math.abs(f.frequency - frequency) < 1000)
   if (index >= 0) {
     const removed = notchFilters.splice(index, 1)[0]
-    logger.info(`Removed notch filter: ${(removed.frequency / 1e6).toFixed(3)} MHz`)
+    if (removed) {
+      logger.info(`Removed notch filter: ${(removed.frequency / 1e6).toFixed(3)} MHz`)
+    }
     return true
   }
   return false
