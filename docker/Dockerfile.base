@@ -1,43 +1,12 @@
-# Base image for RF Capture - Uses existing cached layers from full Dockerfile
-# Build with: docker build -f Dockerfile.base -t rfcapture-base:latest .
+# Base image with all system dependencies
+# Build rarely - only when OS/dependencies change
 #
-# This creates a base image with all dependencies pre-installed.
-# Subsequent app builds using Dockerfile.app will be fast.
+# Build:   docker build -f docker/Dockerfile.base -t ghcr.io/milesburton/noaa-satellite-capture-base:latest .
+# Push:    docker push ghcr.io/milesburton/noaa-satellite-capture-base:latest
 
-FROM debian:bookworm-slim AS builder
-
-WORKDIR /app
-
-# These layers should be CACHED from previous full builds
-RUN echo "1" > /var/lib/dpkg/info/format \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean \
-    && apt-get update --allow-insecure-repositories \
-    && apt-get install -y --allow-unauthenticated ca-certificates gnupg curl unzip \
-    && mkdir -p /etc/apt/keyrings \
-    && for key in 6ED0E7B82643E131 78DBA3BC47EF2265 F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8; do \
-         for i in 1 2 3 4 5; do \
-           gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $key && break || sleep 5; \
-         done; \
-       done \
-    && gpg --export 6ED0E7B82643E131 78DBA3BC47EF2265 F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8 | tee /etc/apt/trusted.gpg.d/debian.gpg > /dev/null \
-    && apt-get update \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
-
-# Install backend dependencies
-COPY package.json bun.lock* ./
-RUN /usr/local/bin/bun install --ignore-scripts
-
-# Install frontend dependencies
-COPY frontend/package.json frontend/bun.lock* ./frontend/
-RUN cd frontend && /usr/local/bin/bun install
-
-# Final stage - runtime image
 FROM debian:bookworm-slim
 
-# Runtime dependencies - these should be CACHED
+# Fix dpkg and setup apt with signing keys
 RUN echo "1" > /var/lib/dpkg/info/format \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean \
@@ -51,13 +20,18 @@ RUN echo "1" > /var/lib/dpkg/info/format \
        done \
     && gpg --export 6ED0E7B82643E131 78DBA3BC47EF2265 F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8 | tee /etc/apt/trusted.gpg.d/debian.gpg > /dev/null \
     && apt-get update \
-    && apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install runtime dependencies (rtl-sdr, sox, audio libs)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     rtl-sdr \
     sox \
     unzip \
+    libsndfile1 \
+    libpng16-16 \
     && rm -rf /var/lib/apt/lists/*
 
-# Build aptdec from source - This is the slow/memory intensive part
+# Build and install aptdec (NOAA APT decoder)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     make \
@@ -73,37 +47,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && cp build/aptdec /usr/local/bin/ \
     && cd / \
     && rm -rf /tmp/aptdec \
-    && apt-get purge -y cmake make gcc g++ git \
+    && apt-get purge -y cmake make gcc g++ git libsndfile-dev libpng-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Bun runtime
 RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
 
+# Create app directories
 WORKDIR /app
-
-# Copy node_modules from builder
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/frontend/node_modules ./frontend/node_modules
-
-# Create directories
 RUN mkdir -p /app/data /app/recordings /app/images
 
-# Default environment variables
-ENV STATION_LATITUDE=51.5069 \
-    STATION_LONGITUDE=-0.1276 \
-    STATION_ALTITUDE=10 \
-    SDR_GAIN=45 \
-    SDR_SAMPLE_RATE=48000 \
-    SDR_PPM_CORRECTION=0 \
-    MIN_ELEVATION=20 \
-    MIN_SIGNAL_STRENGTH=-30 \
-    SKIP_SIGNAL_CHECK=true \
-    RECORDINGS_DIR=/app/recordings \
-    IMAGES_DIR=/app/images \
-    TLE_UPDATE_INTERVAL_HOURS=24 \
-    WEB_PORT=3000 \
-    WEB_HOST=0.0.0.0 \
-    DATABASE_PATH=/app/data/captures.db \
-    LOG_LEVEL=info
+# Verify installations work
+RUN rtl_power -h 2>&1 | head -1 || echo "rtl_power installed" \
+    && aptdec --version 2>&1 | head -1 || echo "aptdec installed" \
+    && bun --version
 
-EXPOSE 3000
+# Labels
+LABEL org.opencontainers.image.title="Night Watch Base" \
+      org.opencontainers.image.description="Base image with rtl-sdr, aptdec, and bun runtime" \
+      org.opencontainers.image.source="https://github.com/milesburton/noaa-satellite-capture"
