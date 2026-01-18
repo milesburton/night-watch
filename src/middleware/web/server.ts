@@ -27,6 +27,10 @@ import { getGlobeState } from './globe-service'
 const clients = new Set<ServerWebSocket<unknown>>()
 const fftSubscribers = new Set<ServerWebSocket<unknown>>()
 
+// Debounce FFT start requests to prevent rapid restarts
+let pendingFFTStart: ReturnType<typeof setTimeout> | null = null
+const FFT_START_DEBOUNCE_MS = 500
+
 // Check if React build exists
 async function getStaticDir(): Promise<string> {
   const reactDir = resolve(import.meta.dir, 'static-react')
@@ -244,7 +248,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
           const bandwidth = body.bandwidth || 50000 // 50 kHz
           const gain = body.gain || Number(process.env.SDR_GAIN) || 45
 
-          const success = startFFTStream(
+          const success = await startFFTStream(
             { frequency, bandwidth, binSize: 1000, gain, interval: 1 },
             broadcastFFTData
           )
@@ -367,13 +371,10 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             logger.debug(`FFT subscriber added, total: ${fftSubscribers.size}`)
 
             // Auto-start FFT stream if not running and we have subscribers
+            // Use debouncing to prevent rapid restart cycles
             if (!isFFTStreamRunning()) {
               const frequency = (data.frequency as number) || 137500000
-              const gain = Number(process.env.SDR_GAIN) || 45
-              startFFTStream(
-                { frequency, bandwidth: 200000, binSize: 500, gain, interval: 1 },
-                broadcastFFTData
-              )
+              debouncedFFTStart(frequency)
             }
 
             ws.send(
@@ -390,10 +391,12 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             fftSubscribers.delete(ws)
             logger.debug(`FFT subscriber removed, total: ${fftSubscribers.size}`)
 
-            // Auto-stop FFT stream if no subscribers
-            if (fftSubscribers.size === 0 && isFFTStreamRunning()) {
-              stopFFTStream()
-            }
+            // Auto-stop FFT stream if no subscribers (with delay to allow re-subscription)
+            setTimeout(() => {
+              if (fftSubscribers.size === 0 && isFFTStreamRunning()) {
+                stopFFTStream()
+              }
+            }, 1000)
 
             ws.send(JSON.stringify({ type: 'fft_unsubscribed' }))
           }
@@ -401,12 +404,8 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
           // Handle FFT frequency change
           if (data.type === 'fft_set_frequency') {
             const frequency = data.frequency as number
-            if (frequency && isFFTStreamRunning()) {
-              const gain = Number(process.env.SDR_GAIN) || 45
-              startFFTStream(
-                { frequency, bandwidth: 200000, binSize: 500, gain, interval: 1 },
-                broadcastFFTData
-              )
+            if (frequency) {
+              debouncedFFTStart(frequency)
             }
           }
         } catch {
@@ -429,6 +428,25 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
   })
 
   return server
+}
+
+/**
+ * Debounced FFT start to prevent rapid restart cycles
+ * Consolidates multiple start requests into a single delayed start
+ */
+function debouncedFFTStart(frequency: number) {
+  if (pendingFFTStart) {
+    clearTimeout(pendingFFTStart)
+  }
+
+  pendingFFTStart = setTimeout(async () => {
+    pendingFFTStart = null
+    const gain = Number(process.env.SDR_GAIN) || 45
+    await startFFTStream(
+      { frequency, bandwidth: 200000, binSize: 500, gain, interval: 1 },
+      broadcastFFTData
+    )
+  }, FFT_START_DEBOUNCE_MS)
 }
 
 function broadcastSstvStatus() {

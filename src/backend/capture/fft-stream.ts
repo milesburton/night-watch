@@ -29,6 +29,11 @@ let fftProcess: ChildProcess | null = null
 let currentCallback: FFTCallback | null = null
 let currentConfig: FFTStreamConfig | null = null
 let isRunning = false
+let isStarting = false // Mutex to prevent concurrent start attempts
+let lastStopTime = 0 // Track when we last stopped to prevent rapid restarts
+
+// Minimum delay between stop and start (ms) to allow USB device to be released
+const MIN_RESTART_DELAY_MS = 2000
 
 // Notch filters to remove persistent interference
 const notchFilters: NotchFilter[] = []
@@ -138,12 +143,40 @@ function parseRtlPowerLine(line: string, centerFreq: number, applyFilters = true
 
 /**
  * Start FFT streaming from the SDR
+ * Returns true if started successfully, false if already running or starting
  */
-export function startFFTStream(config: FFTStreamConfig, callback: FFTCallback): boolean {
+export async function startFFTStream(
+  config: FFTStreamConfig,
+  callback: FFTCallback
+): Promise<boolean> {
+  // Prevent concurrent start attempts
+  if (isStarting) {
+    logger.debug('FFT stream start already in progress, ignoring')
+    return false
+  }
+
+  // If already running with same frequency, just update the callback
+  if (isRunning && currentConfig?.frequency === config.frequency) {
+    logger.debug('FFT stream already running at same frequency, updating callback')
+    currentCallback = callback
+    return true
+  }
+
+  // If running at different frequency, stop first
   if (isRunning) {
-    logger.warn('FFT stream already running, stopping first')
+    logger.info('FFT stream running at different frequency, restarting')
     stopFFTStream()
   }
+
+  // Wait for USB device to be released if we recently stopped
+  const timeSinceStop = Date.now() - lastStopTime
+  if (timeSinceStop < MIN_RESTART_DELAY_MS && lastStopTime > 0) {
+    const waitTime = MIN_RESTART_DELAY_MS - timeSinceStop
+    logger.debug(`Waiting ${waitTime}ms for USB device to be released`)
+    await Bun.sleep(waitTime)
+  }
+
+  isStarting = true
 
   const fullConfig = { ...DEFAULT_CONFIG, ...config }
   const { frequency, bandwidth, binSize, gain, interval } = fullConfig as Required<FFTStreamConfig>
@@ -157,7 +190,6 @@ export function startFFTStream(config: FFTStreamConfig, callback: FFTCallback): 
 
   try {
     // Use rtl_power for FFT
-    // -1 flag exits after one sweep (we'll restart for continuous updates)
     // -c 0.5 crops 50% to reduce DC spike artifacts
     fftProcess = spawn(
       'rtl_power',
@@ -176,6 +208,7 @@ export function startFFTStream(config: FFTStreamConfig, callback: FFTCallback): 
     currentCallback = callback
     currentConfig = fullConfig as FFTStreamConfig
     isRunning = true
+    isStarting = false
 
     let buffer = ''
 
@@ -216,6 +249,7 @@ export function startFFTStream(config: FFTStreamConfig, callback: FFTCallback): 
     fftProcess.on('error', (error) => {
       logger.error(`FFT stream error: ${error.message}`)
       isRunning = false
+      isStarting = false
     })
 
     fftProcess.on('close', (code) => {
@@ -223,13 +257,16 @@ export function startFFTStream(config: FFTStreamConfig, callback: FFTCallback): 
         logger.warn(`FFT stream exited with code ${code}`)
       }
       isRunning = false
+      isStarting = false
       fftProcess = null
+      lastStopTime = Date.now()
     })
 
     return true
   } catch (error) {
     logger.error(`Failed to start FFT stream: ${error}`)
     isRunning = false
+    isStarting = false
     return false
   }
 }
@@ -242,6 +279,7 @@ export function stopFFTStream(): void {
     logger.info('Stopping FFT stream')
     fftProcess.kill('SIGTERM')
     fftProcess = null
+    lastStopTime = Date.now()
   }
   currentCallback = null
   currentConfig = null
@@ -265,7 +303,7 @@ export function getFFTStreamConfig(): FFTStreamConfig | null {
 /**
  * Update FFT stream frequency (restarts stream with new frequency)
  */
-export function updateFFTFrequency(frequency: number): boolean {
+export async function updateFFTFrequency(frequency: number): Promise<boolean> {
   if (!currentConfig || !currentCallback) {
     return false
   }
