@@ -81,7 +81,11 @@ export function CaptureGallery() {
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
                 <p className="text-xs font-medium text-white truncate">{capture.satellite}</p>
                 <p className="text-xs text-white/70">
-                  {new Date(capture.timestamp).toLocaleDateString()}
+                  {new Date(capture.timestamp).toLocaleDateString()}{' '}
+                  {new Date(capture.timestamp).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
                 </p>
               </div>
               {!capture.success && (

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 interface WaterfallViewProps {
   frequency: number | null
   isActive: boolean
+  isScanning?: boolean
   subscribeFFT: (frequency?: number) => void
   unsubscribeFFT: () => void
   fftRunning: boolean
@@ -16,6 +17,7 @@ const DEFAULT_FREQUENCY = 137500000 // 137.5 MHz
 export function WaterfallView({
   frequency,
   isActive,
+  isScanning = false,
   subscribeFFT,
   unsubscribeFFT,
   fftRunning,
@@ -203,14 +205,17 @@ export function WaterfallView({
     ctx.fillText(`Center: ${centerFreqMHz.toFixed(3)} MHz`, width / 2, historyHeight + 40)
 
     // Status indicator
-    ctx.fillStyle = fftRunning ? '#22c55e' : '#64748b'
+    ctx.fillStyle = fftRunning ? (isScanning ? '#8b5cf6' : '#22c55e') : '#64748b'
     ctx.font = '11px sans-serif'
     ctx.textAlign = 'left'
-    ctx.fillText(
-      fftRunning ? (isActive ? 'RECEIVING' : 'MONITORING') : 'OFFLINE',
-      10,
-      historyHeight + 40
-    )
+    const statusText = fftRunning
+      ? isActive
+        ? 'RECEIVING'
+        : isScanning
+          ? 'SCANNING'
+          : 'MONITORING'
+      : 'OFFLINE'
+    ctx.fillText(statusText, 10, historyHeight + 40)
 
     // Signal strength indicator (current peak)
     if (lastDataRef.current) {
@@ -219,7 +224,7 @@ export function WaterfallView({
       ctx.textAlign = 'right'
       ctx.fillText(`Peak: ${peakValue.toFixed(1)} dB`, width - 10, historyHeight + 40)
     }
-  }, [fftHistory, frequency, isActive, fftRunning, currentConfig, getWaterfallColor])
+  }, [fftHistory, frequency, isActive, isScanning, fftRunning, currentConfig, getWaterfallColor])
 
   // Redraw on data change
   useEffect(() => {
@@ -253,10 +258,16 @@ export function WaterfallView({
       />
       <div className="absolute top-2 right-2 flex items-center gap-2 bg-bg-primary/80 px-2 py-1 rounded text-xs">
         <span
-          className={`w-2 h-2 rounded-full ${fftRunning ? (isActive ? 'bg-success animate-pulse' : 'bg-accent') : 'bg-text-muted'}`}
+          className={`w-2 h-2 rounded-full ${fftRunning ? (isActive ? 'bg-success animate-pulse' : isScanning ? 'bg-purple animate-pulse' : 'bg-accent') : 'bg-text-muted'}`}
         />
         <span className="text-text-secondary">
-          {fftRunning ? (isActive ? 'Signal Active' : 'Monitoring') : 'Offline'}
+          {fftRunning
+            ? isActive
+              ? 'Signal Active'
+              : isScanning
+                ? 'Scanning'
+                : 'Monitoring'
+            : 'Offline'}
         </span>
       </div>
     </div>

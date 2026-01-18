@@ -43,11 +43,7 @@ const DEFAULT_CONFIG: Partial<FFTStreamConfig> = {
  * Apply notch filters to FFT data
  * Replaces bins at notched frequencies with interpolated values from neighbors
  */
-function applyNotchFilters(
-  data: FFTData,
-  startFreq: number,
-  binSize: number
-): FFTData {
+function applyNotchFilters(data: FFTData, startFreq: number, binSize: number): FFTData {
   if (notchFilters.length === 0) return data
 
   const filteredBins = [...data.bins]
@@ -62,10 +58,7 @@ function applyNotchFilters(
       const binFreq = startFreq + i * binSize
       if (binFreq >= notchStart && binFreq <= notchEnd) {
         // Replace with interpolated value from neighbors outside the notch
-        const leftIdx = Math.max(
-          0,
-          Math.floor((notchStart - startFreq) / binSize) - 1
-        )
+        const leftIdx = Math.max(0, Math.floor((notchStart - startFreq) / binSize) - 1)
         const rightIdx = Math.min(
           filteredBins.length - 1,
           Math.ceil((notchEnd - startFreq) / binSize) + 1
@@ -99,11 +92,7 @@ function applyNotchFilters(
  * Parse rtl_power CSV output line into FFT data
  * Format: date, time, Hz low, Hz high, Hz step, samples, dB, dB, dB, ...
  */
-function parseRtlPowerLine(
-  line: string,
-  centerFreq: number,
-  applyFilters = true
-): FFTData | null {
+function parseRtlPowerLine(line: string, centerFreq: number, applyFilters = true): FFTData | null {
   const parts = line.trim().split(',')
   if (parts.length < 7) return null
 
@@ -296,9 +285,7 @@ export function updateFFTFrequency(frequency: number): boolean {
  */
 export function addNotchFilter(frequency: number, width = 5000): void {
   // Check if filter already exists for this frequency
-  const existing = notchFilters.find(
-    (f) => Math.abs(f.frequency - frequency) < 1000
-  )
+  const existing = notchFilters.find((f) => Math.abs(f.frequency - frequency) < 1000)
   if (existing) {
     existing.width = width
     existing.enabled = true
@@ -319,14 +306,10 @@ export function addNotchFilter(frequency: number, width = 5000): void {
  * @param frequency - Center frequency of filter to remove in Hz
  */
 export function removeNotchFilter(frequency: number): boolean {
-  const index = notchFilters.findIndex(
-    (f) => Math.abs(f.frequency - frequency) < 1000
-  )
+  const index = notchFilters.findIndex((f) => Math.abs(f.frequency - frequency) < 1000)
   if (index >= 0) {
     const removed = notchFilters.splice(index, 1)[0]
-    logger.info(
-      `Removed notch filter: ${(removed.frequency / 1e6).toFixed(3)} MHz`
-    )
+    logger.info(`Removed notch filter: ${(removed.frequency / 1e6).toFixed(3)} MHz`)
     return true
   }
   return false
@@ -335,13 +318,8 @@ export function removeNotchFilter(frequency: number): boolean {
 /**
  * Enable or disable a notch filter
  */
-export function setNotchFilterEnabled(
-  frequency: number,
-  enabled: boolean
-): boolean {
-  const filter = notchFilters.find(
-    (f) => Math.abs(f.frequency - frequency) < 1000
-  )
+export function setNotchFilterEnabled(frequency: number, enabled: boolean): boolean {
+  const filter = notchFilters.find((f) => Math.abs(f.frequency - frequency) < 1000)
   if (filter) {
     filter.enabled = enabled
     logger.info(

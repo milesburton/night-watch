@@ -526,6 +526,7 @@ export function SatelliteTracking({
                 <WaterfallView
                   frequency={currentFrequency}
                   isActive={isCapturing}
+                  isScanning={isScanning}
                   subscribeFFT={subscribeFFT}
                   unsubscribeFFT={unsubscribeFFT}
                   fftRunning={fftRunning}

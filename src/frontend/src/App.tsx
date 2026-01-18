@@ -259,56 +259,8 @@ export default function App() {
         data-testid="status-bar"
       >
         <div className="flex items-center gap-3">
-          {/* Status */}
-          <div className="flex items-center gap-1" data-testid="system-status">
-            <span className={cn('w-1.5 h-1.5 rounded-full', getStatusColor())} />
-            <span className="font-mono text-[10px]">{getStatusText()}</span>
-          </div>
-          {/* SDR */}
-          <div className="flex items-center gap-1" data-testid="sdr-status">
-            <span className={cn('w-1.5 h-1.5 rounded-full', sdrStatus.class)} />
-            <span className="text-[10px]">{sdrStatus.text}</span>
-          </div>
-          {/* WS */}
-          <div className="flex items-center gap-1" data-testid="ws-status">
-            <span
-              className={cn(
-                'w-1.5 h-1.5 rounded-full',
-                wsState.connected ? 'bg-success' : 'bg-error animate-pulse'
-              )}
-            />
-            <span className="text-[10px]">{wsState.connected ? 'WS' : 'WS!'}</span>
-          </div>
-          {/* Current Frequency */}
-          <div className="flex items-center gap-1 font-mono" data-testid="current-frequency">
-            {status === 'scanning' && systemState?.scanningFrequency ? (
-              <>
-                <span className="text-[10px] text-purple animate-pulse">
-                  {formatFrequency(systemState.scanningFrequency)} MHz
-                </span>
-                <span className="text-text-muted text-[10px]">
-                  {systemState.scanningFrequencyName || '2M'}
-                </span>
-              </>
-            ) : (
-              <>
-                <span
-                  className={cn(
-                    'text-[10px]',
-                    waterfallMode === 'sstv-2m' ? 'text-purple' : 'text-accent'
-                  )}
-                >
-                  {formatFrequency(currentFreq)} MHz
-                </span>
-                <span className="text-text-muted text-[10px]">
-                  {waterfallMode === 'sstv-2m' ? '2M' : 'SAT'}
-                </span>
-              </>
-            )}
-          </div>
-
-          {/* Capture Mode Toggles */}
-          <div className="flex items-center gap-1 border-l border-border pl-3">
+          {/* Capture Mode Toggles - fixed position on left */}
+          <div className="flex items-center gap-1">
             <ToggleChip
               label="NOAA"
               enabled={noaaEnabled}
@@ -332,6 +284,57 @@ export default function App() {
               tooltip="2M ground SSTV scanning (144.5, 145.5, 145.8 MHz) - Scan for amateur radio SSTV during idle time"
               onClick={handleGroundToggle}
             />
+          </div>
+
+          {/* Status indicators */}
+          <div className="flex items-center gap-3 border-l border-border pl-3">
+            {/* Status */}
+            <div className="flex items-center gap-1" data-testid="system-status">
+              <span className={cn('w-1.5 h-1.5 rounded-full', getStatusColor())} />
+              <span className="font-mono text-[10px]">{getStatusText()}</span>
+            </div>
+            {/* SDR */}
+            <div className="flex items-center gap-1" data-testid="sdr-status">
+              <span className={cn('w-1.5 h-1.5 rounded-full', sdrStatus.class)} />
+              <span className="text-[10px]">{sdrStatus.text}</span>
+            </div>
+            {/* WS */}
+            <div className="flex items-center gap-1" data-testid="ws-status">
+              <span
+                className={cn(
+                  'w-1.5 h-1.5 rounded-full',
+                  wsState.connected ? 'bg-success' : 'bg-error animate-pulse'
+                )}
+              />
+              <span className="text-[10px]">{wsState.connected ? 'WS' : 'WS!'}</span>
+            </div>
+            {/* Current Frequency */}
+            <div className="flex items-center gap-1 font-mono" data-testid="current-frequency">
+              {status === 'scanning' && systemState?.scanningFrequency ? (
+                <>
+                  <span className="text-[10px] text-purple animate-pulse">
+                    {formatFrequency(systemState.scanningFrequency)} MHz
+                  </span>
+                  <span className="text-text-muted text-[10px]">
+                    {systemState.scanningFrequencyName || '2M'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span
+                    className={cn(
+                      'text-[10px]',
+                      waterfallMode === 'sstv-2m' ? 'text-purple' : 'text-accent'
+                    )}
+                  >
+                    {formatFrequency(currentFreq)} MHz
+                  </span>
+                  <span className="text-text-muted text-[10px]">
+                    {waterfallMode === 'sstv-2m' ? '2M' : 'SAT'}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
