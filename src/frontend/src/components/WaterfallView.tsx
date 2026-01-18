@@ -229,7 +229,16 @@ export function WaterfallView({
       ctx.textAlign = 'right'
       ctx.fillText(`Peak: ${peakValue.toFixed(1)} dB`, width - 10, historyHeight + 40)
     }
-  }, [fftHistory, frequency, frequencyName, isActive, isScanning, fftRunning, currentConfig, getWaterfallColor])
+  }, [
+    fftHistory,
+    frequency,
+    frequencyName,
+    isActive,
+    isScanning,
+    fftRunning,
+    currentConfig,
+    getWaterfallColor,
+  ])
 
   // Redraw on data change
   useEffect(() => {

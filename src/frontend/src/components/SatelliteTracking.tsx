@@ -526,11 +526,7 @@ export function SatelliteTracking({
               <div className="w-full max-w-[600px]">
                 <WaterfallView
                   frequency={currentFrequency}
-                  frequencyName={
-                    isScanning
-                      ? scanningFrequencyName
-                      : currentPass?.satellite?.name
-                  }
+                  frequencyName={isScanning ? scanningFrequencyName : currentPass?.satellite?.name}
                   isActive={isCapturing}
                   isScanning={isScanning}
                   subscribeFFT={subscribeFFT}
