@@ -127,8 +127,10 @@ export function startFFTStream(config: FFTStreamConfig, callback: FFTCallback): 
 
     fftProcess.stderr?.on('data', (data: Buffer) => {
       const msg = data.toString().trim()
-      // Filter out normal rtl_power startup messages
-      if (!msg.includes('Found') && !msg.includes('Using device') && !msg.includes('Tuner gain')) {
+      // Log important errors, filter out normal startup messages
+      if (msg.includes('error') || msg.includes('failed') || msg.includes('usb_') || msg.includes('No supported')) {
+        logger.error(`rtl_power error: ${msg}`)
+      } else if (!msg.includes('Found') && !msg.includes('Using device') && !msg.includes('Tuner gain')) {
         logger.debug(`rtl_power: ${msg}`)
       }
     })

@@ -229,7 +229,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
           const gain = body.gain || Number(process.env.SDR_GAIN) || 45
 
           const success = startFFTStream(
-            { frequency, bandwidth, binSize: 1000, gain, interval: 0.5 },
+            { frequency, bandwidth, binSize: 1000, gain, interval: 1 },
             broadcastFFTData
           )
 
