@@ -12,7 +12,7 @@ services:
   # Full mode: Everything on one machine (default)
   # Runs with: docker compose -f docker/compose.yaml up
   rfcapture:
-    image: rfcapture:latest
+    image: ghcr.io/milesburton/noaa-satellite-capture:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -54,7 +54,7 @@ services:
 
   # SDR Relay: Lightweight service on Pi with SDR hardware
   sdr-relay:
-    image: rfcapture:latest
+    image: ghcr.io/milesburton/noaa-satellite-capture:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -89,7 +89,7 @@ services:
 
   # Server: API + Frontend + Scheduler (no SDR hardware)
   server:
-    image: rfcapture:latest
+    image: ghcr.io/milesburton/noaa-satellite-capture:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile
