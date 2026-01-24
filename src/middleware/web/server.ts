@@ -23,6 +23,7 @@ import { stateManager } from '@backend/state/state-manager'
 import type { StateEvent } from '@backend/types'
 import { logger } from '@backend/utils/logger'
 import type { ServerWebSocket } from 'bun'
+import { createAutoGain } from './auto-gain'
 import { getGlobeState } from './globe-service'
 
 const clients = new Set<ServerWebSocket<unknown>>()
@@ -31,15 +32,19 @@ const fftSubscribers = new Set<ServerWebSocket<unknown>>()
 // Runtime-adjustable SDR gain (initialised from environment)
 let currentGain = Number(process.env.SDR_GAIN) || 20
 
-// Auto-gain calibration state
-let autoGainEnabled = !process.env.SDR_GAIN // Enable auto-gain unless explicitly set
-let autoGainSamples: number[] = []
-const AUTO_GAIN_TARGET_MIN = -80 // Target noise floor minimum (dB)
-const AUTO_GAIN_TARGET_MAX = -55 // Target noise floor maximum (dB)
-const AUTO_GAIN_SAMPLES_NEEDED = 10 // Samples before adjusting
-const AUTO_GAIN_STEP = 5 // Gain adjustment step (dB)
-const AUTO_GAIN_MIN = 0
-const AUTO_GAIN_MAX = 50
+// Auto-gain calibration
+const autoGain = createAutoGain(currentGain, {
+  targetMin: -80,
+  targetMax: -55,
+  samplesNeeded: 10,
+  step: 5,
+  minGain: 0,
+  maxGain: 50,
+})
+// Enable auto-gain unless explicitly set via environment
+if (process.env.SDR_GAIN) {
+  autoGain.disable()
+}
 
 // Debounce FFT start requests to prevent rapid restarts
 let pendingFFTStart: ReturnType<typeof setTimeout> | null = null
@@ -282,8 +287,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
         try {
           const body = (await req.json()) as { gain?: number; auto?: boolean }
           if (body.auto === true) {
-            autoGainEnabled = true
-            autoGainSamples = []
+            autoGain.enable()
             logger.info('Auto-gain calibration enabled')
             return jsonResponse({ success: true, gain: currentGain, autoGain: true })
           }
@@ -292,7 +296,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             return new Response('Gain must be between 0 and 50', { status: 400 })
           }
           currentGain = gain
-          autoGainEnabled = false // Manual gain disables auto
+          autoGain.setGain(gain)
           logger.info(`SDR gain updated to ${gain} dB (auto-gain disabled)`)
           if (isFFTStreamRunning()) {
             const config = getFFTStreamConfig()
@@ -461,7 +465,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             const gain = data.gain as number
             if (gain !== undefined && gain >= 0 && gain <= 50) {
               currentGain = gain
-              autoGainEnabled = false
+              autoGain.setGain(gain)
               logger.info(`SDR gain updated via WebSocket to ${gain} dB (auto-gain disabled)`)
               if (isFFTStreamRunning()) {
                 const config = getFFTStreamConfig()
@@ -535,8 +539,13 @@ function broadcastFFTData(data: FFTData) {
   if (fftSubscribers.size === 0) return
 
   // Feed auto-gain calibration
-  if (autoGainEnabled) {
-    feedAutoGain(data)
+  if (autoGain.state.enabled) {
+    const result = autoGain.feed(data.bins)
+    if (result.action === 'adjusted') {
+      currentGain = result.newGain
+      const config = getFFTStreamConfig()
+      debouncedFFTStart(config?.frequency || 137500000)
+    }
   }
 
   const message = JSON.stringify({
@@ -549,57 +558,6 @@ function broadcastFFTData(data: FFTData) {
       subscriber.send(message)
     } catch {
       fftSubscribers.delete(subscriber)
-    }
-  }
-}
-
-/**
- * Auto-gain calibration: monitors median power and adjusts gain
- * to keep the noise floor in a useful range for signal detection.
- */
-function feedAutoGain(data: FFTData) {
-  // Use median power as a noise floor estimate (more robust than min/max)
-  const sorted = [...data.bins].sort((a, b) => a - b)
-  const median = sorted[Math.floor(sorted.length / 2)] ?? -100
-  autoGainSamples.push(median)
-
-  if (autoGainSamples.length >= AUTO_GAIN_SAMPLES_NEEDED) {
-    const avgMedian =
-      autoGainSamples.reduce((sum, v) => sum + v, 0) / autoGainSamples.length
-    autoGainSamples = []
-
-    let newGain = currentGain
-
-    if (avgMedian > AUTO_GAIN_TARGET_MAX) {
-      // Noise floor too high - reduce gain
-      newGain = Math.max(AUTO_GAIN_MIN, currentGain - AUTO_GAIN_STEP)
-      logger.info(
-        `Auto-gain: noise floor ${avgMedian.toFixed(1)} dB too high, reducing gain ${currentGain} -> ${newGain}`
-      )
-    } else if (avgMedian < AUTO_GAIN_TARGET_MIN) {
-      // Noise floor too low - increase gain
-      newGain = Math.min(AUTO_GAIN_MAX, currentGain + AUTO_GAIN_STEP)
-      logger.info(
-        `Auto-gain: noise floor ${avgMedian.toFixed(1)} dB too low, increasing gain ${currentGain} -> ${newGain}`
-      )
-    } else {
-      // In range - stop calibrating
-      logger.info(
-        `Auto-gain: noise floor ${avgMedian.toFixed(1)} dB is in target range, gain locked at ${currentGain}`
-      )
-      autoGainEnabled = false
-      return
-    }
-
-    if (newGain !== currentGain) {
-      currentGain = newGain
-      // Restart stream with new gain (debounced)
-      const config = getFFTStreamConfig()
-      debouncedFFTStart(config?.frequency || 137500000)
-    } else {
-      // Hit gain limits, stop trying
-      logger.info(`Auto-gain: hit gain limit at ${currentGain}, stopping calibration`)
-      autoGainEnabled = false
     }
   }
 }
