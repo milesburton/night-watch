@@ -32,6 +32,7 @@ let currentConfig: FFTStreamConfig | null = null
 let isRunning = false
 let isStarting = false
 let lastStopTime = 0
+let lastError: string | null = null
 
 // Minimum delay between stop and start (ms) to allow USB device to be released
 const MIN_RESTART_DELAY_MS = 2000
@@ -42,28 +43,19 @@ const notchFilters: NotchFilter[] = []
 // FFT processor instance
 let fftProcessor: FFT | null = null
 
+// Spectral averaging buffer to reduce noise
+let averagingBuffer: Float64Array | null = null
+let averagingCount = 0
+const AVERAGING_FRAMES = 8 // Average 8 frames together (~4x noise reduction)
+
 const DEFAULT_CONFIG: Partial<FFTStreamConfig> = {
   bandwidth: 200000, // 200 kHz
-  fftSize: 1024, // 1024-point FFT
+  fftSize: 2048, // 2048-point FFT for better frequency resolution
   updateRate: 30, // 30 updates per second for smooth real-time display
 }
 
 // Sample rate - must be high enough for bandwidth but not too high for Pi CPU
 const SAMPLE_RATE = 250000 // 250 kHz sample rate
-
-/**
- * Apply Hamming window to reduce spectral leakage
- */
-function applyHammingWindow(samples: Float32Array): void {
-  const n = samples.length
-  for (let i = 0; i < n; i++) {
-    const multiplier = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (n - 1))
-    const current = samples[i]
-    if (current !== undefined) {
-      samples[i] = current * multiplier
-    }
-  }
-}
 
 /**
  * Convert raw I/Q bytes to complex samples
@@ -96,7 +88,7 @@ function computePowerSpectrum(fftOutput: Float32Array, fftSize: number): number[
     const real = fftOutput[realIdx] ?? 0
     const imag = fftOutput[imagIdx] ?? 0
     const magSquared = (real * real + imag * imag) / normFactor
-    spectrum[i] = magSquared > 1e-15 ? 10 * Math.log10(magSquared) - 60 : -120
+    spectrum[i] = magSquared > 1e-15 ? 10 * Math.log10(magSquared) : -120
   }
 
   const reordered: number[] = new Array(fftSize)
@@ -227,6 +219,7 @@ export async function startFFTStream(
     currentConfig = fullConfig
     isRunning = true
     isStarting = false
+    lastError = null
 
     let buffer = Buffer.alloc(0)
     let lastUpdateTime = Date.now()
@@ -246,15 +239,11 @@ export async function startFFTStream(
           // Convert to complex samples
           const complexData = convertIQToComplex(frameBuffer, fftSize)
 
-          // Apply window function to reduce spectral leakage
-          // Apply to real parts only for simplicity
-          const realPart = new Float32Array(fftSize)
+          // Apply window function to both I and Q channels
           for (let i = 0; i < fftSize; i++) {
-            realPart[i] = complexData[i * 2] ?? 0
-          }
-          applyHammingWindow(realPart)
-          for (let i = 0; i < fftSize; i++) {
-            complexData[i * 2] = realPart[i] ?? 0
+            const w = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (fftSize - 1))
+            complexData[i * 2] = (complexData[i * 2] ?? 0) * w
+            complexData[i * 2 + 1] = (complexData[i * 2 + 1] ?? 0) * w
           }
 
           // Perform FFT
@@ -262,8 +251,40 @@ export async function startFFTStream(
           const fftOutput = fftProcessor.createComplexArray() as number[]
           fftProcessor.transform(fftOutput, complexData as unknown as number[])
 
-          // Compute power spectrum
+          // Compute power spectrum (linear magnitudes for averaging)
           const spectrum = computePowerSpectrum(new Float32Array(fftOutput), fftSize)
+
+          // Accumulate into averaging buffer
+          if (!averagingBuffer || averagingBuffer.length !== fftSize) {
+            averagingBuffer = new Float64Array(fftSize)
+            averagingCount = 0
+          }
+
+          // Exponential moving average in dB domain for smoother display
+          if (averagingCount === 0) {
+            for (let i = 0; i < fftSize; i++) {
+              averagingBuffer[i] = spectrum[i] ?? -120
+            }
+          } else {
+            const alpha = 1 / AVERAGING_FRAMES // Smoothing factor
+            for (let i = 0; i < fftSize; i++) {
+              const prev = averagingBuffer[i] ?? -120
+              averagingBuffer[i] = prev * (1 - alpha) + (spectrum[i] ?? -120) * alpha
+            }
+          }
+          averagingCount++
+
+          // Only emit after we have enough frames for a stable average
+          if (averagingCount < 2) {
+            lastUpdateTime = now
+            buffer = buffer.subarray(bytesPerFrame)
+            continue
+          }
+
+          const averaged: number[] = new Array(fftSize)
+          for (let i = 0; i < fftSize; i++) {
+            averaged[i] = averagingBuffer[i] ?? -120
+          }
 
           // Calculate frequency range
           const binWidth = SAMPLE_RATE / fftSize
@@ -272,9 +293,9 @@ export async function startFFTStream(
           let fftData: FFTData = {
             timestamp: now,
             centerFreq: frequency,
-            bins: spectrum,
-            minPower: Math.min(...spectrum),
-            maxPower: Math.max(...spectrum),
+            bins: averaged,
+            minPower: Math.min(...averaged),
+            maxPower: Math.max(...averaged),
           }
 
           // Apply notch filters
@@ -301,12 +322,15 @@ export async function startFFTStream(
 
     sdrProcess.stderr?.on('data', (data: Buffer) => {
       const msg = data.toString().trim()
-      if (
+      if (msg.includes('No supported')) {
+        lastError = 'No SDR hardware detected'
+        logger.error(`rtl_sdr: ${msg}`)
+      } else if (
         msg.includes('error') ||
         msg.includes('failed') ||
-        msg.includes('usb_') ||
-        msg.includes('No supported')
+        msg.includes('usb_')
       ) {
+        lastError = msg
         logger.error(`rtl_sdr error: ${msg}`)
       } else if (
         !msg.includes('Found') &&
@@ -320,6 +344,7 @@ export async function startFFTStream(
     })
 
     sdrProcess.on('error', (error) => {
+      lastError = error.message
       logger.error(`FFT stream error: ${error.message}`)
       isRunning = false
       isStarting = false
@@ -328,6 +353,9 @@ export async function startFFTStream(
     sdrProcess.on('close', (code) => {
       if (code !== 0 && code !== null) {
         logger.warn(`FFT stream exited with code ${code}`)
+        if (!lastError) {
+          lastError = `SDR process exited with code ${code}`
+        }
       }
       isRunning = false
       isStarting = false
@@ -358,6 +386,8 @@ export function stopFFTStream(): void {
   currentConfig = null
   isRunning = false
   fftProcessor = null
+  averagingBuffer = null
+  averagingCount = 0
 }
 
 /**
@@ -438,4 +468,11 @@ export function getNotchFilters(): NotchFilter[] {
 export function clearNotchFilters(): void {
   notchFilters.length = 0
   logger.info('Cleared all notch filters')
+}
+
+/**
+ * Get last SDR error (null if no error)
+ */
+export function getFFTStreamError(): string | null {
+  return lastError
 }

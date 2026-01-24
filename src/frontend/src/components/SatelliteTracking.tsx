@@ -20,6 +20,7 @@ interface SatelliteTrackingProps {
   subscribeFFT: (frequency?: number) => void
   unsubscribeFFT: () => void
   fftRunning: boolean
+  fftError: string | null
   latestFFTData: FFTData | null
   onFrequencyChange?: (freq: number | null, mode: ViewMode) => void
 }
@@ -400,6 +401,7 @@ export function SatelliteTracking({
   subscribeFFT,
   unsubscribeFFT,
   fftRunning,
+  fftError,
   latestFFTData,
   onFrequencyChange,
 }: SatelliteTrackingProps) {
@@ -523,6 +525,7 @@ export function SatelliteTracking({
                   subscribeFFT={subscribeFFT}
                   unsubscribeFFT={unsubscribeFFT}
                   fftRunning={fftRunning}
+                  fftError={fftError}
                   latestFFTData={latestFFTData}
                 />
               </div>

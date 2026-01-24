@@ -139,10 +139,13 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             onFFTData?.(data.data)
             break
           case 'fft_subscribed':
-            setFftState({ running: data.running, config: data.config })
+            setFftState({ running: data.running, config: data.config, error: data.error ?? null })
             break
           case 'fft_unsubscribed':
-            setFftState({ running: false, config: null })
+            setFftState({ running: false, config: null, error: null })
+            break
+          case 'fft_error':
+            setFftState((prev) => ({ ...prev, running: false, error: data.error }))
             break
         }
 

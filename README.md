@@ -100,6 +100,7 @@ sudo chmod 666 /dev/bus/usb/*/*
 - Check antenna positioning (clear line of sight)
 - Adjust `SDR_GAIN` (try 30-50, or 'auto')
 - Calibrate `SDR_PPM_CORRECTION` using FM stations
+- The Raspberry Pi 4 generates significant QRN (electrical noise) - use a USB extension cable to place the SDR dongle away from the Pi
 
 ## Technical Details
 

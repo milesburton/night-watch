@@ -9,11 +9,7 @@
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash"
       },
-      "extensions": [
-        "ms-azuretools.vscode-docker",
-        "eamodio.gitlens",
-        "biomejs.biome"
-      ]
+      "extensions": ["ms-azuretools.vscode-docker", "eamodio.gitlens", "biomejs.biome"]
     }
   },
   "mounts": [
@@ -23,9 +19,7 @@
     "source=rfcapture-recordings,target=/workspace/recordings,type=volume",
     "source=${localEnv:HOME}/.config/claude,target=/home/node/.config/claude,type=bind"
   ],
-  "runArgs": [
-    "--privileged"
-  ],
+  "runArgs": ["--privileged"],
   "postCreateCommand": "bun install && echo 'RFCapture Dev Container Ready! Run: bun start'",
   "postStartCommand": "bun install"
 }

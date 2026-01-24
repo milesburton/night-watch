@@ -9,6 +9,7 @@ interface WaterfallViewProps {
   subscribeFFT: (frequency?: number) => void
   unsubscribeFFT: () => void
   fftRunning: boolean
+  fftError?: string | null
   latestFFTData: FFTData | null
 }
 
@@ -23,6 +24,7 @@ export function WaterfallView({
   subscribeFFT,
   unsubscribeFFT,
   fftRunning,
+  fftError,
   latestFFTData,
 }: WaterfallViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -120,6 +122,18 @@ export function WaterfallView({
 
     ctx.fillStyle = '#1a2332'
     ctx.fillRect(0, 0, width, height)
+
+    if (fftError) {
+      ctx.fillStyle = '#ef4444'
+      ctx.font = 'bold 14px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('SDR Hardware Not Found', width / 2, height / 2 - 30)
+      ctx.fillStyle = '#94a3b8'
+      ctx.font = '12px sans-serif'
+      ctx.fillText(fftError, width / 2, height / 2)
+      ctx.fillText('Connect an RTL-SDR device and refresh', width / 2, height / 2 + 25)
+      return
+    }
 
     if (fftHistory.length === 0) {
       ctx.fillStyle = '#64748b'
@@ -235,6 +249,7 @@ export function WaterfallView({
     }
   }, [
     fftHistory,
+    fftError,
     frequency,
     frequencyName,
     isActive,
@@ -274,16 +289,18 @@ export function WaterfallView({
       />
       <div className="absolute top-2 right-2 flex items-center gap-2 bg-bg-primary/80 px-2 py-1 rounded text-xs">
         <span
-          className={`w-2 h-2 rounded-full ${fftRunning ? (isActive ? 'bg-success animate-pulse' : isScanning ? 'bg-purple animate-pulse' : 'bg-accent') : 'bg-text-muted'}`}
+          className={`w-2 h-2 rounded-full ${fftError ? 'bg-red-500' : fftRunning ? (isActive ? 'bg-success animate-pulse' : isScanning ? 'bg-purple animate-pulse' : 'bg-accent') : 'bg-text-muted'}`}
         />
         <span className="text-text-secondary">
-          {fftRunning
-            ? isActive
-              ? 'Signal Active'
-              : isScanning
-                ? 'Scanning'
-                : 'Monitoring'
-            : 'Offline'}
+          {fftError
+            ? 'No Hardware'
+            : fftRunning
+              ? isActive
+                ? 'Signal Active'
+                : isScanning
+                  ? 'Scanning'
+                  : 'Monitoring'
+              : 'Offline'}
         </span>
       </div>
     </div>

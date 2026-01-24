@@ -5,6 +5,7 @@ import {
   addNotchFilter,
   clearNotchFilters,
   getFFTStreamConfig,
+  getFFTStreamError,
   getNotchFilters,
   isFFTStreamRunning,
   removeNotchFilter,
@@ -26,6 +27,19 @@ import { getGlobeState } from './globe-service'
 
 const clients = new Set<ServerWebSocket<unknown>>()
 const fftSubscribers = new Set<ServerWebSocket<unknown>>()
+
+// Runtime-adjustable SDR gain (initialised from environment)
+let currentGain = Number(process.env.SDR_GAIN) || 20
+
+// Auto-gain calibration state
+let autoGainEnabled = !process.env.SDR_GAIN // Enable auto-gain unless explicitly set
+let autoGainSamples: number[] = []
+const AUTO_GAIN_TARGET_MIN = -80 // Target noise floor minimum (dB)
+const AUTO_GAIN_TARGET_MAX = -55 // Target noise floor maximum (dB)
+const AUTO_GAIN_SAMPLES_NEEDED = 10 // Samples before adjusting
+const AUTO_GAIN_STEP = 5 // Gain adjustment step (dB)
+const AUTO_GAIN_MIN = 0
+const AUTO_GAIN_MAX = 50
 
 // Debounce FFT start requests to prevent rapid restarts
 let pendingFFTStart: ReturnType<typeof setTimeout> | null = null
@@ -214,7 +228,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             altitude: Number(process.env.STATION_ALTITUDE) || 0,
           },
           sdr: {
-            gain: Number(process.env.SDR_GAIN) || 45,
+            gain: currentGain,
             ppmCorrection: Number(process.env.SDR_PPM_CORRECTION) || 0,
             sampleRate: Number(process.env.SDR_SAMPLE_RATE) || 48000,
           },
@@ -248,7 +262,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
 
           const frequency = body.frequency || 137500000 // Default to 137.5 MHz
           const bandwidth = body.bandwidth || 200000 // 200 kHz
-          const gain = body.gain || Number(process.env.SDR_GAIN) || 45
+          const gain = body.gain || currentGain
           const fftSize = body.fftSize || 1024
           const updateRate = body.updateRate || 10
 
@@ -258,6 +272,33 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
           )
 
           return jsonResponse({ success, running: isFFTStreamRunning() })
+        } catch {
+          return new Response('Bad Request', { status: 400 })
+        }
+      }
+
+      // Update SDR gain at runtime
+      if (url.pathname === '/api/config/gain' && req.method === 'POST') {
+        try {
+          const body = (await req.json()) as { gain?: number; auto?: boolean }
+          if (body.auto === true) {
+            autoGainEnabled = true
+            autoGainSamples = []
+            logger.info('Auto-gain calibration enabled')
+            return jsonResponse({ success: true, gain: currentGain, autoGain: true })
+          }
+          const gain = body.gain
+          if (gain === undefined || gain < 0 || gain > 50) {
+            return new Response('Gain must be between 0 and 50', { status: 400 })
+          }
+          currentGain = gain
+          autoGainEnabled = false // Manual gain disables auto
+          logger.info(`SDR gain updated to ${gain} dB (auto-gain disabled)`)
+          if (isFFTStreamRunning()) {
+            const config = getFFTStreamConfig()
+            debouncedFFTStart(config?.frequency || 137500000)
+          }
+          return jsonResponse({ success: true, gain: currentGain, autoGain: false })
         } catch {
           return new Response('Bad Request', { status: 400 })
         }
@@ -355,6 +396,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
               running: isFFTStreamRunning(),
               config: getFFTStreamConfig(),
               notchFilters: getNotchFilters(),
+              error: getFFTStreamError(),
             },
           })
         )
@@ -386,6 +428,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
                 type: 'fft_subscribed',
                 running: isFFTStreamRunning(),
                 config: getFFTStreamConfig(),
+                error: getFFTStreamError(),
               })
             )
           }
@@ -410,6 +453,21 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             const frequency = data.frequency as number
             if (frequency) {
               debouncedFFTStart(frequency)
+            }
+          }
+
+          // Handle SDR gain change
+          if (data.type === 'fft_set_gain') {
+            const gain = data.gain as number
+            if (gain !== undefined && gain >= 0 && gain <= 50) {
+              currentGain = gain
+              autoGainEnabled = false
+              logger.info(`SDR gain updated via WebSocket to ${gain} dB (auto-gain disabled)`)
+              if (isFFTStreamRunning()) {
+                const config = getFFTStreamConfig()
+                debouncedFFTStart(config?.frequency || 137500000)
+              }
+              ws.send(JSON.stringify({ type: 'gain_updated', gain: currentGain }))
             }
           }
         } catch {
@@ -445,11 +503,17 @@ function debouncedFFTStart(frequency: number) {
 
   pendingFFTStart = setTimeout(async () => {
     pendingFFTStart = null
-    const gain = Number(process.env.SDR_GAIN) || 45
     await startFFTStream(
-      { frequency, bandwidth: 200000, fftSize: 1024, gain, updateRate: 30 },
+      { frequency, bandwidth: 200000, fftSize: 2048, gain: currentGain, updateRate: 30 },
       broadcastFFTData
     )
+    // Check for errors after a short delay (rtl_sdr exits quickly if no device)
+    setTimeout(() => {
+      const error = getFFTStreamError()
+      if (error) {
+        broadcastFFTError(error)
+      }
+    }, 1500)
   }, FFT_START_DEBOUNCE_MS)
 }
 
@@ -470,9 +534,80 @@ function broadcastSstvStatus() {
 function broadcastFFTData(data: FFTData) {
   if (fftSubscribers.size === 0) return
 
+  // Feed auto-gain calibration
+  if (autoGainEnabled) {
+    feedAutoGain(data)
+  }
+
   const message = JSON.stringify({
     type: 'fft_data',
     data,
+  })
+
+  for (const subscriber of fftSubscribers) {
+    try {
+      subscriber.send(message)
+    } catch {
+      fftSubscribers.delete(subscriber)
+    }
+  }
+}
+
+/**
+ * Auto-gain calibration: monitors median power and adjusts gain
+ * to keep the noise floor in a useful range for signal detection.
+ */
+function feedAutoGain(data: FFTData) {
+  // Use median power as a noise floor estimate (more robust than min/max)
+  const sorted = [...data.bins].sort((a, b) => a - b)
+  const median = sorted[Math.floor(sorted.length / 2)] ?? -100
+  autoGainSamples.push(median)
+
+  if (autoGainSamples.length >= AUTO_GAIN_SAMPLES_NEEDED) {
+    const avgMedian =
+      autoGainSamples.reduce((sum, v) => sum + v, 0) / autoGainSamples.length
+    autoGainSamples = []
+
+    let newGain = currentGain
+
+    if (avgMedian > AUTO_GAIN_TARGET_MAX) {
+      // Noise floor too high - reduce gain
+      newGain = Math.max(AUTO_GAIN_MIN, currentGain - AUTO_GAIN_STEP)
+      logger.info(
+        `Auto-gain: noise floor ${avgMedian.toFixed(1)} dB too high, reducing gain ${currentGain} -> ${newGain}`
+      )
+    } else if (avgMedian < AUTO_GAIN_TARGET_MIN) {
+      // Noise floor too low - increase gain
+      newGain = Math.min(AUTO_GAIN_MAX, currentGain + AUTO_GAIN_STEP)
+      logger.info(
+        `Auto-gain: noise floor ${avgMedian.toFixed(1)} dB too low, increasing gain ${currentGain} -> ${newGain}`
+      )
+    } else {
+      // In range - stop calibrating
+      logger.info(
+        `Auto-gain: noise floor ${avgMedian.toFixed(1)} dB is in target range, gain locked at ${currentGain}`
+      )
+      autoGainEnabled = false
+      return
+    }
+
+    if (newGain !== currentGain) {
+      currentGain = newGain
+      // Restart stream with new gain (debounced)
+      const config = getFFTStreamConfig()
+      debouncedFFTStart(config?.frequency || 137500000)
+    } else {
+      // Hit gain limits, stop trying
+      logger.info(`Auto-gain: hit gain limit at ${currentGain}, stopping calibration`)
+      autoGainEnabled = false
+    }
+  }
+}
+
+function broadcastFFTError(error: string) {
+  const message = JSON.stringify({
+    type: 'fft_error',
+    error,
   })
 
   for (const subscriber of fftSubscribers) {

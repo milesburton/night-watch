@@ -388,6 +388,7 @@ export default function App() {
               subscribeFFT={subscribeFFT}
               unsubscribeFFT={unsubscribeFFT}
               fftRunning={fftState.running}
+              fftError={fftState.error ?? null}
               latestFFTData={latestFFTData}
               onFrequencyChange={handleFrequencyChange}
             />

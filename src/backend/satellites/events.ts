@@ -1,4 +1,5 @@
 import type { SSTVEvent, SSTVStatus } from '@backend/types'
+import { stopSstvScanner } from '../capture/sstv-scanner'
 import { logger } from '../utils/logger'
 
 let activeEvents: SSTVEvent[] = []
@@ -16,6 +17,9 @@ export function isManualSstvEnabled(): boolean {
 
 export function setGroundSstvScanEnabled(enabled: boolean): void {
   groundSstvScanEnabled = enabled
+  if (!enabled) {
+    stopSstvScanner()
+  }
   logger.info(`2M ground SSTV scanning: ${enabled ? 'enabled' : 'disabled'}`)
 }
 
