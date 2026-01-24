@@ -388,6 +388,7 @@ export function stopFFTStream(): void {
   averagingBuffer = null
   averagingCount = 0
   latestData = null
+  lastError = null
 }
 
 /**

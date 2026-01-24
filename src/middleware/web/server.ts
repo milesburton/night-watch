@@ -62,6 +62,9 @@ if (process.env.SDR_GAIN) {
 let pendingFFTStart: ReturnType<typeof setTimeout> | null = null
 const FFT_START_DEBOUNCE_MS = 500
 
+// Track deferred FFT stop timer so it can be cancelled on re-subscribe
+let pendingFFTStop: ReturnType<typeof setTimeout> | null = null
+
 // Server-side FFT history ring buffer (sent to new subscribers on connect)
 const FFT_HISTORY_MAX = 150
 const fftHistoryBuffer: FFTData[] = []
@@ -445,6 +448,12 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             fftSubscribers.add(ws)
             logger.debug(`FFT subscriber added, total: ${fftSubscribers.size}`)
 
+            // Cancel any pending deferred stop — a new subscriber needs the stream alive
+            if (pendingFFTStop) {
+              clearTimeout(pendingFFTStop)
+              pendingFFTStop = null
+            }
+
             // Send buffered history to new subscriber
             if (fftHistoryBuffer.length > 0) {
               ws.send(JSON.stringify({ type: 'fft_history', data: fftHistoryBuffer }))
@@ -477,7 +486,11 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             logger.debug(`FFT subscriber removed, total: ${fftSubscribers.size}`)
 
             // Auto-stop FFT stream if no subscribers (with delay to allow re-subscription)
-            setTimeout(() => {
+            if (pendingFFTStop) {
+              clearTimeout(pendingFFTStop)
+            }
+            pendingFFTStop = setTimeout(() => {
+              pendingFFTStop = null
               if (fftSubscribers.size === 0 && isFFTStreamRunning()) {
                 stopFFTStream()
               }
