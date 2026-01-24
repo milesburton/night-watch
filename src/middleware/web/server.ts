@@ -23,16 +23,21 @@ import { stateManager } from '@backend/state/state-manager'
 import type { StateEvent } from '@backend/types'
 import { logger } from '@backend/utils/logger'
 import type { ServerWebSocket } from 'bun'
-import { createAutoGain } from './auto-gain'
+import { type FrequencyBand, createAutoGain, createBandGainStore } from './auto-gain'
 import { getGlobeState } from './globe-service'
 
 const clients = new Set<ServerWebSocket<unknown>>()
 const fftSubscribers = new Set<ServerWebSocket<unknown>>()
 
 // Runtime-adjustable SDR gain (initialised from environment)
-let currentGain = Number(process.env.SDR_GAIN) || 20
+const defaultGain = Number(process.env.SDR_GAIN) || 20
+let currentGain = defaultGain
+let currentBand: FrequencyBand = 'noaa'
 
-// Auto-gain calibration
+// Per-band gain store
+const bandGainStore = createBandGainStore()
+
+// Auto-gain calibration (single instance - one SDR at a time)
 const autoGain = createAutoGain(currentGain, {
   targetMin: -80,
   targetMax: -55,
@@ -41,7 +46,7 @@ const autoGain = createAutoGain(currentGain, {
   minGain: 0,
   maxGain: 50,
 })
-// Enable auto-gain unless explicitly set via environment
+// Disable auto-gain if explicitly set via environment
 if (process.env.SDR_GAIN) {
   autoGain.disable()
 }
@@ -234,6 +239,8 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
           },
           sdr: {
             gain: currentGain,
+            band: currentBand,
+            bandGains: bandGainStore.getAll(),
             ppmCorrection: Number(process.env.SDR_PPM_CORRECTION) || 0,
             sampleRate: Number(process.env.SDR_SAMPLE_RATE) || 48000,
           },
@@ -287,9 +294,15 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
         try {
           const body = (await req.json()) as { gain?: number; auto?: boolean }
           if (body.auto === true) {
+            bandGainStore.clear(currentBand)
             autoGain.enable()
-            logger.info('Auto-gain calibration enabled')
-            return jsonResponse({ success: true, gain: currentGain, autoGain: true })
+            logger.info(`Auto-gain calibration enabled for band '${currentBand}'`)
+            return jsonResponse({
+              success: true,
+              gain: currentGain,
+              autoGain: true,
+              band: currentBand,
+            })
           }
           const gain = body.gain
           if (gain === undefined || gain < 0 || gain > 50) {
@@ -297,7 +310,8 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
           }
           currentGain = gain
           autoGain.setGain(gain)
-          logger.info(`SDR gain updated to ${gain} dB (auto-gain disabled)`)
+          bandGainStore.set(currentBand, gain, true)
+          logger.info(`SDR gain updated to ${gain} dB for band '${currentBand}'`)
           if (isFFTStreamRunning()) {
             const config = getFFTStreamConfig()
             debouncedFFTStart(config?.frequency || 137500000)
@@ -466,7 +480,8 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             if (gain !== undefined && gain >= 0 && gain <= 50) {
               currentGain = gain
               autoGain.setGain(gain)
-              logger.info(`SDR gain updated via WebSocket to ${gain} dB (auto-gain disabled)`)
+              bandGainStore.set(currentBand, gain, true)
+              logger.info(`SDR gain updated via WebSocket to ${gain} dB for band '${currentBand}'`)
               if (isFFTStreamRunning()) {
                 const config = getFFTStreamConfig()
                 debouncedFFTStart(config?.frequency || 137500000)
@@ -507,6 +522,20 @@ function debouncedFFTStart(frequency: number) {
 
   pendingFFTStart = setTimeout(async () => {
     pendingFFTStart = null
+
+    // Look up gain for this frequency's band
+    const { band, gain, needsCalibration } = bandGainStore.getForFrequency(frequency, defaultGain)
+    currentBand = band
+    currentGain = gain
+
+    if (needsCalibration && !process.env.SDR_GAIN) {
+      autoGain.state.currentGain = gain
+      autoGain.enable()
+      logger.info(`Band '${band}': no calibrated gain, starting auto-gain from ${gain} dB`)
+    } else {
+      autoGain.disable()
+    }
+
     await startFFTStream(
       { frequency, bandwidth: 200000, fftSize: 2048, gain: currentGain, updateRate: 30 },
       broadcastFFTData
@@ -543,8 +572,16 @@ function broadcastFFTData(data: FFTData) {
     const result = autoGain.feed(data.bins)
     if (result.action === 'adjusted') {
       currentGain = result.newGain
+      bandGainStore.set(currentBand, currentGain, false)
       const config = getFFTStreamConfig()
       debouncedFFTStart(config?.frequency || 137500000)
+    } else if (result.action === 'in_range') {
+      bandGainStore.set(currentBand, result.gain, true)
+      currentGain = result.gain
+      logger.info(`Band '${currentBand}': gain calibrated to ${result.gain} dB`)
+    } else if (result.action === 'limit_reached') {
+      bandGainStore.set(currentBand, result.gain, true)
+      currentGain = result.gain
     }
   }
 

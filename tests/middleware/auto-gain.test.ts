@@ -1,4 +1,4 @@
-import { createAutoGain } from '@middleware/web/auto-gain'
+import { classifyBand, createAutoGain, createBandGainStore } from '@middleware/web/auto-gain'
 import { describe, expect, it } from 'vitest'
 
 describe('auto-gain', () => {
@@ -221,5 +221,141 @@ describe('auto-gain', () => {
       ag.reset()
       expect(ag.state.currentGain).toBe(25) // Gain preserved
     })
+  })
+})
+
+describe('classifyBand', () => {
+  it('should classify NOAA frequencies as noaa band', () => {
+    expect(classifyBand(137.1e6)).toBe('noaa')
+    expect(classifyBand(137.6125e6)).toBe('noaa')
+    expect(classifyBand(137.9125e6)).toBe('noaa')
+  })
+
+  it('should classify 2m frequencies as 2m band', () => {
+    expect(classifyBand(144.5e6)).toBe('2m')
+    expect(classifyBand(145.5e6)).toBe('2m')
+    expect(classifyBand(145.8e6)).toBe('2m')
+  })
+
+  it('should return unknown for out-of-range frequencies', () => {
+    expect(classifyBand(100e6)).toBe('unknown')
+    expect(classifyBand(433e6)).toBe('unknown')
+    expect(classifyBand(0)).toBe('unknown')
+  })
+
+  it('should handle band boundaries inclusively', () => {
+    expect(classifyBand(136e6)).toBe('noaa')
+    expect(classifyBand(138e6)).toBe('noaa')
+    expect(classifyBand(144e6)).toBe('2m')
+    expect(classifyBand(146e6)).toBe('2m')
+  })
+
+  it('should return unknown for frequencies between bands', () => {
+    expect(classifyBand(140e6)).toBe('unknown')
+    expect(classifyBand(143e6)).toBe('unknown')
+  })
+})
+
+describe('createBandGainStore', () => {
+  it('should return undefined for unknown bands', () => {
+    const store = createBandGainStore()
+    expect(store.get('noaa')).toBeUndefined()
+    expect(store.get('2m')).toBeUndefined()
+  })
+
+  it('should store and retrieve band gains', () => {
+    const store = createBandGainStore()
+    store.set('noaa', 25, true)
+    expect(store.get('noaa')).toEqual({ band: 'noaa', gain: 25, calibrated: true })
+  })
+
+  it('should default calibrated to true', () => {
+    const store = createBandGainStore()
+    store.set('2m', 30)
+    expect(store.get('2m')?.calibrated).toBe(true)
+  })
+
+  it('should store uncalibrated state', () => {
+    const store = createBandGainStore()
+    store.set('noaa', 20, false)
+    expect(store.get('noaa')?.calibrated).toBe(false)
+  })
+
+  it('should overwrite existing band gain', () => {
+    const store = createBandGainStore()
+    store.set('noaa', 20)
+    store.set('noaa', 30)
+    expect(store.get('noaa')?.gain).toBe(30)
+  })
+
+  describe('getForFrequency', () => {
+    it('should indicate calibration needed for uncalibrated band', () => {
+      const store = createBandGainStore()
+      const result = store.getForFrequency(137.5e6, 20)
+      expect(result).toEqual({ band: 'noaa', gain: 20, needsCalibration: true })
+    })
+
+    it('should return stored gain when band is calibrated', () => {
+      const store = createBandGainStore()
+      store.set('noaa', 30, true)
+      const result = store.getForFrequency(137.1e6, 20)
+      expect(result).toEqual({ band: 'noaa', gain: 30, needsCalibration: false })
+    })
+
+    it('should classify frequency and look up correct band', () => {
+      const store = createBandGainStore()
+      store.set('noaa', 25)
+      store.set('2m', 35)
+      expect(store.getForFrequency(137.5e6, 20).gain).toBe(25)
+      expect(store.getForFrequency(145.8e6, 20).gain).toBe(35)
+    })
+
+    it('should use default gain for unknown band', () => {
+      const store = createBandGainStore()
+      const result = store.getForFrequency(433e6, 15)
+      expect(result).toEqual({ band: 'unknown', gain: 15, needsCalibration: true })
+    })
+
+    it('should return uncalibrated gain without needsCalibration flag', () => {
+      const store = createBandGainStore()
+      store.set('noaa', 22, false) // Intermediate, not fully calibrated
+      const result = store.getForFrequency(137.5e6, 20)
+      expect(result).toEqual({ band: 'noaa', gain: 22, needsCalibration: false })
+    })
+  })
+
+  it('should track bands independently', () => {
+    const store = createBandGainStore()
+    store.set('noaa', 25)
+    store.set('2m', 35)
+    expect(store.get('noaa')?.gain).toBe(25)
+    expect(store.get('2m')?.gain).toBe(35)
+  })
+
+  it('should clear a specific band', () => {
+    const store = createBandGainStore()
+    store.set('noaa', 25)
+    store.set('2m', 35)
+    store.clear('noaa')
+    expect(store.get('noaa')).toBeUndefined()
+    expect(store.get('2m')).toBeDefined()
+  })
+
+  it('should clear all bands', () => {
+    const store = createBandGainStore()
+    store.set('noaa', 25)
+    store.set('2m', 35)
+    store.clearAll()
+    expect(store.getAll()).toEqual([])
+  })
+
+  it('should list all stored gains', () => {
+    const store = createBandGainStore()
+    store.set('noaa', 25)
+    store.set('2m', 35)
+    const all = store.getAll()
+    expect(all).toHaveLength(2)
+    expect(all.find((s) => s.band === 'noaa')?.gain).toBe(25)
+    expect(all.find((s) => s.band === '2m')?.gain).toBe(35)
   })
 })

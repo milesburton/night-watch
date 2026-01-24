@@ -1,5 +1,86 @@
 import { logger } from '@backend/utils/logger'
 
+// ============================================
+// Frequency Band Classification
+// ============================================
+
+export type FrequencyBand = 'noaa' | '2m' | 'unknown'
+
+const BAND_RANGES: [FrequencyBand, number, number][] = [
+  ['noaa', 136e6, 138e6], // 136-138 MHz: NOAA APT satellites
+  ['2m', 144e6, 146e6], // 144-146 MHz: ISS SSTV + ground SSTV
+]
+
+export function classifyBand(frequencyHz: number): FrequencyBand {
+  for (const [band, min, max] of BAND_RANGES) {
+    if (frequencyHz >= min && frequencyHz <= max) {
+      return band
+    }
+  }
+  return 'unknown'
+}
+
+// ============================================
+// Band Gain Store
+// ============================================
+
+export interface BandGainState {
+  band: FrequencyBand
+  gain: number
+  calibrated: boolean
+}
+
+export interface BandGainStore {
+  get(band: FrequencyBand): BandGainState | undefined
+  set(band: FrequencyBand, gain: number, calibrated?: boolean): void
+  getForFrequency(
+    frequencyHz: number,
+    defaultGain: number
+  ): { band: FrequencyBand; gain: number; needsCalibration: boolean }
+  clear(band: FrequencyBand): void
+  clearAll(): void
+  getAll(): BandGainState[]
+}
+
+export function createBandGainStore(): BandGainStore {
+  const store = new Map<FrequencyBand, BandGainState>()
+
+  return {
+    get(band) {
+      return store.get(band)
+    },
+
+    set(band, gain, calibrated = true) {
+      store.set(band, { band, gain, calibrated })
+    },
+
+    getForFrequency(frequencyHz, defaultGain) {
+      const band = classifyBand(frequencyHz)
+      const stored = store.get(band)
+      if (stored) {
+        return { band, gain: stored.gain, needsCalibration: false }
+      }
+      return { band, gain: defaultGain, needsCalibration: true }
+    },
+
+    clear(band) {
+      store.delete(band)
+    },
+
+    clearAll() {
+      store.clear()
+    },
+
+    getAll() {
+      return Array.from(store.values())
+    },
+  }
+}
+
+// ============================================
+// Auto-Gain Calibration
+// ============================================
+
 export interface AutoGainConfig {
   targetMin: number // Target noise floor minimum (dB)
   targetMax: number // Target noise floor maximum (dB)
