@@ -412,21 +412,16 @@ export function SatelliteTracking({
   const isScanning = systemStatus === 'scanning'
 
   useEffect(() => {
-    if (isScanning) {
-      setMode('sstv-2m')
-    } else if (
-      systemStatus === 'recording' ||
-      systemStatus === 'decoding' ||
-      systemStatus === 'waiting'
-    ) {
+    if (systemStatus === 'recording' || systemStatus === 'decoding' || systemStatus === 'waiting') {
       setMode('satellite')
     }
-  }, [systemStatus, isScanning])
+  }, [systemStatus])
 
   const getCurrentFrequency = useCallback(() => {
     if (mode === 'satellite') {
       return currentPass?.satellite?.frequency ?? 137500000
     }
+    // 2M SSTV mode: use scanning frequency if scanner is active, else manual selection
     if (isScanning && scanningFrequency) {
       return scanningFrequency
     }
@@ -519,9 +514,9 @@ export function SatelliteTracking({
               <div className="w-full max-w-[600px]">
                 <WaterfallView
                   frequency={currentFrequency}
-                  frequencyName={isScanning ? scanningFrequencyName : currentPass?.satellite?.name}
+                  frequencyName={currentPass?.satellite?.name}
                   isActive={isCapturing}
-                  isScanning={isScanning}
+                  isScanning={false}
                   subscribeFFT={subscribeFFT}
                   unsubscribeFFT={unsubscribeFFT}
                   fftRunning={fftRunning}

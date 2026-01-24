@@ -37,6 +37,13 @@ let currentBand: FrequencyBand = 'noaa'
 // Per-band gain store
 const bandGainStore = createBandGainStore()
 
+// Per-band auto-gain target ranges (2M is noisier, allow higher floor)
+const BAND_GAIN_TARGETS: Record<FrequencyBand, { targetMin: number; targetMax: number }> = {
+  noaa: { targetMin: -80, targetMax: -55 },
+  '2m': { targetMin: -70, targetMax: -45 },
+  unknown: { targetMin: -75, targetMax: -50 },
+}
+
 // Auto-gain calibration (single instance - one SDR at a time)
 const autoGain = createAutoGain(currentGain, {
   targetMin: -80,
@@ -529,9 +536,15 @@ function debouncedFFTStart(frequency: number) {
     currentGain = gain
 
     if (needsCalibration && !process.env.SDR_GAIN) {
+      // Configure auto-gain targets for this band
+      const targets = BAND_GAIN_TARGETS[band]
+      autoGain.config.targetMin = targets.targetMin
+      autoGain.config.targetMax = targets.targetMax
       autoGain.state.currentGain = gain
       autoGain.enable()
-      logger.info(`Band '${band}': no calibrated gain, starting auto-gain from ${gain} dB`)
+      logger.info(
+        `Band '${band}': no calibrated gain, starting auto-gain from ${gain} dB (target ${targets.targetMin} to ${targets.targetMax} dB)`
+      )
     } else {
       autoGain.disable()
     }
