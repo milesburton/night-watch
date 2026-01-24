@@ -138,6 +138,13 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           case 'fft_data':
             onFFTData?.(data.data)
             break
+          case 'fft_history':
+            if (Array.isArray(data.data)) {
+              for (const frame of data.data) {
+                onFFTData?.(frame)
+              }
+            }
+            break
           case 'fft_subscribed':
             setFftState({ running: data.running, config: data.config, error: data.error ?? null })
             break

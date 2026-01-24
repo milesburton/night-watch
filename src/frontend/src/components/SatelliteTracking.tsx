@@ -145,16 +145,12 @@ function SpectrumWaterfall({
   frequency,
   frequencyName,
   isScanning,
-  subscribeFFT,
-  unsubscribeFFT,
   fftRunning,
   latestFFTData,
 }: {
   frequency: number
   frequencyName?: string
   isScanning: boolean
-  subscribeFFT: (frequency?: number) => void
-  unsubscribeFFT: () => void
   fftRunning: boolean
   latestFFTData: FFTData | null
 }) {
@@ -178,17 +174,6 @@ function SpectrumWaterfall({
       return newHistory
     })
   }, [latestFFTData])
-
-  useEffect(() => {
-    subscribeFFT(frequency)
-    const retryTimer = setTimeout(() => {
-      if (!fftRunning) subscribeFFT(frequency)
-    }, 1000)
-    return () => {
-      clearTimeout(retryTimer)
-      unsubscribeFFT()
-    }
-  }, [frequency, subscribeFFT, unsubscribeFFT, fftRunning])
 
   const getColor = useCallback((normalized: number): string => {
     if (normalized < 0.2) {
@@ -223,15 +208,15 @@ function SpectrumWaterfall({
     ctx.fillStyle = '#0f1419'
     ctx.fillRect(0, 0, width, height)
 
-    let refMin = -60
+    let refMin = -100
     let refMax = -20
     if (fftHistory.length > 0) {
       const recentRows = fftHistory.slice(-20)
       for (const row of recentRows) {
-        if (row.minPower > -100) refMin = Math.min(refMin, row.minPower)
+        if (row.minPower > -120) refMin = Math.min(refMin, row.minPower)
         refMax = Math.max(refMax, row.maxPower)
       }
-      refMin = Math.max(refMin - 5, -80)
+      refMin = Math.max(refMin - 5, -110)
       refMax = Math.min(refMax + 5, 0)
       if (refMax - refMin < 20) {
         const mid = (refMin + refMax) / 2
@@ -368,8 +353,8 @@ function SpectrumWaterfall({
   }, [draw])
 
   const handleClick = useCallback(() => {
-    subscribeFFT(frequency)
-  }, [frequency, subscribeFFT])
+    // Click handled by parent component
+  }, [])
 
   return (
     <canvas
@@ -414,6 +399,8 @@ export function SatelliteTracking({
   useEffect(() => {
     if (systemStatus === 'recording' || systemStatus === 'decoding' || systemStatus === 'waiting') {
       setMode('satellite')
+    } else if (systemStatus === 'scanning') {
+      setMode('sstv-2m')
     }
   }, [systemStatus])
 
@@ -435,10 +422,11 @@ export function SatelliteTracking({
   }, [currentFrequency, mode, onFrequencyChange])
 
   useEffect(() => {
-    if (fftRunning) {
-      subscribeFFT(currentFrequency)
+    subscribeFFT(currentFrequency)
+    return () => {
+      unsubscribeFFT()
     }
-  }, [currentFrequency, fftRunning, subscribeFFT])
+  }, [currentFrequency, subscribeFFT, unsubscribeFFT])
 
   const tabs = [
     {
@@ -517,8 +505,6 @@ export function SatelliteTracking({
                   frequencyName={currentPass?.satellite?.name}
                   isActive={isCapturing}
                   isScanning={false}
-                  subscribeFFT={subscribeFFT}
-                  unsubscribeFFT={unsubscribeFFT}
                   fftRunning={fftRunning}
                   fftError={fftError}
                   latestFFTData={latestFFTData}
@@ -534,8 +520,6 @@ export function SatelliteTracking({
                 isScanning ? scanningFrequencyName : SSTV_2M_FREQUENCIES[sstvFreqIndex]?.label
               }
               isScanning={isScanning}
-              subscribeFFT={subscribeFFT}
-              unsubscribeFFT={unsubscribeFFT}
               fftRunning={fftRunning}
               latestFFTData={latestFFTData}
             />

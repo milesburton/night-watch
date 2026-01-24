@@ -168,6 +168,7 @@ export type WSMessage =
   | { type: 'satellite_positions'; globe: GlobeState }
   | { type: 'scanning_frequency'; frequency: number; name: string }
   | { type: 'fft_data'; data: FFTData }
+  | { type: 'fft_history'; data: FFTData[] }
   | { type: 'fft_subscribed'; running: boolean; config: FFTConfig | null; error?: string | null }
   | { type: 'fft_unsubscribed' }
   | { type: 'fft_error'; error: string }

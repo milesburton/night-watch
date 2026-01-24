@@ -33,6 +33,7 @@ let isRunning = false
 let isStarting = false
 let lastStopTime = 0
 let lastError: string | null = null
+let latestData: FFTData | null = null
 
 // Minimum delay between stop and start (ms) to allow USB device to be released
 const MIN_RESTART_DELAY_MS = 2000
@@ -303,6 +304,8 @@ export async function startFFTStream(
             fftData = applyNotchFilters(fftData, startFreq, binWidth)
           }
 
+          latestData = fftData
+
           if (currentCallback) {
             currentCallback(fftData)
           }
@@ -325,11 +328,7 @@ export async function startFFTStream(
       if (msg.includes('No supported')) {
         lastError = 'No SDR hardware detected'
         logger.error(`rtl_sdr: ${msg}`)
-      } else if (
-        msg.includes('error') ||
-        msg.includes('failed') ||
-        msg.includes('usb_')
-      ) {
+      } else if (msg.includes('error') || msg.includes('failed') || msg.includes('usb_')) {
         lastError = msg
         logger.error(`rtl_sdr error: ${msg}`)
       } else if (
@@ -388,6 +387,7 @@ export function stopFFTStream(): void {
   fftProcessor = null
   averagingBuffer = null
   averagingCount = 0
+  latestData = null
 }
 
 /**
@@ -468,6 +468,13 @@ export function getNotchFilters(): NotchFilter[] {
 export function clearNotchFilters(): void {
   notchFilters.length = 0
   logger.info('Cleared all notch filters')
+}
+
+/**
+ * Get the most recent FFT data frame (null if stream not running or no data yet)
+ */
+export function getLatestFFTData(): FFTData | null {
+  return latestData
 }
 
 /**

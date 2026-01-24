@@ -64,7 +64,12 @@ Connect: `ws://<host>:<port>/ws`
 | `passes_updated` | passes[] | New predictions |
 | `sstv_status` | status | SSTV state change |
 | `satellite_positions` | globe | Position update |
-| `fft_data` | data | Spectrum data |
+| `scanning_frequency` | frequency, name | SSTV scanner tuned to new frequency |
+| `fft_data` | data | Live spectrum frame |
+| `fft_history` | data[] | Buffered FFT frames (sent on subscribe) |
+| `fft_subscribed` | running, config, error | Subscription confirmed |
+| `fft_unsubscribed` | - | Unsubscription confirmed |
+| `fft_error` | error | FFT stream error |
 
 ### Client Messages
 

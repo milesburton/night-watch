@@ -9,8 +9,11 @@
 ## Features
 
 - **Autonomous Operation**: Automatically predicts, schedules, and captures satellite passes
-- **Real-Time Visualization**: Web dashboard with live 3D globe, FFT waterfall, and pass timeline
-- **Multi-Signal Support**: APT (NOAA weather satellites) and SSTV (ISS) decoding
+- **Real-Time Visualization**: Web dashboard with live 3D globe, FFT waterfall/spectrum, and pass timeline
+- **Multi-Signal Support**: APT (NOAA weather satellites) and SSTV (ISS + 2m ground) decoding
+- **2m SSTV Scanner**: Scans amateur SSTV frequencies during idle time using FFT-based signal detection
+- **Per-Band Gain Calibration**: Automatic gain adjustment per frequency band (NOAA vs 2m)
+- **Persistent Waterfall**: Server-side FFT history buffer — waterfall survives page refreshes
 - **Flexible Architecture**: Single-device or distributed setups
 
 ## Supported Satellites
@@ -98,16 +101,20 @@ sudo chmod 666 /dev/bus/usb/*/*
 ### Poor Signal Quality
 
 - Check antenna positioning (clear line of sight)
-- Adjust `SDR_GAIN` (try 30-50, or 'auto')
+- Adjust `SDR_GAIN` (try 30-50, or 'auto') — per-band gain is calibrated automatically at runtime
 - Calibrate `SDR_PPM_CORRECTION` using FM stations
 - The Raspberry Pi 4 generates significant QRN (electrical noise) - use a USB extension cable to place the SDR dongle away from the Pi
+
+### SDR Device Conflicts
+
+The system uses a single RTL-SDR device shared between the FFT stream (waterfall display) and recording. The FFT stream is automatically stopped when recording begins, and restarted afterward. If you see "usb_claim_interface error -6", ensure no other processes (e.g. `rtl_test`, `rtl_power`) are using the device.
 
 ## Technical Details
 
 **Runtime**: Bun
 **Backend**: TypeScript, SQLite
 **Frontend**: React, Vite, Tailwind CSS, Zustand
-**Signal Processing**: rtl_fm → sox → aptdec
+**Signal Processing**: rtl_sdr → fft.js (real-time waterfall), rtl_fm → sox → aptdec (recording)
 
 ## Documentation
 
@@ -116,7 +123,7 @@ sudo chmod 666 /dev/bus/usb/*/*
 
 ## License
 
-MIT © 2025 - See [LICENSE](LICENSE) for details.
+MIT © 2025–2026 - See [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 

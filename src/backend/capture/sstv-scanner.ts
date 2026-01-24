@@ -4,8 +4,8 @@ import { SIGNAL_CONFIGS } from '../satellites/constants'
 import { stateManager } from '../state/state-manager'
 import { logger } from '../utils/logger'
 import { decodeRecording } from './decoders'
+import { getLatestFFTData, stopFFTStream } from './fft-stream'
 import { recordPass } from './recorder'
-import { verifySignalAtFrequency } from './signal'
 
 // Common 2m SSTV frequencies (in Hz)
 // Note: ISS (145.800 MHz) is NOT included here - it's handled as a scheduled pass like NOAA satellites
@@ -64,19 +64,33 @@ export async function scanForSstv(
           break
         }
 
-        // Broadcast current scanning frequency
+        // Broadcast current scanning frequency — the server will tune the FFT stream
         stateManager.setScanningFrequency(freq.frequency, freq.name)
         logger.info(`Scanning ${freq.name} (${(freq.frequency / 1e6).toFixed(3)} MHz)`)
 
-        // Quick signal check
-        const hasSignal = await verifySignalAtFrequency(
-          freq.frequency,
-          config.sdr.gain,
-          config.recording.minSignalStrength - 5 // Be a bit more sensitive for scanning
-        )
+        // Dwell and check FFT power for signal detection
+        const signalThreshold = config.recording.minSignalStrength - 5
+        let hasSignal = false
+
+        // Sample FFT data over the dwell period (3s total, checking every 500ms)
+        for (let i = 0; i < 6 && !shouldStop; i++) {
+          await Bun.sleep(500)
+          const fftData = getLatestFFTData()
+          if (fftData && fftData.maxPower > signalThreshold) {
+            hasSignal = true
+            logger.debug(
+              `Signal check: peak ${fftData.maxPower.toFixed(1)} dB > threshold ${signalThreshold} dB`
+            )
+            break
+          }
+        }
 
         if (hasSignal && !shouldStop) {
           logger.info(`Signal detected on ${freq.name}!`)
+
+          // Stop FFT stream to release SDR for recording
+          stopFFTStream()
+          await Bun.sleep(500)
 
           // Create a virtual satellite info for this capture
           const captureInfo: SatelliteInfo = {
@@ -95,11 +109,6 @@ export async function scanForSstv(
 
           // After capture attempt, continue scanning
           stateManager.setStatus('scanning')
-        }
-
-        // Dwell on each frequency for a few seconds to catch signals
-        if (!shouldStop) {
-          await Bun.sleep(3000)
         }
       }
     }

@@ -2,22 +2,11 @@
 
 ## Current Status
 
-**Version**: 2.0.0  
-**Last Updated**: 2026-01-16  
-**Git Branch**: master  
-**Tests**: 149 passing ✓  
-**TypeScript**: No errors ✓  
-**Commits Ahead**: 5 commits ahead of origin/master  
-
-## Recent Commits
-
-```
-a657303 - style: fix backend linting issues
-59d91ca - fix: resolve TypeScript error in tle-fetcher test
-934f777 - docs: add service modes architecture to README
-82d9e41 - feat: restructure project with SDR relay separation architecture
-f64a86f - fix: improve doppler calculation accuracy for edge positions
-```
+**Version**: 1.0.0
+**Last Updated**: 2026-01-24
+**Git Branch**: master
+**Tests**: 206 passing
+**TypeScript**: No errors
 
 ## Deployment Modes
 
@@ -80,7 +69,7 @@ http://your-server-ip:8002
 
 ## Automated Deployment with Scripts
 
-### Using deploy/deploy.sh
+### Using scripts/deploy/deploy.sh
 
 ```bash
 # Configure .env file first
@@ -88,29 +77,13 @@ cp .appcontainer/.env.example .env
 nano .env  # Set DEPLOY_TARGET, DEPLOY_DIR, and coordinates
 
 # Deploy to remote Pi
-./deploy/deploy.sh
+bash scripts/deploy/deploy.sh
 
-# Deploy with full rebuild
-./deploy/deploy.sh --full
+# Skip local build (deploy pre-built assets)
+bash scripts/deploy/deploy.sh --skip-build
 
 # Skip health check
-./deploy/deploy.sh --skip-health
-```
-
-### Other Helper Scripts
-
-```bash
-# Check deployment status
-./deploy/status.sh
-
-# View logs
-./deploy/logs.sh
-
-# Restart services
-./deploy/restart.sh
-
-# SSH into deployment
-./deploy/ssh.sh
+bash scripts/deploy/deploy.sh --skip-health
 ```
 
 ## Environment Configuration
@@ -162,7 +135,7 @@ bun run src/backend/cli/main.ts --help
 bun run predict
 
 # Run tests
-bun test  # Should see 149 pass
+bun test  # Should see 206 pass
 ```
 
 ### 2. Type Check
@@ -240,7 +213,7 @@ docker inspect --format='{{json .State.Health.Status}}' rfcapture
 
 ```bash
 bun test  # Run tests
-# All 149 should pass
+# All 206 should pass
 # Some TLE fetch errors are expected (test mocks)
 ```
 
@@ -344,16 +317,16 @@ docker compose -f docker/compose.yaml exec rfcapture bash
 │   └── sdr-relay/         # SDR hardware interface
 ├── docker/                # All Docker configs
 ├── deploy/                # Deployment scripts
-└── tests/                 # 149 tests
+└── tests/                 # 206 tests
 
-Tests: 149 passing ✓
-TypeScript: 0 errors ✓
-Architecture: Modular & scalable ✓
+Tests: 206 passing
+TypeScript: 0 errors
+Architecture: Modular & scalable
 ```
 
 ## Success Criteria
 
-- [x] All 149 tests passing
+- [x] All 206 tests passing
 - [x] TypeScript compiles without errors
 - [x] Frontend builds successfully
 - [x] Docker Compose configs valid

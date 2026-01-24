@@ -62,6 +62,10 @@ if (process.env.SDR_GAIN) {
 let pendingFFTStart: ReturnType<typeof setTimeout> | null = null
 const FFT_START_DEBOUNCE_MS = 500
 
+// Server-side FFT history ring buffer (sent to new subscribers on connect)
+const FFT_HISTORY_MAX = 150
+const fftHistoryBuffer: FFTData[] = []
+
 // Check if React build exists
 async function getStaticDir(): Promise<string> {
   const reactDir = resolve(import.meta.dir, 'static-react')
@@ -441,10 +445,19 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             fftSubscribers.add(ws)
             logger.debug(`FFT subscriber added, total: ${fftSubscribers.size}`)
 
+            // Send buffered history to new subscriber
+            if (fftHistoryBuffer.length > 0) {
+              ws.send(JSON.stringify({ type: 'fft_history', data: fftHistoryBuffer }))
+            }
+
             // Auto-start FFT stream if not running and we have subscribers
-            // Use debouncing to prevent rapid restart cycles
+            // When scanning, the scanner controls frequency via state events
             if (!isFFTStreamRunning()) {
-              const frequency = (data.frequency as number) || 137500000
+              const state = stateManager.getState()
+              const frequency =
+                state.status === 'scanning' && state.scanningFrequency
+                  ? state.scanningFrequency
+                  : (data.frequency as number) || 137500000
               debouncedFFTStart(frequency)
             }
 
@@ -505,6 +518,11 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
 
   // Subscribe to state changes and broadcast to all clients
   stateManager.on('state', (event: StateEvent) => {
+    // Retune FFT stream when scanning frequency changes
+    if (event.type === 'scanning_frequency' && fftSubscribers.size > 0) {
+      debouncedFFTStart(event.frequency)
+    }
+
     const message = JSON.stringify(event)
     for (const client of clients) {
       try {
@@ -529,6 +547,9 @@ function debouncedFFTStart(frequency: number) {
 
   pendingFFTStart = setTimeout(async () => {
     pendingFFTStart = null
+
+    // Clear history buffer on frequency change (stale data from different freq)
+    fftHistoryBuffer.length = 0
 
     // Look up gain for this frequency's band
     const { band, gain, needsCalibration } = bandGainStore.getForFrequency(frequency, defaultGain)
@@ -578,6 +599,12 @@ function broadcastSstvStatus() {
 }
 
 function broadcastFFTData(data: FFTData) {
+  // Always buffer, even if no subscribers (so late joiners get history)
+  fftHistoryBuffer.push(data)
+  if (fftHistoryBuffer.length > FFT_HISTORY_MAX) {
+    fftHistoryBuffer.shift()
+  }
+
   if (fftSubscribers.size === 0) return
 
   // Feed auto-gain calibration

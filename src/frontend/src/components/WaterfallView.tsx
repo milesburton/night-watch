@@ -6,8 +6,6 @@ interface WaterfallViewProps {
   frequencyName?: string
   isActive: boolean
   isScanning?: boolean
-  subscribeFFT: (frequency?: number) => void
-  unsubscribeFFT: () => void
   fftRunning: boolean
   fftError?: string | null
   latestFFTData: FFTData | null
@@ -21,15 +19,12 @@ export function WaterfallView({
   frequencyName,
   isActive,
   isScanning = false,
-  subscribeFFT,
-  unsubscribeFFT,
   fftRunning,
   fftError,
   latestFFTData,
 }: WaterfallViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [fftHistory, setFftHistory] = useState<FFTData[]>([])
-  const [isSubscribed, setIsSubscribed] = useState(false)
   const [currentConfig, setCurrentConfig] = useState<{
     centerFreq: number
     bandwidth: number
@@ -54,40 +49,6 @@ export function WaterfallView({
       return newHistory
     })
   }, [latestFFTData])
-
-  useEffect(() => {
-    const targetFreq = frequency || DEFAULT_FREQUENCY
-    subscribeFFT(targetFreq)
-    setIsSubscribed(true)
-
-    const retryTimer = setTimeout(() => {
-      if (!fftRunning) {
-        subscribeFFT(targetFreq)
-      }
-    }, 1000)
-
-    return () => {
-      clearTimeout(retryTimer)
-      unsubscribeFFT()
-      setIsSubscribed(false)
-    }
-  }, [subscribeFFT, unsubscribeFFT, fftRunning, frequency])
-
-  useEffect(() => {
-    if (frequency && isSubscribed) {
-      subscribeFFT(frequency)
-    }
-  }, [frequency, isSubscribed, subscribeFFT])
-
-  useEffect(() => {
-    if (isSubscribed && !fftRunning) {
-      const retryTimer = setInterval(() => {
-        const targetFreq = frequency || DEFAULT_FREQUENCY
-        subscribeFFT(targetFreq)
-      }, 3000)
-      return () => clearInterval(retryTimer)
-    }
-  }, [isSubscribed, fftRunning, frequency, subscribeFFT])
 
   const getWaterfallColor = useCallback((normalized: number): string => {
     if (normalized < 0.2) {
@@ -264,10 +225,8 @@ export function WaterfallView({
   }, [drawWaterfall])
 
   const handleClick = useCallback(() => {
-    const targetFreq = frequency || DEFAULT_FREQUENCY
-    subscribeFFT(targetFreq)
-    setIsSubscribed(true)
-  }, [frequency, subscribeFFT])
+    // Click handled by parent component
+  }, [])
 
   return (
     <div className="relative">
