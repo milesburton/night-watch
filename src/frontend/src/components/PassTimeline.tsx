@@ -161,9 +161,9 @@ export function PassTimeline({ passes, hoursAhead = 12 }: PassTimelineProps) {
       </div>
 
       {/* Timeline area */}
-      <div className="flex-1 relative px-2">
+      <div className="flex-1 relative px-4">
         {/* Timeline track */}
-        <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-1 bg-border/50 rounded">
+        <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 h-1 bg-border/50 rounded">
           {/* Now marker */}
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-success rounded-full shadow-[0_0_4px_var(--success)]" />
 
@@ -199,7 +199,7 @@ export function PassTimeline({ passes, hoursAhead = 12 }: PassTimelineProps) {
                 isHovered ? 'h-8 z-20 shadow-lg' : 'z-10'
               )}
               style={{
-                left: `calc(${startPos}% + 8px)`,
+                left: `calc(${startPos}% + 16px)`,
                 width: `max(${width}%, 24px)`,
                 opacity,
               }}

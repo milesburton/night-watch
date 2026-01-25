@@ -136,6 +136,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             )
             break
           case 'fft_data':
+            // Clear any stale error when data starts flowing
+            setFftState((prev) => (prev.error ? { ...prev, running: true, error: null } : prev))
             onFFTData?.(data.data)
             break
           case 'fft_history':

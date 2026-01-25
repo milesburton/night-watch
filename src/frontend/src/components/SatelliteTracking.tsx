@@ -453,7 +453,7 @@ export function SatelliteTracking({
                 type="button"
                 onClick={() => setMode(tab.id)}
                 className={cn(
-                  'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors',
+                  'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0',
                   mode === tab.id
                     ? tab.color === 'purple'
                       ? 'border-purple text-purple'
