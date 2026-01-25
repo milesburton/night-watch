@@ -36,7 +36,8 @@ let lastError: string | null = null
 let latestData: FFTData | null = null
 
 // Minimum delay between stop and start (ms) to allow USB device to be released
-const MIN_RESTART_DELAY_MS = 2000
+// USB devices can take a while to be released after process termination
+const MIN_RESTART_DELAY_MS = 3_000
 
 // Notch filters to remove persistent interference
 const notchFilters: NotchFilter[] = []
@@ -50,13 +51,13 @@ let averagingCount = 0
 const AVERAGING_FRAMES = 8 // Average 8 frames together (~4x noise reduction)
 
 const DEFAULT_CONFIG: Partial<FFTStreamConfig> = {
-  bandwidth: 200000, // 200 kHz
-  fftSize: 2048, // 2048-point FFT for better frequency resolution
+  bandwidth: 200_000,
+  fftSize: 2_048,
   updateRate: 30, // 30 updates per second for smooth real-time display
 }
 
 // Sample rate - must be high enough for bandwidth but not too high for Pi CPU
-const SAMPLE_RATE = 250000 // 250 kHz sample rate
+const SAMPLE_RATE = 250_000
 
 /**
  * Convert raw I/Q bytes to complex samples
@@ -224,7 +225,7 @@ export async function startFFTStream(
 
     let buffer = Buffer.alloc(0)
     let lastUpdateTime = Date.now()
-    const minUpdateInterval = 1000 / updateRate
+    const minUpdateInterval = 1_000 / updateRate
 
     sdrProcess.stdout?.on('data', (data: Buffer) => {
       buffer = Buffer.concat([buffer, data])
@@ -377,8 +378,16 @@ export async function startFFTStream(
 export function stopFFTStream(): void {
   if (sdrProcess && !sdrProcess.killed) {
     logger.info('Stopping FFT stream')
-    sdrProcess.kill('SIGTERM')
+    const proc = sdrProcess
     sdrProcess = null
+    // Try SIGTERM first, then SIGKILL after a delay if needed
+    proc.kill('SIGTERM')
+    setTimeout(() => {
+      if (!proc.killed) {
+        logger.warn('FFT stream did not terminate, sending SIGKILL')
+        proc.kill('SIGKILL')
+      }
+    }, 500)
     lastStopTime = Date.now()
   }
   currentCallback = null
@@ -421,25 +430,25 @@ export async function updateFFTFrequency(frequency: number): Promise<boolean> {
 // Notch Filter Management
 // ============================================
 
-export function addNotchFilter(frequency: number, width = 5000): void {
-  const existing = notchFilters.find((f) => Math.abs(f.frequency - frequency) < 1000)
+export function addNotchFilter(frequency: number, width = 5_000): void {
+  const existing = notchFilters.find((f) => Math.abs(f.frequency - frequency) < 1_000)
   if (existing) {
     existing.width = width
     existing.enabled = true
     logger.info(
-      `Updated notch filter: ${(frequency / 1e6).toFixed(3)} MHz ±${(width / 1000).toFixed(1)} kHz`
+      `Updated notch filter: ${(frequency / 1e6).toFixed(3)} MHz ±${(width / 1_000).toFixed(1)} kHz`
     )
     return
   }
 
   notchFilters.push({ frequency, width, enabled: true })
   logger.info(
-    `Added notch filter: ${(frequency / 1e6).toFixed(3)} MHz ±${(width / 1000).toFixed(1)} kHz`
+    `Added notch filter: ${(frequency / 1e6).toFixed(3)} MHz ±${(width / 1_000).toFixed(1)} kHz`
   )
 }
 
 export function removeNotchFilter(frequency: number): boolean {
-  const index = notchFilters.findIndex((f) => Math.abs(f.frequency - frequency) < 1000)
+  const index = notchFilters.findIndex((f) => Math.abs(f.frequency - frequency) < 1_000)
   if (index >= 0) {
     const removed = notchFilters.splice(index, 1)[0]
     if (removed) {
@@ -451,7 +460,7 @@ export function removeNotchFilter(frequency: number): boolean {
 }
 
 export function setNotchFilterEnabled(frequency: number, enabled: boolean): boolean {
-  const filter = notchFilters.find((f) => Math.abs(f.frequency - frequency) < 1000)
+  const filter = notchFilters.find((f) => Math.abs(f.frequency - frequency) < 1_000)
   if (filter) {
     filter.enabled = enabled
     logger.info(

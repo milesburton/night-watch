@@ -12,7 +12,7 @@ interface WaterfallViewProps {
 }
 
 const MAX_HISTORY_ROWS = 150
-const DEFAULT_FREQUENCY = 137500000
+const DEFAULT_FREQUENCY = 137_500_000
 
 export function WaterfallView({
   frequency,
@@ -39,7 +39,7 @@ export function WaterfallView({
 
     lastProcessedTimestamp.current = latestFFTData.timestamp
     lastDataRef.current = latestFFTData
-    setCurrentConfig({ centerFreq: latestFFTData.centerFreq, bandwidth: 200000 })
+    setCurrentConfig({ centerFreq: latestFFTData.centerFreq, bandwidth: 200_000 })
 
     setFftHistory((prev) => {
       const newHistory = [...prev, latestFFTData]
@@ -164,7 +164,7 @@ export function WaterfallView({
     ctx.stroke()
 
     const centerFreqMHz = (currentConfig?.centerFreq || frequency || DEFAULT_FREQUENCY) / 1e6
-    const bandwidthMHz = (currentConfig?.bandwidth || 50000) / 1e6
+    const bandwidthMHz = (currentConfig?.bandwidth || 50_000) / 1e6
 
     ctx.fillStyle = '#94a3b8'
     ctx.font = '11px monospace'

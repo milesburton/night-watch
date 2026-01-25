@@ -1,12 +1,13 @@
 import { cn } from '@/lib/utils'
+import { useUIStore } from '@/store'
 import type { FFTData, GlobeState, SatellitePass, SystemStatus } from '@/types'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Tooltip } from './Tooltip'
 import { WaterfallView } from './WaterfallView'
 
 const SSTV_2M_FREQUENCIES = [
-  { freq: 144500000, label: '144.500', tooltip: 'SSB SSTV calling frequency (UK/EU)' },
-  { freq: 145500000, label: '145.500', tooltip: 'FM SSTV calling frequency' },
+  { freq: 144_500_000, label: '144.500', tooltip: 'SSB SSTV calling frequency (UK/EU)' },
+  { freq: 145_500_000, label: '145.500', tooltip: 'FM SSTV calling frequency' },
 ]
 
 type ViewMode = 'satellite' | 'sstv-2m'
@@ -116,18 +117,15 @@ function SkyView({ globeState }: { globeState: GlobeState | null }) {
     }
   }, [globeState])
 
+  // Draw when globeState changes - no continuous animation needed
   useEffect(() => {
     drawSkyView()
   }, [drawSkyView])
 
+  // Redraw periodically for smooth satellite movement (every 2 seconds, not every frame)
   useEffect(() => {
-    let animationId: number
-    const animate = () => {
-      drawSkyView()
-      animationId = requestAnimationFrame(animate)
-    }
-    animate()
-    return () => cancelAnimationFrame(animationId)
+    const interval = setInterval(drawSkyView, 2_000)
+    return () => clearInterval(interval)
   }, [drawSkyView])
 
   return (
@@ -359,7 +357,7 @@ function SpectrumWaterfall({
   return (
     <canvas
       ref={canvasRef}
-      width={1200}
+      width={1_200}
       height={400}
       className="w-full rounded-lg cursor-pointer"
       style={{ height: 'auto', aspectRatio: '3 / 1' }}
@@ -390,29 +388,25 @@ export function SatelliteTracking({
   latestFFTData,
   onFrequencyChange,
 }: SatelliteTrackingProps) {
-  const [mode, setMode] = useState<ViewMode>('satellite')
+  // Use persisted store for tab state
+  const { waterfallMode: mode, setWaterfallMode: setMode } = useUIStore()
   const [sstvFreqIndex, setSstvFreqIndex] = useState(0)
 
   const isCapturing = !!currentPass
   const isScanning = systemStatus === 'scanning'
 
-  useEffect(() => {
-    if (systemStatus === 'recording' || systemStatus === 'decoding' || systemStatus === 'waiting') {
-      setMode('satellite')
-    } else if (systemStatus === 'scanning') {
-      setMode('sstv-2m')
-    }
-  }, [systemStatus])
+  // Note: We intentionally do NOT auto-switch tabs based on system status.
+  // The user's tab selection should be respected and persisted.
 
   const getCurrentFrequency = useCallback(() => {
     if (mode === 'satellite') {
-      return currentPass?.satellite?.frequency ?? 137500000
+      return currentPass?.satellite?.frequency ?? 137_500_000
     }
     // 2M SSTV mode: use scanning frequency if scanner is active, else manual selection
     if (isScanning && scanningFrequency) {
       return scanningFrequency
     }
-    return SSTV_2M_FREQUENCIES[sstvFreqIndex]?.freq ?? 145500000
+    return SSTV_2M_FREQUENCIES[sstvFreqIndex]?.freq ?? 145_500_000
   }, [mode, currentPass, sstvFreqIndex, isScanning, scanningFrequency])
 
   const currentFrequency = getCurrentFrequency()

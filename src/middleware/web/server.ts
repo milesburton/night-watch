@@ -93,7 +93,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
   // Add default notch filters for known interference frequencies
   // These can be managed via the API endpoints
   const defaultNotchFilters = [
-    { frequency: 144.42e6, width: 10000 }, // Local interference ~144.42 MHz (±10 kHz)
+    { frequency: 144.42e6, width: 10_000 },
   ]
   for (const filter of defaultNotchFilters) {
     addNotchFilter(filter.frequency, filter.width)
@@ -256,7 +256,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             band: currentBand,
             bandGains: bandGainStore.getAll(),
             ppmCorrection: Number(process.env.SDR_PPM_CORRECTION) || 0,
-            sampleRate: Number(process.env.SDR_SAMPLE_RATE) || 48000,
+            sampleRate: Number(process.env.SDR_SAMPLE_RATE) || 48_000,
           },
           recording: {
             minElevation: Number(process.env.MIN_ELEVATION) || 20,
@@ -286,8 +286,8 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             updateRate?: number
           }
 
-          const frequency = body.frequency || 137500000 // Default to 137.5 MHz
-          const bandwidth = body.bandwidth || 200000 // 200 kHz
+          const frequency = body.frequency || 137_500_000
+          const bandwidth = body.bandwidth || 200_000
           const gain = body.gain || currentGain
           const fftSize = body.fftSize || 1024
           const updateRate = body.updateRate || 10
@@ -328,7 +328,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
           logger.info(`SDR gain updated to ${gain} dB for band '${currentBand}'`)
           if (isFFTStreamRunning()) {
             const config = getFFTStreamConfig()
-            debouncedFFTStart(config?.frequency || 137500000)
+            debouncedFFTStart(config?.frequency || 137_500_000)
           }
           return jsonResponse({ success: true, gain: currentGain, autoGain: false })
         } catch {
@@ -466,7 +466,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
               const frequency =
                 state.status === 'scanning' && state.scanningFrequency
                   ? state.scanningFrequency
-                  : (data.frequency as number) || 137500000
+                  : (data.frequency as number) || 137_500_000
               debouncedFFTStart(frequency)
             }
 
@@ -494,7 +494,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
               if (fftSubscribers.size === 0 && isFFTStreamRunning()) {
                 stopFFTStream()
               }
-            }, 1000)
+            }, 1_000)
 
             ws.send(JSON.stringify({ type: 'fft_unsubscribed' }))
           }
@@ -517,7 +517,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
               logger.info(`SDR gain updated via WebSocket to ${gain} dB for band '${currentBand}'`)
               if (isFFTStreamRunning()) {
                 const config = getFFTStreamConfig()
-                debouncedFFTStart(config?.frequency || 137500000)
+                debouncedFFTStart(config?.frequency || 137_500_000)
               }
               ws.send(JSON.stringify({ type: 'gain_updated', gain: currentGain }))
             }
@@ -584,7 +584,7 @@ function debouncedFFTStart(frequency: number) {
     }
 
     await startFFTStream(
-      { frequency, bandwidth: 200000, fftSize: 2048, gain: currentGain, updateRate: 30 },
+      { frequency, bandwidth: 200_000, fftSize: 2_048, gain: currentGain, updateRate: 30 },
       broadcastFFTData
     )
     // Check for errors after a short delay (rtl_sdr exits quickly if no device)
@@ -593,7 +593,7 @@ function debouncedFFTStart(frequency: number) {
       if (error) {
         broadcastFFTError(error)
       }
-    }, 1500)
+    }, 1_500)
   }, FFT_START_DEBOUNCE_MS)
 }
 
@@ -627,7 +627,7 @@ function broadcastFFTData(data: FFTData) {
       currentGain = result.newGain
       bandGainStore.set(currentBand, currentGain, false)
       const config = getFFTStreamConfig()
-      debouncedFFTStart(config?.frequency || 137500000)
+      debouncedFFTStart(config?.frequency || 137_500_000)
     } else if (result.action === 'in_range') {
       bandGainStore.set(currentBand, result.gain, true)
       currentGain = result.gain
@@ -697,7 +697,7 @@ async function serveImage(imagesDir: string, filename: string): Promise<Response
     return new Response(file, {
       headers: {
         'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=31536000',
+        'Cache-Control': 'public, max-age=31_536_000',
       },
     })
   }
