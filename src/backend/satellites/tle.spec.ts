@@ -1,15 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
-import { TEST_SATELLITE } from '../fixtures'
+import { TEST_SATELLITE } from '@/test-fixtures'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Store original fetch
 const originalFetch = globalThis.fetch
 
 describe('TLE fetcher', () => {
-  let mockFetch: ReturnType<typeof mock>
+  let mockFetch: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
-    // Create a mock fetch function
-    mockFetch = mock(() =>
+    mockFetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve(''),
@@ -19,13 +17,11 @@ describe('TLE fetcher', () => {
   })
 
   afterEach(() => {
-    // Restore original fetch
     globalThis.fetch = originalFetch
+    vi.resetModules()
   })
 
-  // Import after mock setup to ensure mocks are in place
   const getTleFunctions = async () => {
-    // Dynamic import to get fresh module with mocked fetch
     const { fetchTle, fetchAllTles } = await import('@backend/satellites/tle')
     return { fetchTle, fetchAllTles }
   }

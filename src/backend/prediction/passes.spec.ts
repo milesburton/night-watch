@@ -1,7 +1,7 @@
+import { TEST_SATELLITE, TEST_SATELLITES, TEST_STATION, TEST_TLES } from '@/test-fixtures'
 import { filterHighQualityPasses, formatPass, predictPasses } from '@backend/prediction/passes'
 import type { SatellitePass } from '@backend/types'
 import { describe, expect, it } from 'vitest'
-import { TEST_SATELLITE, TEST_SATELLITES, TEST_STATION, TEST_TLES } from '../fixtures'
 
 describe('pass prediction', () => {
   describe('predictPasses', () => {

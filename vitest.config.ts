@@ -5,15 +5,20 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
-    setupFiles: ['tests/setup.ts'],
+    include: ['src/**/*.spec.ts'],
+    setupFiles: ['src/test-setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
       include: ['src/backend/**/*.ts', 'src/middleware/**/*.ts'],
-      exclude: ['src/backend/cli/**', '**/*.d.ts'],
+      exclude: ['src/backend/cli/**', '**/*.d.ts', '**/*.spec.ts'],
     },
-    testTimeout: 10000,
+    testTimeout: 10_000,
+    server: {
+      deps: {
+        inline: ['zod'],
+      },
+    },
   },
   resolve: {
     alias: {

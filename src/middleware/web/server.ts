@@ -92,9 +92,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
 
   // Add default notch filters for known interference frequencies
   // These can be managed via the API endpoints
-  const defaultNotchFilters = [
-    { frequency: 144.42e6, width: 10_000 },
-  ]
+  const defaultNotchFilters = [{ frequency: 144.42e6, width: 10_000 }]
   for (const filter of defaultNotchFilters) {
     addNotchFilter(filter.frequency, filter.width)
   }

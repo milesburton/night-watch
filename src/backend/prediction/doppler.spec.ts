@@ -1,3 +1,4 @@
+import { createTestPosition } from '@/test-fixtures'
 import {
   calculateDopplerShift,
   calculateRadialVelocity,
@@ -6,7 +7,6 @@ import {
 } from '@backend/prediction/doppler'
 import type { SatellitePosition } from '@backend/types'
 import { describe, expect, it } from 'vitest'
-import { createTestPosition } from '../fixtures'
 
 describe('doppler calculations', () => {
   describe('calculateRadialVelocity', () => {
