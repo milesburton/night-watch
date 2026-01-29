@@ -1,6 +1,6 @@
+import { TEST_SATELLITE, TEST_STATION, TEST_TLE } from '@/test-fixtures'
 import { createObserver, findPasses, getSatellitePosition } from '@backend/prediction/orbit'
 import { describe, expect, it } from 'vitest'
-import { TEST_SATELLITE, TEST_STATION, TEST_TLE } from '../fixtures'
 
 describe('orbit calculations', () => {
   describe('createObserver', () => {

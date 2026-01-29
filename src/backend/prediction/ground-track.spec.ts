@@ -1,6 +1,6 @@
+import { TEST_SATELLITE, TEST_TLE } from '@/test-fixtures'
 import { computeGroundTrack } from '@backend/prediction/ground-track'
 import { describe, expect, it } from 'vitest'
-import { TEST_SATELLITE, TEST_TLE } from '../fixtures'
 
 describe('ground track computation', () => {
   describe('computeGroundTrack', () => {

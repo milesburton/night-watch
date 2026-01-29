@@ -1,6 +1,6 @@
+import { TEST_SATELLITE } from '@/test-fixtures'
 import type { CaptureResult, GlobeState, SatellitePass, StateEvent } from '@backend/types'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { TEST_SATELLITE } from '../fixtures'
 
 // Import after vitest setup mocks the logger
 import { StateManager } from '@backend/state/state-manager'

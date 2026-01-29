@@ -177,7 +177,7 @@ export class CaptureDatabase {
 
   getCaptureSummary(): { total: number; successful: number; failed: number } {
     const row = this.db
-      .query<{ total: number; successful: number; failed: number }, []>(
+      .query<{ total: number; successful: number | null; failed: number | null }, []>(
         `
       SELECT
         COUNT(*) as total,
@@ -188,7 +188,11 @@ export class CaptureDatabase {
       )
       .get()
 
-    return row || { total: 0, successful: 0, failed: 0 }
+    return {
+      total: row?.total ?? 0,
+      successful: row?.successful ?? 0,
+      failed: row?.failed ?? 0,
+    }
   }
 
   private generatePassId(pass: SatellitePass): string {
