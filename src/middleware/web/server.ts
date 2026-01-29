@@ -37,10 +37,10 @@ let currentBand: FrequencyBand = 'noaa'
 // Per-band gain store
 const bandGainStore = createBandGainStore()
 
-// Per-band auto-gain target ranges (2M is noisier, allow higher floor)
+// Per-band auto-gain target ranges (2M needs higher gain for weak signals)
 const BAND_GAIN_TARGETS: Record<FrequencyBand, { targetMin: number; targetMax: number }> = {
   noaa: { targetMin: -80, targetMax: -55 },
-  '2m': { targetMin: -70, targetMax: -45 },
+  '2m': { targetMin: -55, targetMax: -35 }, // Higher targets = more gain for weak 2m signals
   unknown: { targetMin: -75, targetMax: -50 },
 }
 
@@ -51,7 +51,7 @@ const autoGain = createAutoGain(currentGain, {
   samplesNeeded: 10,
   step: 5,
   minGain: 0,
-  maxGain: 50,
+  maxGain: 49, // RTL-SDR practical max ~49.6 dB
 })
 // Disable auto-gain if explicitly set via environment
 if (process.env.SDR_GAIN) {
@@ -92,9 +92,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
 
   // Add default notch filters for known interference frequencies
   // These can be managed via the API endpoints
-  const defaultNotchFilters = [
-    { frequency: 144.42e6, width: 10_000 },
-  ]
+  const defaultNotchFilters = [{ frequency: 144.42e6, width: 10_000 }]
   for (const filter of defaultNotchFilters) {
     addNotchFilter(filter.frequency, filter.width)
   }
@@ -319,8 +317,8 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             })
           }
           const gain = body.gain
-          if (gain === undefined || gain < 0 || gain > 50) {
-            return new Response('Gain must be between 0 and 50', { status: 400 })
+          if (gain === undefined || gain < 0 || gain > 49) {
+            return new Response('Gain must be between 0 and 49', { status: 400 })
           }
           currentGain = gain
           autoGain.setGain(gain)
@@ -461,13 +459,18 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
 
             // Auto-start FFT stream if not running and we have subscribers
             // When scanning, the scanner controls frequency via state events
+            // Don't start during active capture — the SDR is in use by rtl_fm
             if (!isFFTStreamRunning()) {
               const state = stateManager.getState()
-              const frequency =
-                state.status === 'scanning' && state.scanningFrequency
-                  ? state.scanningFrequency
-                  : (data.frequency as number) || 137_500_000
-              debouncedFFTStart(frequency)
+              if (state.status === 'capturing' || state.status === 'decoding') {
+                logger.debug('Skipping FFT start — SDR in use for capture/decode')
+              } else {
+                const frequency =
+                  state.status === 'scanning' && state.scanningFrequency
+                    ? state.scanningFrequency
+                    : (data.frequency as number) || 137_500_000
+                debouncedFFTStart(frequency)
+              }
             }
 
             ws.send(
@@ -510,7 +513,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
           // Handle SDR gain change
           if (data.type === 'fft_set_gain') {
             const gain = data.gain as number
-            if (gain !== undefined && gain >= 0 && gain <= 50) {
+            if (gain !== undefined && gain >= 0 && gain <= 49) {
               currentGain = gain
               autoGain.setGain(gain)
               bandGainStore.set(currentBand, gain, true)
@@ -531,9 +534,19 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
 
   // Subscribe to state changes and broadcast to all clients
   stateManager.on('state', (event: StateEvent) => {
-    // Retune FFT stream when scanning frequency changes
+    // Retune FFT stream when scanning frequency changes (but not during active capture)
     if (event.type === 'scanning_frequency' && fftSubscribers.size > 0) {
-      debouncedFFTStart(event.frequency)
+      const state = stateManager.getState()
+      if (state.status !== 'capturing' && state.status !== 'decoding') {
+        debouncedFFTStart(event.frequency)
+      }
+    }
+
+    // Stop FFT stream when a satellite pass capture starts
+    // The SDR can only be used by one process at a time (rtl_sdr vs rtl_fm)
+    if (event.type === 'pass_start' && isFFTStreamRunning()) {
+      logger.info('Stopping FFT stream for satellite pass capture')
+      stopFFTStream()
     }
 
     const message = JSON.stringify(event)

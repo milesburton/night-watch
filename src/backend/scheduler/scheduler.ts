@@ -2,6 +2,7 @@ import type { CaptureResult, ReceiverConfig, SatellitePass } from '@backend/type
 import chalk from 'chalk'
 import ora from 'ora'
 import { decodeRecording } from '../capture/decoders'
+import { isFFTStreamRunning, stopFFTStream } from '../capture/fft-stream'
 import { recordPass } from '../capture/recorder'
 import { verifySignal } from '../capture/signal'
 import { isSstvScannerRunning, scanForSstv, stopSstvScanner } from '../capture/sstv-scanner'
@@ -130,6 +131,15 @@ export async function capturePass(
 ): Promise<CaptureResult> {
   const { satellite } = pass
   const duration = Math.ceil(pass.duration) + PASS_CONSTRAINTS.captureBufferSeconds * 2
+
+  // Stop FFT stream BEFORE emitting pass_start - it uses the same SDR device as rtl_fm
+  // Must happen before startPass() to prevent web clients from re-subscribing to FFT
+  if (isFFTStreamRunning()) {
+    logger.debug('Stopping FFT stream before recording to release SDR device')
+    stopFFTStream()
+    // Wait for USB device to be released (MIN_RESTART_DELAY_MS in fft-stream.ts is 3000ms)
+    await Bun.sleep(3500)
+  }
 
   stateManager.startPass(pass)
 

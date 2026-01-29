@@ -7,25 +7,26 @@ import type { Decoder, DecoderResult } from './types'
 const decodeWithAptdec = async (
   wavPath: string,
   outputDir: string,
-  outputs: Array<{ flag: string; suffix: string; label: string }>
+  outputs: Array<{ imageType: string; suffix: string; label: string }>
 ): Promise<string[]> => {
   const baseName = basename(wavPath, '.wav')
 
   const results = await Promise.all(
-    outputs.map(async ({ flag, suffix, label }) => {
-      const outputPath = join(outputDir, `${baseName}${suffix}`)
+    outputs.map(async ({ imageType, suffix, label }) => {
+      const expectedPath = join(outputDir, `${baseName}-${suffix}.png`)
       logger.image(`Decoding ${label}...`)
 
-      const result = await runCommand('aptdec', [flag, '-o', outputPath, wavPath], {
+      // New aptdec CLI: -i <type> -d <output_dir> <input.wav>
+      const result = await runCommand('aptdec', ['-i', imageType, '-d', outputDir, wavPath], {
         timeout: 300000,
       })
 
-      const success = result.exitCode === 0 && (await fileExists(outputPath))
+      const success = result.exitCode === 0 && (await fileExists(expectedPath))
       success
-        ? logger.image(`${label} saved: ${outputPath}`)
+        ? logger.image(`${label} saved: ${expectedPath}`)
         : logger.warn(`${label} decoding failed`)
 
-      return success ? outputPath : null
+      return success ? expectedPath : null
     })
   )
 
@@ -45,10 +46,11 @@ export const aptDecoder: Decoder = {
 
     await (fileFound ? ensureDir(outputDir) : Promise.resolve())
 
+    // aptdec outputs files as <basename>-<type>.png in the output directory
     const outputs = [
-      { flag: '-A', suffix: '-chA.png', label: 'Channel A' },
-      { flag: '-B', suffix: '-chB.png', label: 'Channel B' },
-      { flag: '-c', suffix: '-colour.png', label: 'Colour composite' },
+      { imageType: 'a', suffix: 'a', label: 'Channel A' },
+      { imageType: 'b', suffix: 'b', label: 'Channel B' },
+      { imageType: 'c', suffix: 'c', label: 'Colour composite' },
     ]
 
     const outputPaths = fileFound ? await decodeWithAptdec(wavPath, outputDir, outputs) : []

@@ -89,8 +89,9 @@ export async function scanForSstv(
           logger.info(`Signal detected on ${freq.name}!`)
 
           // Stop FFT stream to release SDR for recording
+          // USB devices need 3+ seconds to be released after process termination
           stopFFTStream()
-          await Bun.sleep(500)
+          await Bun.sleep(3500)
 
           // Create a virtual satellite info for this capture
           const captureInfo: SatelliteInfo = {
