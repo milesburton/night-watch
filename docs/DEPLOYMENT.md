@@ -71,20 +71,29 @@ http://your-server-ip:8002
 
 ### Using scripts/deploy/deploy.sh
 
+**Note**: Due to ARM build limitations, the deploy script transfers code and **pulls pre-built images** from GitHub Container Registry instead of building on the Pi.
+
 ```bash
 # Configure .env file first
 cp .appcontainer/.env.example .env
 nano .env  # Set DEPLOY_TARGET, DEPLOY_DIR, and coordinates
 
-# Deploy to remote Pi
+# Deploy to remote Pi (pulls pre-built ARM64 image from ghcr.io)
 bash scripts/deploy/deploy.sh
 
-# Skip local build (deploy pre-built assets)
-bash scripts/deploy/deploy.sh --skip-build
+# Full rebuild (still pulls image, but forces Docker Compose rebuild)
+bash scripts/deploy/deploy.sh --full
 
 # Skip health check
 bash scripts/deploy/deploy.sh --skip-health
 ```
+
+**Workflow**:
+1. Make code changes locally
+2. Push to GitHub: `git push origin main`
+3. GitHub Actions builds ARM64 image (~5-10 min)
+4. Deploy to Pi: `bash scripts/deploy/deploy.sh`
+5. Pi pulls latest image from ghcr.io
 
 ## Environment Configuration
 
@@ -159,15 +168,41 @@ cd src/frontend && bun run build
 
 ## Docker Build Commands
 
+### ⚠️ ARM Build Limitation
+
+**IMPORTANT**: Docker builds with `bun install` hang on ARM devices (Raspberry Pi).
+
+**Recommended Approach**:
+- Build images on x86_64 using GitHub Actions (automatic on push to `main`)
+- Or build locally on x86_64 and push to registry
+- Let the Pi pull pre-built ARM64 images
+
+**Why**: The `bun install` step during Docker build hangs indefinitely on ARM processors, likely due to Bun's ARM optimization issues during dependency installation.
+
+**Solution**: All image builds should use GitHub Actions or x86_64 machines with cross-compilation:
+
+```bash
+# DO NOT run these on Raspberry Pi - they will hang!
+# Instead, push code and let GitHub Actions build:
+git push origin main
+# GitHub Actions builds ARM64 + AMD64 images automatically
+
+# Or build locally with buildx (requires x86_64 machine):
+docker buildx build --platform linux/arm64 -f docker/Dockerfile.app \
+  -t ghcr.io/milesburton/noaa-satellite-capture:latest --push .
+```
+
 ### Build Full Image
 
 ```bash
+# x86_64 only - DO NOT run on Pi
 docker build -f docker/Dockerfile -t rfcapture:latest .
 ```
 
 ### Two-Tier Build (Faster Deploys)
 
 ```bash
+# x86_64 only - DO NOT run on Pi
 # 1. Build base image (once)
 docker build -f docker/Dockerfile.base -t rfcapture-base:latest .
 
