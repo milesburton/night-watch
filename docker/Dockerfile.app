@@ -14,13 +14,18 @@ WORKDIR /app
 COPY package.json bun.lock* ./
 RUN bun install --ignore-scripts
 
+# Install frontend dependencies BEFORE copying source (better caching!)
+# This layer is cached unless frontend dependencies change
+COPY src/frontend/package.json src/frontend/bun.lock* ./src/frontend/
+RUN cd src/frontend && bun install
+
 # Copy source code
 COPY src ./src
 COPY tsconfig.json ./
 COPY version.json ./
 
-# Install frontend dependencies and build
-RUN cd src/frontend && bun install && bun run build
+# Build frontend (fast - just compilation, dependencies already installed)
+RUN cd src/frontend && bun run build
 
 # Default environment variables
 ENV SERVICE_MODE=full \
