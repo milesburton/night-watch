@@ -100,13 +100,27 @@ export function WaterfallView({
       ctx.fillStyle = '#64748b'
       ctx.font = '14px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText(
-        fftRunning ? 'Waiting for FFT data...' : 'FFT stream not running',
-        width / 2,
-        height / 2 - 20
-      )
-      ctx.font = '12px sans-serif'
-      ctx.fillText('Click to start waterfall', width / 2, height / 2 + 10)
+
+      // Show capture message if actively receiving
+      if (isActive && !fftRunning) {
+        ctx.fillStyle = '#22c55e'
+        ctx.font = 'bold 16px sans-serif'
+        ctx.fillText('📡 Capturing Satellite Signal', width / 2, height / 2 - 30)
+        ctx.fillStyle = '#94a3b8'
+        ctx.font = '13px sans-serif'
+        ctx.fillText('Waterfall paused during signal reception', width / 2, height / 2)
+        ctx.font = '12px sans-serif'
+        ctx.fillStyle = '#64748b'
+        ctx.fillText('SDR device is exclusively recording the pass', width / 2, height / 2 + 25)
+      } else {
+        ctx.fillText(
+          fftRunning ? 'Waiting for FFT data...' : 'FFT stream not running',
+          width / 2,
+          height / 2 - 20
+        )
+        ctx.font = '12px sans-serif'
+        ctx.fillText('Click to start waterfall', width / 2, height / 2 + 10)
+      }
       return
     }
 
@@ -207,6 +221,27 @@ export function WaterfallView({
       ctx.fillStyle = '#94a3b8'
       ctx.textAlign = 'right'
       ctx.fillText(`Peak: ${peakValue.toFixed(1)} dB`, width - 10, historyHeight + 40)
+    }
+
+    // Draw capture overlay if actively receiving but FFT stopped
+    if (isActive && !fftRunning && fftHistory.length > 0) {
+      // Semi-transparent overlay
+      ctx.fillStyle = 'rgba(26, 35, 50, 0.85)'
+      ctx.fillRect(0, 0, width, historyHeight)
+
+      // Capture message
+      ctx.fillStyle = '#22c55e'
+      ctx.font = 'bold 18px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('📡 Capturing Satellite Signal', width / 2, height / 2 - 35)
+
+      ctx.fillStyle = '#94a3b8'
+      ctx.font = '14px sans-serif'
+      ctx.fillText('Waterfall paused during signal reception', width / 2, height / 2 - 5)
+
+      ctx.font = '12px sans-serif'
+      ctx.fillStyle = '#64748b'
+      ctx.fillText('SDR device is exclusively recording the pass', width / 2, height / 2 + 25)
     }
   }, [
     fftHistory,

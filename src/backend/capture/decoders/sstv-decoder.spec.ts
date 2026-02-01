@@ -34,7 +34,7 @@ describe('sstvDecoder', () => {
 
   describe('decode', () => {
     it('should return null when input file does not exist', async () => {
-      vi.mocked(fileExists).mockResolvedValue(false)
+      fileExists.mockResolvedValue(false)
 
       const result = await sstvDecoder.decode('/path/to/missing.wav', '/output')
 
@@ -43,8 +43,8 @@ describe('sstvDecoder', () => {
     })
 
     it('should ensure output directory exists before decoding', async () => {
-      vi.mocked(fileExists).mockResolvedValue(true)
-      vi.mocked(runCommand).mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      fileExists.mockResolvedValue(true)
+      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       await sstvDecoder.decode('/path/to/recording.wav', '/output/dir')
 
@@ -52,8 +52,8 @@ describe('sstvDecoder', () => {
     })
 
     it('should call sstv command with correct arguments', async () => {
-      vi.mocked(fileExists).mockResolvedValue(true)
-      vi.mocked(runCommand).mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      fileExists.mockResolvedValue(true)
+      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       await sstvDecoder.decode('/path/to/recording.wav', '/output')
 
@@ -65,8 +65,8 @@ describe('sstvDecoder', () => {
     })
 
     it('should return output path for successful decode', async () => {
-      vi.mocked(fileExists).mockResolvedValue(true)
-      vi.mocked(runCommand).mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      fileExists.mockResolvedValue(true)
+      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       const result = await sstvDecoder.decode('/path/to/test.wav', '/images')
 
@@ -76,8 +76,8 @@ describe('sstvDecoder', () => {
     })
 
     it('should include metadata with mode auto-detected', async () => {
-      vi.mocked(fileExists).mockResolvedValue(true)
-      vi.mocked(runCommand).mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      fileExists.mockResolvedValue(true)
+      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       const result = await sstvDecoder.decode('/path/to/test.wav', '/images')
 
@@ -85,13 +85,13 @@ describe('sstvDecoder', () => {
     })
 
     it('should return null when decode fails', async () => {
-      vi.mocked(fileExists).mockImplementation(async (path) => {
+      fileExists.mockImplementation(async (path) => {
         if (typeof path === 'string' && path.endsWith('.wav')) {
           return true
         }
         return false
       })
-      vi.mocked(runCommand).mockResolvedValue({ exitCode: 1, stdout: '', stderr: 'error' })
+      runCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: 'error' })
 
       const result = await sstvDecoder.decode('/path/to/test.wav', '/images')
 
@@ -99,13 +99,13 @@ describe('sstvDecoder', () => {
     })
 
     it('should return null when output file not created', async () => {
-      vi.mocked(fileExists).mockImplementation(async (path) => {
+      fileExists.mockImplementation(async (path) => {
         if (typeof path === 'string' && path.endsWith('.wav')) {
           return true
         }
         return false
       })
-      vi.mocked(runCommand).mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       const result = await sstvDecoder.decode('/path/to/test.wav', '/images')
 
@@ -115,7 +115,7 @@ describe('sstvDecoder', () => {
 
   describe('checkInstalled', () => {
     it('should return true when sstv is installed', async () => {
-      vi.mocked(runCommand).mockResolvedValue({ exitCode: 0, stdout: '/usr/bin/sstv', stderr: '' })
+      runCommand.mockResolvedValue({ exitCode: 0, stdout: '/usr/bin/sstv', stderr: '' })
 
       const result = await sstvDecoder.checkInstalled()
 
@@ -124,7 +124,7 @@ describe('sstvDecoder', () => {
     })
 
     it('should return false when sstv is not installed', async () => {
-      vi.mocked(runCommand).mockResolvedValue({ exitCode: 1, stdout: '', stderr: '' })
+      runCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: '' })
 
       const result = await sstvDecoder.checkInstalled()
 
@@ -132,7 +132,7 @@ describe('sstvDecoder', () => {
     })
 
     it('should return false when which command throws', async () => {
-      vi.mocked(runCommand).mockRejectedValue(new Error('Command failed'))
+      runCommand.mockRejectedValue(new Error('Command failed'))
 
       const result = await sstvDecoder.checkInstalled()
 

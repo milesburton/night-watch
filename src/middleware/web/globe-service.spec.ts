@@ -134,7 +134,7 @@ describe('globe-service', () => {
     it('should set up position update interval', async () => {
       await startGlobeService(TEST_STATION)
 
-      vi.mocked(stateManager.emitGlobeState).mockClear()
+      stateManager.emitGlobeState.mockClear()
 
       vi.advanceTimersByTime(3000)
 
@@ -144,7 +144,7 @@ describe('globe-service', () => {
     it('should set up ground track update interval', async () => {
       await startGlobeService(TEST_STATION)
 
-      vi.mocked(computeGroundTrack).mockClear()
+      computeGroundTrack.mockClear()
 
       vi.advanceTimersByTime(60_000)
 
@@ -158,7 +158,7 @@ describe('globe-service', () => {
 
       stopGlobeService()
 
-      vi.mocked(stateManager.emitGlobeState).mockClear()
+      stateManager.emitGlobeState.mockClear()
       vi.advanceTimersByTime(10_000)
 
       expect(stateManager.emitGlobeState).not.toHaveBeenCalled()
@@ -169,7 +169,7 @@ describe('globe-service', () => {
 
       stopGlobeService()
 
-      vi.mocked(computeGroundTrack).mockClear()
+      computeGroundTrack.mockClear()
       vi.advanceTimersByTime(120_000)
 
       expect(computeGroundTrack).not.toHaveBeenCalled()

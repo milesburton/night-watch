@@ -1,12 +1,16 @@
-# RFCapture Deployment Guide
+# Night Watch Deployment Guide
 
 ## Current Status
 
-**Version**: 1.0.0
-**Last Updated**: 2026-01-24
-**Git Branch**: master
-**Tests**: 206 passing
+**Version**: 2.0.0
+**Last Updated**: 2026-02-01
+**Git Branch**: main
+**Tests**: All passing
 **TypeScript**: No errors
+
+## Directory Structure Note
+
+This project uses `docker/` for all production Docker configurations. While this may seem asymmetric with `.devcontainer/` (used for VS Code development containers), the `docker/` convention is more widely recognized in the Docker ecosystem. The `.devcontainer/` prefix is specifically recognized by VS Code and GitHub Codespaces, whereas `.appcontainer/` is not a standard convention.
 
 ## Deployment Modes
 
@@ -17,7 +21,7 @@
 ```bash
 # On the Pi
 cd /home/pi/noaa-satellite-capture
-cp .appcontainer/.env.example .env
+cp .env.example .env
 nano .env  # Configure your coordinates and settings
 
 # Start the service
@@ -39,7 +43,7 @@ http://your-pi-ip:8002
 ```bash
 # On the Pi
 cd /home/pi/noaa-satellite-capture
-cp .appcontainer/.env.example .env
+cp .env.example .env
 nano .env  # Set coordinates
 
 # Start SDR relay only
@@ -54,7 +58,7 @@ curl http://localhost:3001/health
 ```bash
 # On the server
 cd /path/to/noaa-satellite-capture
-cp .appcontainer/.env.example .env
+cp .env.example .env
 nano .env  # Set coordinates and SDR_RELAY_URL
 
 # Set the relay URL
@@ -75,7 +79,7 @@ http://your-server-ip:8002
 
 ```bash
 # Configure .env file first
-cp .appcontainer/.env.example .env
+cp .env.example .env
 nano .env  # Set DEPLOY_TARGET, DEPLOY_DIR, and coordinates
 
 # Deploy to remote Pi (pulls pre-built ARM64 image from ghcr.io)
@@ -115,9 +119,9 @@ MIN_ELEVATION=20              # Minimum pass elevation (degrees)
 MIN_SIGNAL_STRENGTH=-25       # Signal threshold (dB)
 
 # Deployment (for deploy scripts)
-DEPLOY_TARGET=pi@192.168.1.100
+DEPLOY_TARGET=user@your-pi-hostname
 DEPLOY_DIR=noaa-satellite-capture
-DEPLOY_PORT=8002
+DEPLOY_PORT=80
 ```
 
 ### Service Mode Variables
@@ -298,12 +302,12 @@ docker compose -f docker/compose.yaml exec rfcapture bash
 3. **Deploy to Hardware**:
    ```bash
    # Configure .env with actual hardware settings
-   ./deploy/deploy.sh
+   scripts/deploy/deploy.sh
    ```
 
 4. **Monitor Initial Passes**:
    ```bash
-   ./deploy/logs.sh -f
+   scripts/deploy/logs.sh -f
    # Watch for successful captures
    ```
 

@@ -41,7 +41,7 @@
 git clone https://github.com/milesburton/noaa-satellite-capture.git
 cd noaa-satellite-capture
 
-cp .appcontainer/.env.example .env
+cp .env.example .env
 vi .env  # Set your coordinates
 
 docker compose -f docker/compose.yaml up -d
