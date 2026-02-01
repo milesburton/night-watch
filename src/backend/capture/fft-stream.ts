@@ -168,6 +168,9 @@ export async function startFFTStream(
     return true
   }
 
+  // Set isStarting BEFORE any async operations to prevent race conditions
+  isStarting = true
+
   if (isRunning) {
     logger.info('FFT stream running at different frequency, restarting')
     await stopFFTStream()
@@ -179,8 +182,6 @@ export async function startFFTStream(
     logger.debug(`Waiting ${waitTime}ms for USB device to be released`)
     await Bun.sleep(waitTime)
   }
-
-  isStarting = true
 
   const fullConfig = { ...DEFAULT_CONFIG, ...config } as Required<FFTStreamConfig>
   const { frequency, fftSize, gain, updateRate } = fullConfig
@@ -398,10 +399,7 @@ export async function stopFFTStream(): Promise<void> {
     }, 500)
 
     // Wait for process to actually terminate (max 2s timeout)
-    await Promise.race([
-      terminated,
-      Bun.sleep(2000)
-    ])
+    await Promise.race([terminated, Bun.sleep(2000)])
 
     lastStopTime = Date.now()
   }

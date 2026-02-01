@@ -51,10 +51,10 @@ vi.mock('@backend/state/state-manager', () => ({
   },
 }))
 
-import type { Mock } from 'vitest'
 import { computeGroundTrack } from '@backend/prediction/ground-track'
 import { getTles } from '@backend/satellites/tle'
 import { stateManager } from '@backend/state/state-manager'
+import type { Mock } from 'vitest'
 import { getGlobeState, startGlobeService, stopGlobeService } from './globe-service'
 
 // Type assertions for mocked functions
