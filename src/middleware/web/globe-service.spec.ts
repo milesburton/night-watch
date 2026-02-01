@@ -51,10 +51,15 @@ vi.mock('@backend/state/state-manager', () => ({
   },
 }))
 
+import type { Mock } from 'vitest'
 import { computeGroundTrack } from '@backend/prediction/ground-track'
 import { getTles } from '@backend/satellites/tle'
 import { stateManager } from '@backend/state/state-manager'
 import { getGlobeState, startGlobeService, stopGlobeService } from './globe-service'
+
+// Type assertions for mocked functions
+const mockComputeGroundTrack = computeGroundTrack as unknown as Mock
+const mockEmitGlobeState = stateManager.emitGlobeState as unknown as Mock
 
 describe('globe-service', () => {
   beforeEach(() => {
@@ -134,7 +139,7 @@ describe('globe-service', () => {
     it('should set up position update interval', async () => {
       await startGlobeService(TEST_STATION)
 
-      stateManager.emitGlobeState.mockClear()
+      mockEmitGlobeState.mockClear()
 
       vi.advanceTimersByTime(3000)
 
@@ -144,7 +149,7 @@ describe('globe-service', () => {
     it('should set up ground track update interval', async () => {
       await startGlobeService(TEST_STATION)
 
-      computeGroundTrack.mockClear()
+      mockComputeGroundTrack.mockClear()
 
       vi.advanceTimersByTime(60_000)
 
@@ -158,7 +163,7 @@ describe('globe-service', () => {
 
       stopGlobeService()
 
-      stateManager.emitGlobeState.mockClear()
+      mockEmitGlobeState.mockClear()
       vi.advanceTimersByTime(10_000)
 
       expect(stateManager.emitGlobeState).not.toHaveBeenCalled()
@@ -169,7 +174,7 @@ describe('globe-service', () => {
 
       stopGlobeService()
 
-      computeGroundTrack.mockClear()
+      mockComputeGroundTrack.mockClear()
       vi.advanceTimersByTime(120_000)
 
       expect(computeGroundTrack).not.toHaveBeenCalled()

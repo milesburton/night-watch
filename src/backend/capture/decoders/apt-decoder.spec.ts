@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Mock } from 'vitest'
 
 vi.mock('../../utils/fs', () => ({
   ensureDir: vi.fn(() => Promise.resolve()),
@@ -12,6 +13,11 @@ vi.mock('../../utils/shell', () => ({
 import { ensureDir, fileExists } from '../../utils/fs'
 import { runCommand } from '../../utils/shell'
 import { aptDecoder } from './apt-decoder'
+
+// Type assertions for mocked functions
+const mockFileExists = fileExists as unknown as Mock
+const mockRunCommand = runCommand as unknown as Mock
+const mockEnsureDir = ensureDir as unknown as Mock
 
 describe('aptDecoder', () => {
   beforeEach(() => {
@@ -34,41 +40,41 @@ describe('aptDecoder', () => {
 
   describe('decode', () => {
     it('should return null when input file does not exist', async () => {
-      fileExists.mockResolvedValue(false)
+      mockFileExists.mockResolvedValue(false)
 
       const result = await aptDecoder.decode('/path/to/missing.wav', '/output')
 
       expect(result).toBeNull()
-      expect(ensureDir).not.toHaveBeenCalled()
+      expect(mockEnsureDir).not.toHaveBeenCalled()
     })
 
     it('should ensure output directory exists before decoding', async () => {
-      fileExists.mockResolvedValue(true)
-      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      mockFileExists.mockResolvedValue(true)
+      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       await aptDecoder.decode('/path/to/recording.wav', '/output/dir')
 
-      expect(ensureDir).toHaveBeenCalledWith('/output/dir')
+      expect(mockEnsureDir).toHaveBeenCalledWith('/output/dir')
     })
 
     it('should decode all three channels', async () => {
-      fileExists.mockResolvedValue(true)
-      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      mockFileExists.mockResolvedValue(true)
+      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       await aptDecoder.decode('/path/to/recording.wav', '/output')
 
-      expect(runCommand).toHaveBeenCalledTimes(3)
-      expect(runCommand).toHaveBeenCalledWith(
+      expect(mockRunCommand).toHaveBeenCalledTimes(3)
+      expect(mockRunCommand).toHaveBeenCalledWith(
         'aptdec',
         ['-i', 'a', '-d', '/output', '/path/to/recording.wav'],
         { timeout: 300_000 }
       )
-      expect(runCommand).toHaveBeenCalledWith(
+      expect(mockRunCommand).toHaveBeenCalledWith(
         'aptdec',
         ['-i', 'b', '-d', '/output', '/path/to/recording.wav'],
         { timeout: 300_000 }
       )
-      expect(runCommand).toHaveBeenCalledWith(
+      expect(mockRunCommand).toHaveBeenCalledWith(
         'aptdec',
         ['-i', 'c', '-d', '/output', '/path/to/recording.wav'],
         { timeout: 300_000 }
@@ -76,8 +82,8 @@ describe('aptDecoder', () => {
     })
 
     it('should return output paths for successful decodes', async () => {
-      fileExists.mockResolvedValue(true)
-      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      mockFileExists.mockResolvedValue(true)
+      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       const result = await aptDecoder.decode('/path/to/test.wav', '/images')
 
@@ -89,13 +95,13 @@ describe('aptDecoder', () => {
     })
 
     it('should filter out failed channel decodes', async () => {
-      fileExists.mockImplementation(async (path) => {
+      mockFileExists.mockImplementation(async (path: string) => {
         if (typeof path === 'string' && path.includes('-b.png')) {
           return false
         }
         return true
       })
-      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       const result = await aptDecoder.decode('/path/to/test.wav', '/images')
 
@@ -105,13 +111,13 @@ describe('aptDecoder', () => {
     })
 
     it('should return null when all decodes fail', async () => {
-      fileExists.mockImplementation(async (path) => {
+      mockFileExists.mockImplementation(async (path: string) => {
         if (typeof path === 'string' && path.endsWith('.wav')) {
           return true
         }
         return false
       })
-      runCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: 'error' })
+      mockRunCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: 'error' })
 
       const result = await aptDecoder.decode('/path/to/test.wav', '/images')
 
@@ -121,7 +127,7 @@ describe('aptDecoder', () => {
 
   describe('checkInstalled', () => {
     it('should return true when aptdec is installed', async () => {
-      runCommand.mockResolvedValue({
+      mockRunCommand.mockResolvedValue({
         exitCode: 0,
         stdout: '/usr/bin/aptdec',
         stderr: '',
@@ -130,11 +136,11 @@ describe('aptDecoder', () => {
       const result = await aptDecoder.checkInstalled()
 
       expect(result).toBe(true)
-      expect(runCommand).toHaveBeenCalledWith('which', ['aptdec'])
+      expect(mockRunCommand).toHaveBeenCalledWith('which', ['aptdec'])
     })
 
     it('should return false when aptdec is not installed', async () => {
-      runCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: '' })
+      mockRunCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: '' })
 
       const result = await aptDecoder.checkInstalled()
 
@@ -142,7 +148,7 @@ describe('aptDecoder', () => {
     })
 
     it('should return false when which command throws', async () => {
-      runCommand.mockRejectedValue(new Error('Command failed'))
+      mockRunCommand.mockRejectedValue(new Error('Command failed'))
 
       const result = await aptDecoder.checkInstalled()
 

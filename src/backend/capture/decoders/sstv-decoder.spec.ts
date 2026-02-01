@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Mock } from 'vitest'
 
 vi.mock('../../utils/fs', () => ({
   ensureDir: vi.fn(() => Promise.resolve()),
@@ -12,6 +13,11 @@ vi.mock('../../utils/shell', () => ({
 import { ensureDir, fileExists } from '../../utils/fs'
 import { runCommand } from '../../utils/shell'
 import { sstvDecoder } from './sstv-decoder'
+
+// Type assertions for mocked functions
+const mockFileExists = fileExists as unknown as Mock
+const mockRunCommand = runCommand as unknown as Mock
+const mockEnsureDir = ensureDir as unknown as Mock
 
 describe('sstvDecoder', () => {
   beforeEach(() => {
@@ -34,30 +40,30 @@ describe('sstvDecoder', () => {
 
   describe('decode', () => {
     it('should return null when input file does not exist', async () => {
-      fileExists.mockResolvedValue(false)
+      mockFileExists.mockResolvedValue(false)
 
       const result = await sstvDecoder.decode('/path/to/missing.wav', '/output')
 
       expect(result).toBeNull()
-      expect(ensureDir).not.toHaveBeenCalled()
+      expect(mockEnsureDir).not.toHaveBeenCalled()
     })
 
     it('should ensure output directory exists before decoding', async () => {
-      fileExists.mockResolvedValue(true)
-      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      mockFileExists.mockResolvedValue(true)
+      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       await sstvDecoder.decode('/path/to/recording.wav', '/output/dir')
 
-      expect(ensureDir).toHaveBeenCalledWith('/output/dir')
+      expect(mockEnsureDir).toHaveBeenCalledWith('/output/dir')
     })
 
     it('should call sstv command with correct arguments', async () => {
-      fileExists.mockResolvedValue(true)
-      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      mockFileExists.mockResolvedValue(true)
+      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       await sstvDecoder.decode('/path/to/recording.wav', '/output')
 
-      expect(runCommand).toHaveBeenCalledWith(
+      expect(mockRunCommand).toHaveBeenCalledWith(
         'sstv',
         ['-d', '/path/to/recording.wav', '-o', '/output/recording-sstv.png'],
         { timeout: 300_000 }
@@ -65,8 +71,8 @@ describe('sstvDecoder', () => {
     })
 
     it('should return output path for successful decode', async () => {
-      fileExists.mockResolvedValue(true)
-      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      mockFileExists.mockResolvedValue(true)
+      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       const result = await sstvDecoder.decode('/path/to/test.wav', '/images')
 
@@ -76,8 +82,8 @@ describe('sstvDecoder', () => {
     })
 
     it('should include metadata with mode auto-detected', async () => {
-      fileExists.mockResolvedValue(true)
-      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      mockFileExists.mockResolvedValue(true)
+      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       const result = await sstvDecoder.decode('/path/to/test.wav', '/images')
 
@@ -85,13 +91,13 @@ describe('sstvDecoder', () => {
     })
 
     it('should return null when decode fails', async () => {
-      fileExists.mockImplementation(async (path) => {
+      mockFileExists.mockImplementation(async (path: string) => {
         if (typeof path === 'string' && path.endsWith('.wav')) {
           return true
         }
         return false
       })
-      runCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: 'error' })
+      mockRunCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: 'error' })
 
       const result = await sstvDecoder.decode('/path/to/test.wav', '/images')
 
@@ -99,13 +105,13 @@ describe('sstvDecoder', () => {
     })
 
     it('should return null when output file not created', async () => {
-      fileExists.mockImplementation(async (path) => {
+      mockFileExists.mockImplementation(async (path: string) => {
         if (typeof path === 'string' && path.endsWith('.wav')) {
           return true
         }
         return false
       })
-      runCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
+      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       const result = await sstvDecoder.decode('/path/to/test.wav', '/images')
 
@@ -115,16 +121,16 @@ describe('sstvDecoder', () => {
 
   describe('checkInstalled', () => {
     it('should return true when sstv is installed', async () => {
-      runCommand.mockResolvedValue({ exitCode: 0, stdout: '/usr/bin/sstv', stderr: '' })
+      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '/usr/bin/sstv', stderr: '' })
 
       const result = await sstvDecoder.checkInstalled()
 
       expect(result).toBe(true)
-      expect(runCommand).toHaveBeenCalledWith('which', ['sstv'])
+      expect(mockRunCommand).toHaveBeenCalledWith('which', ['sstv'])
     })
 
     it('should return false when sstv is not installed', async () => {
-      runCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: '' })
+      mockRunCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: '' })
 
       const result = await sstvDecoder.checkInstalled()
 
@@ -132,7 +138,7 @@ describe('sstvDecoder', () => {
     })
 
     it('should return false when which command throws', async () => {
-      runCommand.mockRejectedValue(new Error('Command failed'))
+      mockRunCommand.mockRejectedValue(new Error('Command failed'))
 
       const result = await sstvDecoder.checkInstalled()
 
