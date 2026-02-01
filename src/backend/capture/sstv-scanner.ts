@@ -83,16 +83,27 @@ export async function scanForSstv(
 
         // Sample FFT data over the dwell period (20s total, checking every 500ms)
         // Longer dwell time reduces waterfall disruption from frequent frequency changes
+        let maxSeenPower = -999
         for (let i = 0; i < 40 && !shouldStop && Date.now() < endTime; i++) {
           await Bun.sleep(500)
           const fftData = getLatestFFTData()
-          if (fftData && fftData.maxPower > signalThreshold) {
-            hasSignal = true
-            logger.debug(
-              `Signal check: peak ${fftData.maxPower.toFixed(1)} dB > threshold ${signalThreshold} dB`
-            )
-            break
+          if (fftData) {
+            maxSeenPower = Math.max(maxSeenPower, fftData.maxPower)
+            if (fftData.maxPower > signalThreshold) {
+              hasSignal = true
+              logger.debug(
+                `Signal detected: peak ${fftData.maxPower.toFixed(1)} dB > threshold ${signalThreshold} dB`
+              )
+              break
+            }
           }
+        }
+
+        // Log what we saw even if no signal detected (for debugging)
+        if (!hasSignal && maxSeenPower > -999) {
+          logger.debug(
+            `${freq.name}: max power ${maxSeenPower.toFixed(1)} dB < threshold ${signalThreshold} dB`
+          )
         }
 
         if (hasSignal && !shouldStop) {
