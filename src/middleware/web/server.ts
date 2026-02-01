@@ -572,7 +572,7 @@ function debouncedFFTStart(frequency: number) {
   }
 
   pendingFFTStart = setTimeout(async () => {
-    pendingFFTStart = null
+    const thisTimeout = pendingFFTStart
 
     // Clear history buffer on frequency change (stale data from different freq)
     fftHistoryBuffer.length = 0
@@ -607,6 +607,11 @@ function debouncedFFTStart(frequency: number) {
         broadcastFFTError(error)
       }
     }, 1_500)
+
+    // Only clear if this timeout hasn't been replaced by a newer call
+    if (pendingFFTStart === thisTimeout) {
+      pendingFFTStart = null
+    }
   }, FFT_START_DEBOUNCE_MS)
 }
 
