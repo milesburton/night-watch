@@ -37,8 +37,10 @@ export function isSstvScannerRunning(): boolean {
 
 /**
  * Scan 2m SSTV frequencies for activity during idle time
- * Loops continuously through frequencies until shouldStop is set or a signal is captured
- * Returns when a signal is detected and captured, or when shouldStop is set
+ * Loops through frequencies until shouldStop is set, timeout is reached, or signal is captured
+ * @param config - Receiver configuration
+ * @param maxDurationSeconds - Maximum scan duration in seconds (default: 120s)
+ * @returns Capture result if signal detected and captured, null otherwise
  */
 export async function scanForSstv(
   config: ReceiverConfig,
@@ -55,12 +57,19 @@ export async function scanForSstv(
   logger.info('Starting 2m SSTV frequency scan...')
   stateManager.setStatus('scanning')
 
+  const startTime = Date.now()
+  const endTime = startTime + maxDurationSeconds * 1000
+
   try {
-    // Loop continuously through frequencies until stopped
-    while (!shouldStop) {
+    // Loop through frequencies until stopped or timeout reached
+    while (!shouldStop && Date.now() < endTime) {
       for (const freq of SSTV_SCAN_FREQUENCIES) {
-        if (shouldStop) {
-          logger.info('SSTV scanner stopped')
+        if (shouldStop || Date.now() >= endTime) {
+          logger.info(
+            shouldStop
+              ? 'SSTV scanner stopped'
+              : `SSTV scanner timeout after ${maxDurationSeconds}s`
+          )
           break
         }
 
@@ -72,8 +81,9 @@ export async function scanForSstv(
         const signalThreshold = config.recording.minSignalStrength - 5
         let hasSignal = false
 
-        // Sample FFT data over the dwell period (3s total, checking every 500ms)
-        for (let i = 0; i < 6 && !shouldStop; i++) {
+        // Sample FFT data over the dwell period (20s total, checking every 500ms)
+        // Longer dwell time reduces waterfall disruption from frequent frequency changes
+        for (let i = 0; i < 40 && !shouldStop && Date.now() < endTime; i++) {
           await Bun.sleep(500)
           const fftData = getLatestFFTData()
           if (fftData && fftData.maxPower > signalThreshold) {
