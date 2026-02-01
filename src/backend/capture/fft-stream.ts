@@ -37,7 +37,8 @@ let latestData: FFTData | null = null
 
 // Minimum delay between stop and start (ms) to allow USB device to be released
 // USB devices can take a while to be released after process termination
-const MIN_RESTART_DELAY_MS = 3_000
+// Increased to 4s to match RTL-SDR USB release timing (tested at 3.5s+ needed)
+const MIN_RESTART_DELAY_MS = 4_000
 
 // Notch filters to remove persistent interference
 const notchFilters: NotchFilter[] = []
@@ -169,7 +170,7 @@ export async function startFFTStream(
 
   if (isRunning) {
     logger.info('FFT stream running at different frequency, restarting')
-    stopFFTStream()
+    await stopFFTStream()
   }
 
   const timeSinceStop = Date.now() - lastStopTime
@@ -373,13 +374,20 @@ export async function startFFTStream(
 }
 
 /**
- * Stop the FFT stream
+ * Stop the FFT stream and wait for process to fully terminate
  */
-export function stopFFTStream(): void {
+export async function stopFFTStream(): Promise<void> {
   if (sdrProcess && !sdrProcess.killed) {
     logger.info('Stopping FFT stream')
     const proc = sdrProcess
     sdrProcess = null
+
+    // Create promise that resolves when process terminates
+    const terminated = new Promise<void>((resolve) => {
+      proc.on('close', () => resolve())
+      proc.on('exit', () => resolve())
+    })
+
     // Try SIGTERM first, then SIGKILL after a delay if needed
     proc.kill('SIGTERM')
     setTimeout(() => {
@@ -388,6 +396,13 @@ export function stopFFTStream(): void {
         proc.kill('SIGKILL')
       }
     }, 500)
+
+    // Wait for process to actually terminate (max 2s timeout)
+    await Promise.race([
+      terminated,
+      Bun.sleep(2000)
+    ])
+
     lastStopTime = Date.now()
   }
   currentCallback = null

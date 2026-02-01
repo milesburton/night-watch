@@ -136,9 +136,9 @@ export async function capturePass(
   // Must happen before startPass() to prevent web clients from re-subscribing to FFT
   if (isFFTStreamRunning()) {
     logger.debug('Stopping FFT stream before recording to release SDR device')
-    stopFFTStream()
-    // Wait for USB device to be released (MIN_RESTART_DELAY_MS in fft-stream.ts is 3000ms)
-    await Bun.sleep(3500)
+    await stopFFTStream()
+    // Additional delay to ensure USB device is fully released
+    await Bun.sleep(1000)
   }
 
   stateManager.startPass(pass)

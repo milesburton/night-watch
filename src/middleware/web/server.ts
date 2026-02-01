@@ -336,7 +336,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
 
       // Stop FFT stream
       if (url.pathname === '/api/fft/stop' && req.method === 'POST') {
-        stopFFTStream()
+        await stopFFTStream()
         return jsonResponse({ success: true, running: false })
       }
 
@@ -492,10 +492,10 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             if (pendingFFTStop) {
               clearTimeout(pendingFFTStop)
             }
-            pendingFFTStop = setTimeout(() => {
+            pendingFFTStop = setTimeout(async () => {
               pendingFFTStop = null
               if (fftSubscribers.size === 0 && isFFTStreamRunning()) {
-                stopFFTStream()
+                await stopFFTStream()
               }
             }, 1_000)
 
@@ -533,7 +533,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
   })
 
   // Subscribe to state changes and broadcast to all clients
-  stateManager.on('state', (event: StateEvent) => {
+  stateManager.on('state', async (event: StateEvent) => {
     // Retune FFT stream when scanning frequency changes (but not during active capture)
     if (event.type === 'scanning_frequency' && fftSubscribers.size > 0) {
       const state = stateManager.getState()
@@ -546,7 +546,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
     // The SDR can only be used by one process at a time (rtl_sdr vs rtl_fm)
     if (event.type === 'pass_start' && isFFTStreamRunning()) {
       logger.info('Stopping FFT stream for satellite pass capture')
-      stopFFTStream()
+      await stopFFTStream()
     }
 
     const message = JSON.stringify(event)

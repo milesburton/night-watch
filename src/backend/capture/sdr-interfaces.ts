@@ -28,9 +28,9 @@ export interface IFFTStream {
   start(config: import('./fft-stream').FFTStreamConfig, callback: FFTCallback): Promise<boolean>
 
   /**
-   * Stop the FFT stream
+   * Stop the FFT stream and wait for process to terminate
    */
-  stop(): void
+  stop(): Promise<void>
 
   /**
    * Check if FFT stream is currently running

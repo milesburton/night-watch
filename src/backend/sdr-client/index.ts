@@ -110,7 +110,7 @@ class RemoteFFTStream implements IFFTStream {
     }
   }
 
-  stop(): void {
+  async stop(): Promise<void> {
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout)
       this.reconnectTimeout = null

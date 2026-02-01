@@ -42,8 +42,8 @@ class LocalFFTStream implements IFFTStream {
     return startFFTStream(config, callback)
   }
 
-  stop(): void {
-    stopFFTStream()
+  async stop(): Promise<void> {
+    await stopFFTStream()
   }
 
   isRunning(): boolean {
