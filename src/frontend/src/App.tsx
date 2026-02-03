@@ -427,7 +427,7 @@ export default function App() {
         onClose={() => setDiagnosticsOpen(false)}
       />
 
-      <Footer version={version?.version} />
+      <Footer version={version} />
     </div>
   )
 }

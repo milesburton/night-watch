@@ -31,9 +31,7 @@ function getVersion(): string {
     // Generate date-based build number (YYYYMMDD format)
     const now = new Date()
     const dateBuild =
-      now.getUTCFullYear() * 10000 +
-      (now.getUTCMonth() + 1) * 100 +
-      now.getUTCDate()
+      now.getUTCFullYear() * 10000 + (now.getUTCMonth() + 1) * 100 + now.getUTCDate()
 
     // Return version in format: 2.0.YYYYMMDD
     const [major, minor] = baseVersion.split('.')

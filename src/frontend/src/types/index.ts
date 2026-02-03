@@ -80,6 +80,7 @@ export interface CaptureRecord {
   timestamp: string
   durationSeconds: number
   maxElevation: number
+  maxSignalStrength?: number | null
   success: boolean
   errorMessage: string | null
   imagePath?: string

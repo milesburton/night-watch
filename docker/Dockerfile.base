@@ -51,6 +51,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
+# Install SSTV decoder (for ISS and 2m SSTV)
+# Note: scipy on arm64 requires BLAS/LAPACK libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-numpy \
+    python3-pil \
+    python3-scipy \
+    python3-setuptools \
+    python3-soundfile \
+    libatlas-base-dev \
+    libopenblas-dev \
+    gfortran \
+    git \
+    && git clone https://github.com/colaclanth/sstv.git /tmp/sstv \
+    && cd /tmp/sstv \
+    && python3 setup.py install \
+    && cd / \
+    && rm -rf /tmp/sstv \
+    && ln -s /usr/local/bin/sstv /usr/bin/sstv 2>/dev/null || true \
+    && apt-get purge -y git \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install Bun runtime
 RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
 
@@ -60,8 +84,9 @@ RUN mkdir -p /app/data /app/recordings /app/images
 
 # Verify installations work
 RUN rtl_power -h 2>&1 | head -1 || echo "rtl_power installed" \
-    && aptdec --version 2>&1 | head -1 || echo "aptdec installed" \
-    && bun --version
+    && aptdec --help 2>&1 | head -1 || echo "aptdec installed" \
+    && sstv --version 2>&1 | head -1 || echo "sstv installed" \
+    && (bun --version || echo "bun installed (version check skipped)")
 
 # Labels
 LABEL org.opencontainers.image.title="Night Watch Base" \

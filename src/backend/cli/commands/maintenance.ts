@@ -12,10 +12,10 @@ import { readdir, stat, unlink } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import '@backend/capture/decoders' // Register decoders
 import { getDecoder } from '@backend/capture/decoders/registry'
+import { loadConfig } from '@backend/config/config'
 import { getDatabase, initializeDatabase } from '@backend/db/database'
 import type { SatelliteInfo } from '@backend/types'
 import { logger } from '@backend/utils/logger'
-import { loadConfig } from '@backend/config/config'
 
 interface WavFileInfo {
   path: string
@@ -256,8 +256,12 @@ if (import.meta.main) {
 
   if (!shouldDecode && !shouldCleanup) {
     console.log('Usage:')
-    console.log('  bun run src/backend/cli/commands/maintenance.ts --decode   # Decode existing WAV files')
-    console.log('  bun run src/backend/cli/commands/maintenance.ts --cleanup  # Clean up failed recordings')
+    console.log(
+      '  bun run src/backend/cli/commands/maintenance.ts --decode   # Decode existing WAV files'
+    )
+    console.log(
+      '  bun run src/backend/cli/commands/maintenance.ts --cleanup  # Clean up failed recordings'
+    )
     console.log('  bun run src/backend/cli/commands/maintenance.ts --all      # Do both')
     process.exit(1)
   }

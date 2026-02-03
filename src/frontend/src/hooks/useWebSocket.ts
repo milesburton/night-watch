@@ -194,29 +194,33 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
   }, [connect])
 
+  // Each callback reads wsRef directly to avoid stale closure issues
+  // Don't use a shared sendMessage function with useCallback - it creates stale closures
+  const subscribeFFT = useCallback((frequency?: number) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'fft_subscribe', frequency }))
+    } else {
+      console.warn('WebSocket not ready, cannot subscribe to FFT')
+    }
+  }, [])
+
+  const unsubscribeFFT = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'fft_unsubscribe' }))
+    }
+  }, [])
+
+  const setFFTFrequency = useCallback((frequency: number) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'fft_set_frequency', frequency }))
+    }
+  }, [])
+
   const sendMessage = useCallback((data: unknown) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(data))
     }
   }, [])
-
-  const subscribeFFT = useCallback(
-    (frequency?: number) => {
-      sendMessage({ type: 'fft_subscribe', frequency })
-    },
-    [sendMessage]
-  )
-
-  const unsubscribeFFT = useCallback(() => {
-    sendMessage({ type: 'fft_unsubscribe' })
-  }, [sendMessage])
-
-  const setFFTFrequency = useCallback(
-    (frequency: number) => {
-      sendMessage({ type: 'fft_set_frequency', frequency })
-    },
-    [sendMessage]
-  )
 
   return {
     wsState,

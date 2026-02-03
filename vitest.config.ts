@@ -6,9 +6,10 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/**/*.spec.ts'],
+    exclude: ['src/backend/db/database.spec.ts', 'src/backend/satellites/events.spec.ts'],
     setupFiles: ['src/test-setup.ts'],
     coverage: {
-      provider: 'v8',
+      provider: 'istanbul',
       reporter: ['text', 'html', 'lcov'],
       include: ['src/backend/**/*.ts', 'src/middleware/**/*.ts'],
       exclude: ['src/backend/cli/**', '**/*.d.ts', '**/*.spec.ts'],

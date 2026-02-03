@@ -1,8 +1,32 @@
+import type { VersionInfo } from '@/types'
+import { Tooltip } from './Tooltip'
+
 interface FooterProps {
-  version?: string
+  version?: VersionInfo | null
 }
 
 export function Footer({ version }: FooterProps) {
+  const formatBuildDate = (buildTime?: string) => {
+    if (!buildTime) return 'Unknown'
+    try {
+      const date = new Date(buildTime)
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC',
+      })
+    } catch {
+      return 'Unknown'
+    }
+  }
+
+  const versionText = version ? `v${version.version}` : ''
+  const buildDate = formatBuildDate(version?.buildTime ?? undefined)
+  const commitShort = version?.commit ? version.commit.slice(0, 7) : 'unknown'
+
   return (
     <footer className="fixed bottom-0 left-0 right-0 h-8 bg-bg-secondary border-t border-border px-4 flex items-center justify-between text-xs z-30">
       <div className="flex items-center gap-4">
@@ -30,7 +54,18 @@ export function Footer({ version }: FooterProps) {
           API Docs
         </a>
       </div>
-      <span className="text-text-muted">Night Watch {version ? `v${version}` : ''}</span>
+      <Tooltip
+        content={
+          version
+            ? `Build: ${buildDate} UTC • Commit: ${version.commit}`
+            : 'Version information unavailable'
+        }
+        position="top"
+      >
+        <span className="text-text-muted cursor-help">
+          Night Watch {versionText} {version && `(${commitShort})`}
+        </span>
+      </Tooltip>
       <span className="text-text-muted">MIT License</span>
     </footer>
   )

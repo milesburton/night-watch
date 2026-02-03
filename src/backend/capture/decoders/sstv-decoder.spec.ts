@@ -68,7 +68,7 @@ describe('sstvDecoder', () => {
         expect.arrayContaining([
           expect.stringContaining('sstv-decode-wrapper.py'),
           '/path/to/recording.wav',
-          '/output/recording-sstv.png'
+          '/output/recording-sstv.png',
         ]),
         { timeout: 300_000 }
       )

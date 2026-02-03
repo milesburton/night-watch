@@ -109,7 +109,7 @@ describe('recorder', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'sox',
-        expect.arrayContaining([
+        [
           '-t',
           'raw',
           '-r',
@@ -124,9 +124,7 @@ describe('recorder', () => {
           '-t',
           'wav',
           expect.stringContaining('.wav'),
-          'rate',
-          '11025',
-        ]),
+        ],
         expect.any(Object)
       )
     })

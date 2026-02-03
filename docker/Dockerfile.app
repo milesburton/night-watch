@@ -10,22 +10,38 @@ FROM ${BASE_IMAGE}
 
 WORKDIR /app
 
-# Install backend dependencies
+# Layer 1: Install backend dependencies (cached unless package.json changes)
 COPY package.json bun.lock* ./
 RUN bun install --ignore-scripts
 
-# Install frontend dependencies BEFORE copying source (better caching!)
-# This layer is cached unless frontend dependencies change
+# Layer 2: Install frontend dependencies (cached unless frontend package.json changes)
 COPY src/frontend/package.json src/frontend/bun.lock* ./src/frontend/
 RUN cd src/frontend && bun install
 
-# Copy source code
-COPY src ./src
+# Layer 3: Copy backend code (doesn't trigger frontend rebuild)
+COPY src/backend ./src/backend
+COPY src/middleware ./src/middleware
+COPY src/sdr-relay ./src/sdr-relay
 COPY tsconfig.json ./
-COPY version.json ./
 
-# Build frontend (fast - just compilation, dependencies already installed)
+# Layer 4: Copy frontend source files (only invalidates if frontend code changes)
+COPY src/frontend/src ./src/frontend/src
+COPY src/frontend/public ./src/frontend/public
+COPY src/frontend/index.html ./src/frontend/
+COPY src/frontend/vite.config.ts ./src/frontend/
+COPY src/frontend/tsconfig.json ./src/frontend/
+COPY src/frontend/tsconfig.node.json ./src/frontend/
+COPY src/frontend/tailwind.config.js ./src/frontend/
+COPY src/frontend/postcss.config.js ./src/frontend/
+
+# Layer 5: Build frontend (only runs if Layer 4 changed)
 RUN cd src/frontend && bun run build
+
+# Layer 6: Generate version.json during build
+COPY scripts/generate-version.ts ./scripts/
+RUN bun run scripts/generate-version.ts
+
+# Default environment variables
 
 # Default environment variables
 ENV SERVICE_MODE=full \

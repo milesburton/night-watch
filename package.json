@@ -18,6 +18,10 @@
     "typecheck": "bunx tsc --noEmit",
     "predict": "bun run src/backend/cli/main.ts predict",
     "status": "bun run src/backend/cli/main.ts status",
+    "version:generate": "bun run scripts/generate-version.ts",
+    "maintenance:decode": "bun run src/backend/cli/commands/maintenance.ts --decode",
+    "maintenance:cleanup": "bun run src/backend/cli/commands/maintenance.ts --cleanup",
+    "maintenance:all": "bun run src/backend/cli/commands/maintenance.ts --all",
     "serve": "bun run src/backend/cli/main.ts serve",
     "prepare": "husky"
   },
@@ -35,6 +39,7 @@
     "@commitlint/cli": "^20.3.0",
     "@commitlint/config-conventional": "^20.3.0",
     "@types/bun": "^1.1.14",
+    "@vitest/coverage-istanbul": "^4.0.18",
     "@vitest/coverage-v8": "^4.0.17",
     "husky": "^9.1.7",
     "typescript": "^5.7.2",

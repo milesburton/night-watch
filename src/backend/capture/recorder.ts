@@ -63,8 +63,6 @@ export async function startRecording(
       '-t',
       'wav',
       outputPath,
-      'rate',
-      '11025',
     ],
     { stdio: ['pipe', 'pipe', 'pipe'] }
   )

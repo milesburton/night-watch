@@ -72,6 +72,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
+# Install SSTV decoder
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-numpy \
+    python3-pil \
+    python3-scipy \
+    python3-setuptools \
+    git \
+    && pip3 install --no-cache-dir --break-system-packages PySoundFile \
+    && git clone https://github.com/colaclanth/sstv.git /tmp/sstv \
+    && cd /tmp/sstv \
+    && python3 setup.py install \
+    && cd / \
+    && rm -rf /tmp/sstv \
+    && apt-get purge -y git \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
 
 WORKDIR /app
