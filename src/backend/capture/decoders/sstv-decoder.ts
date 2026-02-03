@@ -13,7 +13,9 @@ const decodeWithSstv = async (
 
   logger.image('Decoding SSTV image...')
 
-  const result = await runCommand('sstv', ['-d', wavPath, '-o', outputPath], {
+  // Use Python wrapper to avoid TTY issues in non-interactive environments
+  const wrapperPath = join(process.cwd(), 'scripts', 'sstv-decode-wrapper.py')
+  const result = await runCommand('python3', [wrapperPath, wavPath, outputPath], {
     timeout: 300000,
   })
 
@@ -42,8 +44,18 @@ export const sstvDecoder: Decoder = {
 
   async checkInstalled(): Promise<boolean> {
     try {
-      const result = await runCommand('which', ['sstv'])
-      return result.exitCode === 0
+      // Check if Python wrapper script exists and sstv module is available
+      const wrapperPath = join(process.cwd(), 'scripts', 'sstv-decode-wrapper.py')
+      const wrapperExists = await fileExists(wrapperPath)
+
+      if (!wrapperExists) {
+        logger.warn('SSTV decoder wrapper script not found')
+        return false
+      }
+
+      // Check if sstv Python module is installed
+      const result = await runCommand('python3', ['-c', 'import sstv; print("OK")'])
+      return result.exitCode === 0 && result.stdout.includes('OK')
     } catch {
       return false
     }

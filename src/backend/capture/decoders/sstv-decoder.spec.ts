@@ -64,8 +64,12 @@ describe('sstvDecoder', () => {
       await sstvDecoder.decode('/path/to/recording.wav', '/output')
 
       expect(mockRunCommand).toHaveBeenCalledWith(
-        'sstv',
-        ['-d', '/path/to/recording.wav', '-o', '/output/recording-sstv.png'],
+        'python3',
+        expect.arrayContaining([
+          expect.stringContaining('sstv-decode-wrapper.py'),
+          '/path/to/recording.wav',
+          '/output/recording-sstv.png'
+        ]),
         { timeout: 300_000 }
       )
     })
@@ -121,16 +125,18 @@ describe('sstvDecoder', () => {
 
   describe('checkInstalled', () => {
     it('should return true when sstv is installed', async () => {
-      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '/usr/bin/sstv', stderr: '' })
+      mockFileExists.mockResolvedValue(true) // wrapper script exists
+      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: 'OK\n', stderr: '' })
 
       const result = await sstvDecoder.checkInstalled()
 
       expect(result).toBe(true)
-      expect(mockRunCommand).toHaveBeenCalledWith('which', ['sstv'])
+      expect(mockRunCommand).toHaveBeenCalledWith('python3', ['-c', 'import sstv; print("OK")'])
     })
 
     it('should return false when sstv is not installed', async () => {
-      mockRunCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: '' })
+      mockFileExists.mockResolvedValue(true) // wrapper exists but sstv module doesn't
+      mockRunCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: 'ModuleNotFoundError' })
 
       const result = await sstvDecoder.checkInstalled()
 
