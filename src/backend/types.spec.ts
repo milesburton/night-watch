@@ -28,8 +28,8 @@ describe('shared types', () => {
     it('should accept valid TLE data', () => {
       const tle: TwoLineElement = {
         name: 'NOAA 19',
-        line1: '1 33591U 09005A   25085.56541919  .00000082  00000+0  69653-4 0  9990',
-        line2: '2 33591  99.1870 136.4258 0014198 103.3588 256.9118 14.12499278770708',
+        line1: '1 57166U 23091A   25085.56541919  .00000082  00000+0  69653-4 0  9990',
+        line2: '2 57166  99.1870 136.4258 0014198 103.3588 256.9118 14.12499278770708',
       }
 
       expect(tle.name).toBe('NOAA 19')
@@ -80,7 +80,7 @@ describe('shared types', () => {
     it('should accept full satellite info', () => {
       const sat: SatelliteInfo = {
         name: 'NOAA 19',
-        noradId: 33591,
+        noradId: 57166,
         frequency: 137.1e6,
         signalType: 'lrpt',
         signalConfig: { type: 'lrpt', bandwidth: 34000, sampleRate: 48000, demodulation: 'fm' },
@@ -88,7 +88,7 @@ describe('shared types', () => {
       }
 
       expect(sat.name).toBe('NOAA 19')
-      expect(sat.noradId).toBe(33591)
+      expect(sat.noradId).toBe(57166)
       expect(sat.frequency).toBe(137100000)
     })
 
@@ -111,7 +111,7 @@ describe('shared types', () => {
     it('should accept valid pass data', () => {
       const sat: SatelliteInfo = {
         name: 'NOAA 19',
-        noradId: 33591,
+        noradId: 57166,
         frequency: 137.1e6,
         signalType: 'lrpt',
         signalConfig: { type: 'lrpt', bandwidth: 34000, sampleRate: 48000, demodulation: 'fm' },
