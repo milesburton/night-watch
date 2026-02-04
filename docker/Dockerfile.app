@@ -30,7 +30,6 @@ COPY src/frontend/public ./src/frontend/public
 COPY src/frontend/index.html ./src/frontend/
 COPY src/frontend/vite.config.ts ./src/frontend/
 COPY src/frontend/tsconfig.json ./src/frontend/
-COPY src/frontend/tsconfig.node.json ./src/frontend/
 COPY src/frontend/tailwind.config.js ./src/frontend/
 COPY src/frontend/postcss.config.js ./src/frontend/
 
