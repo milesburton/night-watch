@@ -27,6 +27,7 @@ RUN /usr/local/bin/bun install --ignore-scripts
 COPY src ./src
 COPY tsconfig.json ./
 COPY version.json ./
+COPY scripts ./scripts
 
 # Build React frontend
 RUN cd src/frontend && /usr/local/bin/bun install
@@ -100,6 +101,7 @@ COPY --from=builder /app/src ./src
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/version.json ./
+COPY --from=builder /app/scripts ./scripts
 
 # Copy React frontend build
 COPY --from=builder /app/src/middleware/web/static-react ./src/middleware/web/static-react

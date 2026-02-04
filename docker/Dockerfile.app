@@ -38,6 +38,7 @@ RUN cd src/frontend && bun run build
 
 # Layer 6: Generate version.json during build
 COPY scripts/generate-version.ts ./scripts/
+COPY scripts/sstv-decode-wrapper.py ./scripts/
 RUN bun run scripts/generate-version.ts
 
 # Default environment variables
