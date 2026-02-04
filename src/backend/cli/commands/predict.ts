@@ -1,12 +1,12 @@
 import chalk from 'chalk'
 import { loadConfig } from '../../config/config'
 import { formatPass, formatPassesTable, predictPasses } from '../../prediction/passes'
-import { NOAA_SATELLITES } from '../../satellites/constants'
+import { SATELLITES } from '../../satellites/constants'
 import { getTles } from '../../satellites/tle'
 import { logger } from '../../utils/logger'
 
 export async function predictCommand(args: string[]): Promise<void> {
-  console.log(chalk.bold.cyan('\n  NOAA Pass Prediction\n'))
+  console.log(chalk.bold.cyan('\n  Weather Satellite Pass Prediction\n'))
 
   const config = loadConfig()
   logger.setLevel(config.logLevel)
@@ -18,10 +18,10 @@ export async function predictCommand(args: string[]): Promise<void> {
   )
   logger.info(`Predicting passes for next ${hoursAhead} hours...`)
 
-  const tles = await getTles(NOAA_SATELLITES, config.tle.updateIntervalHours)
+  const tles = await getTles(SATELLITES.filter((s) => s.enabled), config.tle.updateIntervalHours)
   logger.info(`Loaded TLEs for ${tles.length} satellites`)
 
-  const passes = predictPasses(NOAA_SATELLITES, tles, config.station, {
+  const passes = predictPasses(SATELLITES.filter((s) => s.enabled), tles, config.station, {
     minElevation: config.recording.minElevation,
     hoursAhead,
   })

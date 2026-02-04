@@ -1,30 +1,30 @@
-import { CELESTRAK_GP_API, NOAA_SATELLITES, PASS_CONSTRAINTS } from '@backend/satellites/constants'
+import { CELESTRAK_GP_API, SATELLITES, PASS_CONSTRAINTS } from '@backend/satellites/constants'
 import type { SatelliteInfo } from '@backend/types'
 import { describe, expect, it } from 'vitest'
 
 describe('satellite constants', () => {
-  it('should have three NOAA satellites defined', () => {
-    expect(NOAA_SATELLITES).toHaveLength(3)
+  it('should have METEOR-M and ISS satellites defined', () => {
+    expect(SATELLITES).toHaveLength(3)
   })
 
-  it('should have correct NOAA satellite frequencies', () => {
-    const noaa15 = NOAA_SATELLITES.find((s: SatelliteInfo) => s.name === 'NOAA 15')
-    const noaa18 = NOAA_SATELLITES.find((s: SatelliteInfo) => s.name === 'NOAA 18')
-    const noaa19 = NOAA_SATELLITES.find((s: SatelliteInfo) => s.name === 'NOAA 19')
+  it('should have correct METEOR-M satellite frequencies', () => {
+    const meteorN23 = SATELLITES.find((s: SatelliteInfo) => s.name === 'METEOR-M N2-3')
+    const meteorN24 = SATELLITES.find((s: SatelliteInfo) => s.name === 'METEOR-M N2-4')
+    const iss = SATELLITES.find((s: SatelliteInfo) => s.name === 'ISS')
 
-    expect(noaa15?.frequency).toBe(137.6125e6)
-    expect(noaa18?.frequency).toBe(137.9125e6)
-    expect(noaa19?.frequency).toBe(137.1e6)
+    expect(meteorN23?.frequency).toBe(137.9e6)
+    expect(meteorN24?.frequency).toBe(137.9e6)
+    expect(iss?.frequency).toBe(145.8e6)
   })
 
   it('should have correct NORAD IDs', () => {
-    const noaa15 = NOAA_SATELLITES.find((s: SatelliteInfo) => s.name === 'NOAA 15')
-    const noaa18 = NOAA_SATELLITES.find((s: SatelliteInfo) => s.name === 'NOAA 18')
-    const noaa19 = NOAA_SATELLITES.find((s: SatelliteInfo) => s.name === 'NOAA 19')
+    const meteorN23 = SATELLITES.find((s: SatelliteInfo) => s.name === 'METEOR-M N2-3')
+    const meteorN24 = SATELLITES.find((s: SatelliteInfo) => s.name === 'METEOR-M N2-4')
+    const iss = SATELLITES.find((s: SatelliteInfo) => s.name === 'ISS')
 
-    expect(noaa15?.noradId).toBe(25338)
-    expect(noaa18?.noradId).toBe(28654)
-    expect(noaa19?.noradId).toBe(33591)
+    expect(meteorN23?.noradId).toBe(57166)
+    expect(meteorN24?.noradId).toBe(59051)
+    expect(iss?.noradId).toBe(25544)
   })
 
   it('should have valid CelesTrak API URL', () => {

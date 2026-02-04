@@ -1,12 +1,6 @@
 import type { DemodulationType, SatelliteInfo, SignalConfig, SignalType } from '@backend/types'
 
 export const SIGNAL_CONFIGS: Record<SignalType, SignalConfig> = {
-  apt: {
-    type: 'apt' as const,
-    bandwidth: 34000,
-    sampleRate: 48000,
-    demodulation: 'fm' as DemodulationType,
-  },
   sstv: {
     type: 'sstv' as const,
     bandwidth: 3000,
@@ -23,30 +17,6 @@ export const SIGNAL_CONFIGS: Record<SignalType, SignalConfig> = {
 
 export const SATELLITES: SatelliteInfo[] = [
   {
-    name: 'NOAA 15',
-    noradId: 25338,
-    frequency: 137.6125e6,
-    signalType: 'apt',
-    signalConfig: SIGNAL_CONFIGS.apt,
-    enabled: false, // Decommissioned December 2025
-  },
-  {
-    name: 'NOAA 18',
-    noradId: 28654,
-    frequency: 137.9125e6,
-    signalType: 'apt',
-    signalConfig: SIGNAL_CONFIGS.apt,
-    enabled: false, // Decommissioned June 6, 2025 - S-Band transmitter failure
-  },
-  {
-    name: 'NOAA 19',
-    noradId: 33591,
-    frequency: 137.1e6,
-    signalType: 'apt',
-    signalConfig: SIGNAL_CONFIGS.apt,
-    enabled: false, // Decommissioned August 13, 2025 - Battery failure
-  },
-  {
     name: 'ISS',
     noradId: 25544,
     frequency: 145.8e6,
@@ -61,7 +31,7 @@ export const SATELLITES: SatelliteInfo[] = [
     frequency: 137.9e6,
     signalType: 'lrpt',
     signalConfig: SIGNAL_CONFIGS.lrpt,
-    enabled: false, // Requires LRPT decoder implementation
+    enabled: true,
   },
   {
     name: 'METEOR-M N2-4',
@@ -69,11 +39,12 @@ export const SATELLITES: SatelliteInfo[] = [
     frequency: 137.9e6,
     signalType: 'lrpt',
     signalConfig: SIGNAL_CONFIGS.lrpt,
-    enabled: false, // Requires LRPT decoder implementation
+    enabled: true,
   },
 ]
 
-export const NOAA_SATELLITES = SATELLITES.filter((s) => s.signalType === 'apt')
+// All LRPT weather satellites
+export const WEATHER_SATELLITES = SATELLITES.filter((s) => s.signalType === 'lrpt')
 
 export const CELESTRAK_GP_API = 'https://celestrak.org/NORAD/elements/gp.php'
 

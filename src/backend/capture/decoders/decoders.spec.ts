@@ -1,5 +1,4 @@
 import {
-  checkAptdecInstalled,
   checkDecoderInstalled,
   decodeRecording,
   getAllDecoders,
@@ -19,11 +18,11 @@ vi.mock('@backend/utils/logger', () => ({
 
 describe('decoder registry', () => {
   describe('getDecoder', () => {
-    it('should return APT decoder for apt signal type', () => {
-      const decoder = getDecoder('apt')
+    it('should return LRPT decoder for lrpt signal type', () => {
+      const decoder = getDecoder('lrpt')
       expect(decoder).toBeDefined()
-      expect(decoder?.name).toBe('APT Decoder (aptdec)')
-      expect(decoder?.signalType).toBe('apt')
+      expect(decoder?.name).toBe('LRPT Decoder (SatDump)')
+      expect(decoder?.signalType).toBe('lrpt')
     })
 
     it('should return SSTV decoder for sstv signal type', () => {
@@ -36,7 +35,7 @@ describe('decoder registry', () => {
 
   describe('hasDecoder', () => {
     it('should return true for registered decoders', () => {
-      expect(hasDecoder('apt')).toBe(true)
+      expect(hasDecoder('lrpt')).toBe(true)
       expect(hasDecoder('sstv')).toBe(true)
     })
   })
@@ -45,13 +44,13 @@ describe('decoder registry', () => {
     it('should return all registered decoders', () => {
       const decoders = getAllDecoders()
       expect(decoders).toHaveLength(2)
-      expect(decoders.map((d) => d.signalType).sort()).toEqual(['apt', 'sstv'])
+      expect(decoders.map((d) => d.signalType).sort()).toEqual(['lrpt', 'sstv'])
     })
   })
 
   describe('decoder interface', () => {
     it('APT decoder should have required methods', () => {
-      const decoder = getDecoder('apt')
+      const decoder = getDecoder('lrpt')
       expect(typeof decoder?.decode).toBe('function')
       expect(typeof decoder?.checkInstalled).toBe('function')
     })
@@ -65,14 +64,14 @@ describe('decoder registry', () => {
 
   describe('checkDecoderInstalled', () => {
     it('should return false for unregistered decoder', async () => {
-      const result = await checkDecoderInstalled('unknown' as 'apt')
+      const result = await checkDecoderInstalled('unknown' as 'lrpt')
       expect(result).toBe(false)
     })
   })
 
-  describe('checkAptdecInstalled', () => {
-    it('should check if APT decoder is installed', async () => {
-      const result = await checkAptdecInstalled()
+  describe('checkDecoderInstalled', () => {
+    it('should check if LRPT decoder is installed', async () => {
+      const result = await checkDecoderInstalled('lrpt')
       expect(typeof result).toBe('boolean')
     })
   })
@@ -84,7 +83,7 @@ describe('decoder registry', () => {
 
     it('should return null for unregistered decoder', async () => {
       const { logger } = await import('@backend/utils/logger')
-      const result = await decodeRecording('/test.wav', '/output', 'unknown' as 'apt')
+      const result = await decodeRecording('/test.wav', '/output', 'unknown' as 'lrpt')
 
       expect(result).toBeNull()
       expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('No decoder registered'))
@@ -94,12 +93,12 @@ describe('decoder registry', () => {
       const { logger } = await import('@backend/utils/logger')
 
       // Mock checkInstalled to return false
-      const decoder = getDecoder('apt')
+      const decoder = getDecoder('lrpt')
       if (decoder) {
         const originalCheck = decoder.checkInstalled
         decoder.checkInstalled = vi.fn().mockResolvedValue(false)
 
-        const result = await decodeRecording('/test.wav', '/output', 'apt')
+        const result = await decodeRecording('/test.wav', '/output', 'lrpt')
 
         expect(result).toBeNull()
         expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('is not installed'))
@@ -110,7 +109,7 @@ describe('decoder registry', () => {
     })
 
     it('should decode when decoder exists and is installed', async () => {
-      const decoder = getDecoder('apt')
+      const decoder = getDecoder('lrpt')
       if (decoder) {
         const originalCheck = decoder.checkInstalled
         const originalDecode = decoder.decode
@@ -120,7 +119,7 @@ describe('decoder registry', () => {
           outputPaths: ['/output/test.png'],
         })
 
-        const result = await decodeRecording('/test.wav', '/output', 'apt')
+        const result = await decodeRecording('/test.wav', '/output', 'lrpt')
 
         expect(result).toBeDefined()
         expect(decoder.decode).toHaveBeenCalledWith('/test.wav', '/output')

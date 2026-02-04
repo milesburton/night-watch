@@ -233,10 +233,10 @@ export function startSDRRelayServer(port: number, host: string): Server {
               name: body.satelliteName || 'Unknown',
               noradId: 0,
               frequency: body.frequency,
-              signalType: 'apt' as const,
+              signalType: 'lrpt' as const,
               signalConfig: {
-                type: 'apt' as const,
-                bandwidth: 34000,
+                type: 'lrpt' as const,
+                bandwidth: 120000,
                 sampleRate: body.sampleRate,
                 demodulation: 'fm' as const,
               },

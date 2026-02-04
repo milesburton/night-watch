@@ -64,7 +64,7 @@ describe('pass prediction', () => {
 
       const formatted = formatPass(mockPass)
 
-      expect(formatted).toContain('NOAA 19')
+      expect(formatted).toContain('METEOR-M N2-3')
       expect(formatted).toContain('15min')
       expect(formatted).toContain('65.5°')
     })

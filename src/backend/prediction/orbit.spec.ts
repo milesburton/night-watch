@@ -54,7 +54,7 @@ describe('orbit calculations', () => {
       expect(passes.length).toBeLessThanOrEqual(4)
 
       for (const pass of passes) {
-        expect(pass.satellite.name).toBe('NOAA 19')
+        expect(pass.satellite.name).toBe('METEOR-M N2-3')
         expect(pass.aos.getTime()).toBeLessThan(pass.los.getTime())
         expect(pass.maxElevation).toBeGreaterThanOrEqual(10)
         expect(pass.duration).toBeGreaterThanOrEqual(240)

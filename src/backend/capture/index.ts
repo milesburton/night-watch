@@ -1,7 +1,6 @@
 export {
   decodeRecording,
   checkDecoderInstalled,
-  checkAptdecInstalled,
   getAllDecoders,
   getDecoder,
   hasDecoder,

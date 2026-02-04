@@ -4,34 +4,35 @@
 [![Docker Build](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/docker-build.yml/badge.svg)](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/docker-build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Night Watch** - an automated satellite signal capture and decoding platform. Tracks satellites across the sky, receiving and decoding weather imagery from NOAA satellites and SSTV transmissions from the ISS.
+**Night Watch** - an automated satellite signal capture and decoding platform. Tracks satellites across the sky, receiving and decoding weather imagery from METEOR-M satellites and SSTV transmissions from the ISS.
 
 ## Features
 
 - **Autonomous Operation**: Automatically predicts, schedules, and captures satellite passes
 - **Real-Time Visualization**: Web dashboard with live 3D globe, FFT waterfall/spectrum, and pass timeline
-- **Multi-Signal Support**: APT (NOAA weather satellites) and SSTV (ISS + 2m ground) decoding
+- **Multi-Signal Support**: LRPT (METEOR-M weather satellites) and SSTV (ISS + 2m ground) decoding
 - **2m SSTV Scanner**: Scans amateur SSTV frequencies during idle time using FFT-based signal detection
-- **Per-Band Gain Calibration**: Automatic gain adjustment per frequency band (NOAA vs 2m)
+- **Per-Band Gain Calibration**: Automatic gain adjustment per frequency band (METEOR vs 2m)
 - **Persistent Waterfall**: Server-side FFT history buffer — waterfall survives page refreshes
 - **Flexible Architecture**: Single-device or distributed setups
 
 ## Supported Satellites
 
-| Satellite | Signal | Frequency |
-|-----------|--------|-----------|
-| **NOAA 15** | APT | 137.6125 MHz |
-| **NOAA 18** | APT | 137.9125 MHz |
-| **NOAA 19** | APT | 137.1000 MHz |
-| **ISS** | SSTV | 145.800 MHz |
-| **2m SSTV** | SSTV | 144.5 / 145.5 MHz |
+| Satellite | Signal | Frequency | Status |
+|-----------|--------|-----------|--------|
+| **METEOR-M N2-3** | LRPT | 137.9 MHz | Active |
+| **METEOR-M N2-4** | LRPT | 137.9 MHz | Active |
+| **ISS** | SSTV | 145.800 MHz | Event-based |
+| **2m SSTV** | SSTV | 144.5 / 145.5 MHz | Ground |
+
+> **Note**: All NOAA APT satellites (NOAA-15, NOAA-18, NOAA-19) were decommissioned in 2025. This project now focuses on METEOR-M LRPT and ISS SSTV signals.
 
 ## Quick Start
 
 ### Prerequisites
 
 - RTL-SDR dongle (RTL2832U-based)
-- VHF antenna (137MHz for NOAA, 145MHz for ISS)
+- VHF antenna (137MHz for METEOR-M, 145MHz for ISS)
 - Docker and Docker Compose v2
 - Raspberry Pi 4/5 or Linux machine
 
@@ -114,7 +115,7 @@ The system uses a single RTL-SDR device shared between the FFT stream (waterfall
 **Runtime**: Bun
 **Backend**: TypeScript, SQLite
 **Frontend**: React, Vite, Tailwind CSS, Zustand
-**Signal Processing**: rtl_sdr → fft.js (real-time waterfall), rtl_fm → sox → aptdec (recording)
+**Signal Processing**: rtl_sdr → fft.js (real-time waterfall), rtl_fm → sox → SatDump (LRPT recording)
 
 ## Documentation
 
@@ -127,6 +128,6 @@ MIT © 2025–2026 - See [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- [aptdec](https://github.com/Xerbo/aptdec) - APT signal decoder
+- [SatDump](https://github.com/SatDump/SatDump) - LRPT signal decoder
 - [satellite.js](https://github.com/shashwatak/satellite-js) - SGP4 implementation
 - [CelesTrak](https://celestrak.org/) - TLE data provider

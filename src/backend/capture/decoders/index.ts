@@ -1,17 +1,17 @@
 import type { SignalType } from '@backend/types'
 import { logger } from '../../utils/logger'
-import { aptDecoder } from './apt-decoder'
+import { lrptDecoder } from './lrpt-decoder'
 import { getAllDecoders, getDecoder, hasDecoder, registerDecoder } from './registry'
-import { sstvDecoder } from './sstv-decoder'
+import { sstvDecoder} from './sstv-decoder'
 import type { DecoderResult } from './types'
 
-registerDecoder(aptDecoder)
+registerDecoder(lrptDecoder)
 registerDecoder(sstvDecoder)
 
 export const decodeRecording = async (
   wavPath: string,
   outputDir: string,
-  signalType: SignalType = 'apt'
+  signalType: SignalType = 'lrpt'
 ): Promise<DecoderResult | null> => {
   const decoder = getDecoder(signalType)
 
@@ -28,8 +28,6 @@ export const checkDecoderInstalled = async (signalType: SignalType): Promise<boo
   const decoder = getDecoder(signalType)
   return decoder ? decoder.checkInstalled() : Promise.resolve(false)
 }
-
-export const checkAptdecInstalled = (): Promise<boolean> => checkDecoderInstalled('apt')
 
 export { getAllDecoders, getDecoder, hasDecoder }
 export type { Decoder, DecoderResult } from './types'

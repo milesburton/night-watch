@@ -24,7 +24,7 @@ vi.mock('node:child_process', () => {
 
 vi.mock('../utils/fs', () => ({
   ensureDir: vi.fn(() => Promise.resolve()),
-  generateFilename: vi.fn(() => 'NOAA-19_2025-01-01T12-00-00.wav'),
+  generateFilename: vi.fn(() => 'METEOR-M-N2-3_2025-01-01T12-00-00.wav'),
 }))
 
 vi.mock('../utils/shell', () => ({
@@ -77,7 +77,7 @@ describe('recorder', () => {
     it('should generate filename based on satellite name', async () => {
       await startRecording(TEST_SATELLITE, mockConfig)
 
-      expect(generateFilename).toHaveBeenCalledWith('NOAA 19', 'wav')
+      expect(generateFilename).toHaveBeenCalledWith('METEOR-M N2-3', 'wav')
     })
 
     it('should spawn rtl_fm with correct arguments', async () => {
@@ -87,7 +87,7 @@ describe('recorder', () => {
         'rtl_fm',
         expect.arrayContaining([
           '-f',
-          '137100000',
+          '137900000',
           '-s',
           '48000',
           '-g',
@@ -133,7 +133,7 @@ describe('recorder', () => {
       const session = await startRecording(TEST_SATELLITE, mockConfig)
 
       expect(session.satellite).toEqual(TEST_SATELLITE)
-      expect(session.outputPath).toBe('/recordings/NOAA-19_2025-01-01T12-00-00.wav')
+      expect(session.outputPath).toBe('/recordings/METEOR-M-N2-3_2025-01-01T12-00-00.wav')
       expect(session.startTime).toBeInstanceOf(Date)
       expect(typeof session.stop).toBe('function')
     })

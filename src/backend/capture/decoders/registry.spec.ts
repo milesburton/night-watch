@@ -22,27 +22,27 @@ describe('decoder registry (isolated)', () => {
 
   const createMockDecoder = (signalType: string, name: string): Decoder => ({
     name,
-    signalType: signalType as 'apt' | 'sstv',
+    signalType: signalType as 'lrpt' | 'sstv',
     decode: vi.fn().mockResolvedValue({ outputPaths: [] }),
     checkInstalled: vi.fn().mockResolvedValue(true),
   })
 
   describe('registerDecoder', () => {
     it('should register a decoder', () => {
-      const decoder = createMockDecoder('apt', 'Test APT Decoder')
+      const decoder = createMockDecoder('lrpt', 'Test APT Decoder')
       registerDecoder(decoder)
 
-      expect(hasDecoder('apt')).toBe(true)
+      expect(hasDecoder('lrpt')).toBe(true)
     })
 
     it('should replace existing decoder for same signal type', () => {
-      const decoder1 = createMockDecoder('apt', 'First Decoder')
-      const decoder2 = createMockDecoder('apt', 'Second Decoder')
+      const decoder1 = createMockDecoder('lrpt', 'First Decoder')
+      const decoder2 = createMockDecoder('lrpt', 'Second Decoder')
 
       registerDecoder(decoder1)
       registerDecoder(decoder2)
 
-      expect(getDecoder('apt')?.name).toBe('Second Decoder')
+      expect(getDecoder('lrpt')?.name).toBe('Second Decoder')
     })
   })
 
@@ -63,7 +63,7 @@ describe('decoder registry (isolated)', () => {
 
   describe('getAllDecoders', () => {
     it('should return all registered decoders', () => {
-      const aptDecoder = createMockDecoder('apt', 'APT')
+      const aptDecoder = createMockDecoder('lrpt', 'APT')
       const sstvDecoder = createMockDecoder('sstv', 'SSTV')
 
       registerDecoder(aptDecoder)
@@ -81,31 +81,31 @@ describe('decoder registry (isolated)', () => {
 
   describe('hasDecoder', () => {
     it('should return true for registered decoder', () => {
-      registerDecoder(createMockDecoder('apt', 'APT'))
-      expect(hasDecoder('apt')).toBe(true)
+      registerDecoder(createMockDecoder('lrpt', 'APT'))
+      expect(hasDecoder('lrpt')).toBe(true)
     })
 
     it('should return false for unregistered decoder', () => {
-      expect(hasDecoder('apt')).toBe(false)
+      expect(hasDecoder('lrpt')).toBe(false)
     })
   })
 
   describe('decoder interface', () => {
     it('should have decode method', async () => {
-      const decoder = createMockDecoder('apt', 'Test')
+      const decoder = createMockDecoder('lrpt', 'Test')
       registerDecoder(decoder)
 
-      const result = await getDecoder('apt')?.decode('/path/to/file.wav', '/output')
+      const result = await getDecoder('lrpt')?.decode('/path/to/file.wav', '/output')
 
       expect(result).toEqual({ outputPaths: [] })
       expect(decoder.decode).toHaveBeenCalledWith('/path/to/file.wav', '/output')
     })
 
     it('should have checkInstalled method', async () => {
-      const decoder = createMockDecoder('apt', 'Test')
+      const decoder = createMockDecoder('lrpt', 'Test')
       registerDecoder(decoder)
 
-      const isInstalled = await getDecoder('apt')?.checkInstalled()
+      const isInstalled = await getDecoder('lrpt')?.checkInstalled()
 
       expect(isInstalled).toBe(true)
     })

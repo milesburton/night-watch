@@ -4,7 +4,7 @@ export interface SatelliteInfo {
   name: string
   noradId: number
   frequency: number
-  signalType: 'apt' | 'sstv'
+  signalType: 'sstv' | 'lrpt'
 }
 
 export interface SatellitePass {
@@ -20,12 +20,12 @@ export interface SatelliteGeolocation {
   latitude: number
   longitude: number
   altitude: number
-  signalType: 'apt' | 'sstv'
+  signalType: 'sstv' | 'lrpt'
 }
 
 export interface GroundTrack {
   name: string
-  signalType: 'apt' | 'sstv'
+  signalType: 'sstv' | 'lrpt'
   points: Array<{ lat: number; lng: number }>
 }
 

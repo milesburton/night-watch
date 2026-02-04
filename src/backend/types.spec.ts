@@ -40,8 +40,8 @@ describe('shared types', () => {
 
   describe('SignalType', () => {
     it('should accept apt signal type', () => {
-      const signalType: SignalType = 'apt'
-      expect(signalType).toBe('apt')
+      const signalType: SignalType = 'lrpt'
+      expect(signalType).toBe('lrpt')
     })
 
     it('should accept sstv signal type', () => {
@@ -53,13 +53,13 @@ describe('shared types', () => {
   describe('SignalConfig', () => {
     it('should accept APT signal config', () => {
       const config: SignalConfig = {
-        type: 'apt',
+        type: 'lrpt',
         bandwidth: 34000,
         sampleRate: 48000,
         demodulation: 'fm',
       }
 
-      expect(config.type).toBe('apt')
+      expect(config.type).toBe('lrpt')
       expect(config.bandwidth).toBe(34000)
     })
 
@@ -82,8 +82,8 @@ describe('shared types', () => {
         name: 'NOAA 19',
         noradId: 33591,
         frequency: 137.1e6,
-        signalType: 'apt',
-        signalConfig: { type: 'apt', bandwidth: 34000, sampleRate: 48000, demodulation: 'fm' },
+        signalType: 'lrpt',
+        signalConfig: { type: 'lrpt', bandwidth: 34000, sampleRate: 48000, demodulation: 'fm' },
         enabled: true,
       }
 
@@ -113,8 +113,8 @@ describe('shared types', () => {
         name: 'NOAA 19',
         noradId: 33591,
         frequency: 137.1e6,
-        signalType: 'apt',
-        signalConfig: { type: 'apt', bandwidth: 34000, sampleRate: 48000, demodulation: 'fm' },
+        signalType: 'lrpt',
+        signalConfig: { type: 'lrpt', bandwidth: 34000, sampleRate: 48000, demodulation: 'fm' },
         enabled: true,
       }
 

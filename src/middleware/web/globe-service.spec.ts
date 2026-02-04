@@ -5,7 +5,7 @@ vi.mock('@backend/prediction/ground-track', () => ({
   computeGroundTrack: vi.fn(() => ({
     noradId: 33591,
     name: 'NOAA 19',
-    signalType: 'apt',
+    signalType: 'lrpt',
     points: [{ lat: 45, lng: -120 }],
   })),
 }))
@@ -17,7 +17,7 @@ vi.mock('@backend/prediction/orbit', () => ({
     altitude: 850,
     name: 'NOAA 19',
     noradId: 33591,
-    signalType: 'apt',
+    signalType: 'lrpt',
   })),
 }))
 
@@ -27,7 +27,7 @@ vi.mock('@backend/satellites/constants', () => ({
       name: 'NOAA 19',
       noradId: 33591,
       frequency: 137.1e6,
-      signalType: 'apt',
+      signalType: 'lrpt',
       enabled: true,
     },
   ],

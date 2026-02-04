@@ -1,14 +1,14 @@
 import chalk from 'chalk'
 import { loadConfig } from './config/config'
 import { filterHighQualityPasses, formatPassesTable, predictPasses } from './prediction/passes'
-import { NOAA_SATELLITES } from './satellites/constants'
+import { SATELLITES } from './satellites/constants'
 import { getTles } from './satellites/tle'
 import { runScheduler } from './scheduler/scheduler'
 import { ensureDir } from './utils/fs'
 import { logger } from './utils/logger'
 import { checkDependencies } from './utils/shell'
 
-const REQUIRED_COMMANDS = ['rtl_fm', 'rtl_power', 'sox', 'aptdec']
+const REQUIRED_COMMANDS = ['rtl_fm', 'rtl_power', 'sox', 'satdump']
 
 async function main(): Promise<void> {
   console.log(chalk.bold.cyan('\n🛰️  NOAA Satellite Capture System\n'))
@@ -30,16 +30,16 @@ async function main(): Promise<void> {
   if (missing.length > 0) {
     logger.error(`Missing dependencies: ${missing.join(', ')}`)
     logger.info('Please install: sudo apt install rtl-sdr sox')
-    logger.info('For aptdec: https://github.com/Xerbo/aptdec')
+    logger.info('For SatDump: https://github.com/SatDump/SatDump')
     process.exit(1)
   }
 
   logger.info('Fetching TLE data...')
-  const tles = await getTles(NOAA_SATELLITES, config.tle.updateIntervalHours)
+  const tles = await getTles(SATELLITES.filter((s) => s.enabled), config.tle.updateIntervalHours)
   logger.info(`Loaded TLEs for ${tles.length} satellites`)
 
   logger.info('Predicting satellite passes...')
-  const allPasses = predictPasses(NOAA_SATELLITES, tles, config.station, {
+  const allPasses = predictPasses(SATELLITES.filter((s) => s.enabled), tles, config.station, {
     minElevation: config.recording.minElevation,
     hoursAhead: 24,
   })

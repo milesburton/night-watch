@@ -14,7 +14,7 @@ import { logger } from '../../utils/logger'
 import { checkDependencies } from '../../utils/shell'
 
 const REQUIRED_COMMANDS = ['rtl_fm', 'rtl_power', 'sox']
-const OPTIONAL_COMMANDS = ['aptdec', 'sstv']
+const OPTIONAL_COMMANDS = ['satdump', 'sstv']
 
 export async function runCommand(_args: string[]): Promise<void> {
   console.log(chalk.bold.cyan('\n  RFCapture - Multi-Signal RF Capture System\n'))

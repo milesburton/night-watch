@@ -7,17 +7,17 @@ export const TEST_STATION: Coordinates = {
 }
 
 export const TEST_TLE: TwoLineElement = {
-  name: 'NOAA 19',
-  line1: '1 33591U 09005A   25085.56541919  .00000082  00000+0  69653-4 0  9990',
-  line2: '2 33591  99.1870 136.4258 0014198 103.3588 256.9118 14.12499278770708',
+  name: 'METEOR-M N2-3',
+  line1: '1 57166U 23091A   25085.56541919  .00000082  00000+0  69653-4 0  9990',
+  line2: '2 57166  99.1870 136.4258 0014198 103.3588 256.9118 14.12499278770708',
 }
 
 export const TEST_SATELLITE: SatelliteInfo = {
-  name: 'NOAA 19',
-  noradId: 33591,
-  frequency: 137.1e6,
-  signalType: 'apt',
-  signalConfig: { type: 'apt', bandwidth: 34000, sampleRate: 48000, demodulation: 'fm' },
+  name: 'METEOR-M N2-3',
+  noradId: 57166,
+  frequency: 137.9e6,
+  signalType: 'lrpt',
+  signalConfig: { type: 'lrpt', bandwidth: 120000, sampleRate: 1024000, demodulation: 'fm' },
   enabled: true,
 }
 

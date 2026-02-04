@@ -15,8 +15,8 @@ const createTestPass = (): SatellitePass => ({
     name: 'NOAA 19',
     noradId: 33591,
     frequency: 137.1e6,
-    signalType: 'apt',
-    signalConfig: { type: 'apt', bandwidth: 34_000, sampleRate: 48_000, demodulation: 'fm' },
+    signalType: 'lrpt',
+    signalConfig: { type: 'lrpt', bandwidth: 34_000, sampleRate: 48_000, demodulation: 'fm' },
     enabled: true,
   },
 })

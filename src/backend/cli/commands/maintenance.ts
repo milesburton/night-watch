@@ -125,7 +125,7 @@ async function decodeRecording(
 ): Promise<{ success: boolean; imagePaths: string[] }> {
   try {
     // Determine signal type from satellite name
-    const signalType = recording.satellite.startsWith('NOAA') ? 'apt' : 'sstv'
+    const signalType = recording.satellite.startsWith('METEOR') ? 'lrpt' : 'sstv'
     const decoder = getDecoder(signalType)
 
     if (!decoder) {
