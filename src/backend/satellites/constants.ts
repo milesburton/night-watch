@@ -13,6 +13,12 @@ export const SIGNAL_CONFIGS: Record<SignalType, SignalConfig> = {
     sampleRate: 48000,
     demodulation: 'fm' as DemodulationType,
   },
+  lrpt: {
+    type: 'lrpt' as const,
+    bandwidth: 120000,
+    sampleRate: 1024000,
+    demodulation: 'fm' as DemodulationType,
+  },
 }
 
 export const SATELLITES: SatelliteInfo[] = [
@@ -30,7 +36,7 @@ export const SATELLITES: SatelliteInfo[] = [
     frequency: 137.9125e6,
     signalType: 'apt',
     signalConfig: SIGNAL_CONFIGS.apt,
-    enabled: true,
+    enabled: false, // Decommissioned June 6, 2025 - S-Band transmitter failure
   },
   {
     name: 'NOAA 19',
@@ -38,7 +44,7 @@ export const SATELLITES: SatelliteInfo[] = [
     frequency: 137.1e6,
     signalType: 'apt',
     signalConfig: SIGNAL_CONFIGS.apt,
-    enabled: true,
+    enabled: false, // Decommissioned August 13, 2025 - Battery failure
   },
   {
     name: 'ISS',
@@ -48,6 +54,22 @@ export const SATELLITES: SatelliteInfo[] = [
     signalConfig: SIGNAL_CONFIGS.sstv,
     enabled: false,
     eventBased: true,
+  },
+  {
+    name: 'METEOR-M N2-3',
+    noradId: 57166,
+    frequency: 137.9e6,
+    signalType: 'lrpt',
+    signalConfig: SIGNAL_CONFIGS.lrpt,
+    enabled: false, // Requires LRPT decoder implementation
+  },
+  {
+    name: 'METEOR-M N2-4',
+    noradId: 59051,
+    frequency: 137.9e6,
+    signalType: 'lrpt',
+    signalConfig: SIGNAL_CONFIGS.lrpt,
+    enabled: false, // Requires LRPT decoder implementation
   },
 ]
 
