@@ -18,12 +18,8 @@ jobs:
     permissions:
       contents: read
       packages: write
-    # Only build base when base dockerfile or system deps change
-    if: |
-      github.event_name == 'push' && (
-        contains(github.event.head_commit.modified, 'docker/Dockerfile.base') ||
-        contains(github.event.head_commit.added, 'docker/Dockerfile.base')
-      )
+    # Always build base on push to main (for now, until we fix the condition)
+    if: github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v4
