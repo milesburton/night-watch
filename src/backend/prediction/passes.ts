@@ -29,12 +29,26 @@ export function predictPasses(
   const allPasses: SatellitePass[] = []
 
   for (const sat of satellites) {
-    const tle = tles.find(
-      (t) => t.name.includes(sat.name) || t.name.includes(sat.name.replace(' ', '-'))
-    )
+    // Try multiple name matching strategies for flexibility
+    const tle = tles.find((t) => {
+      const tleName = t.name.toLowerCase().replace(/\s+/g, '')
+      const satName = sat.name.toLowerCase().replace(/\s+/g, '')
+
+      // Direct match (case-insensitive, whitespace-insensitive)
+      if (tleName === satName) return true
+
+      // NORAD ID match (most reliable)
+      const tleNoradMatch = t.line1.match(/^1\s+(\d+)/)
+      if (tleNoradMatch?.[1] && Number.parseInt(tleNoradMatch[1]) === sat.noradId) return true
+
+      // Partial name match (for METEOR-M2 vs METEOR-M N2 variations)
+      if (tleName.includes(satName.slice(0, 8)) || satName.includes(tleName.slice(0, 8))) return true
+
+      return false
+    })
 
     if (!tle) {
-      logger.warn(`No TLE found for ${sat.name}`)
+      logger.warn(`No TLE found for ${sat.name} (NORAD ${sat.noradId})`)
       continue
     }
 
