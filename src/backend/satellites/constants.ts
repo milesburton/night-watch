@@ -22,7 +22,7 @@ export const SATELLITES: SatelliteInfo[] = [
     frequency: 137.6125e6,
     signalType: 'apt',
     signalConfig: SIGNAL_CONFIGS.apt,
-    enabled: true,
+    enabled: false, // Decommissioned December 2025
   },
   {
     name: 'NOAA 18',
