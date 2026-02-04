@@ -106,4 +106,5 @@ RUN rtl_power -h 2>&1 | head -1 || echo "rtl_power installed" \
 # Labels
 LABEL org.opencontainers.image.title="Night Watch Base" \
       org.opencontainers.image.description="Base image with rtl-sdr, SatDump (LRPT decoder), and bun runtime" \
-      org.opencontainers.image.source="https://github.com/milesburton/noaa-satellite-capture"
+      org.opencontainers.image.source="https://github.com/milesburton/noaa-satellite-capture" \
+      org.opencontainers.image.version="2026.02.04"
