@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libvolk2.5 \
     libtiff6 \
     zlib1g \
+    libnng1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Build and install SatDump (METEOR LRPT decoder)
@@ -51,6 +52,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libtiff-dev \
     librtlsdr-dev \
     zlib1g-dev \
+    libnng-dev \
     && git clone --recursive https://github.com/SatDump/SatDump.git /tmp/satdump \
     && cd /tmp/satdump \
     && mkdir build && cd build \
@@ -62,7 +64,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && make install \
     && cd / \
     && rm -rf /tmp/satdump \
-    && apt-get purge -y cmake make gcc g++ git pkg-config libfftw3-dev libvolk2-dev libpng-dev libjpeg-dev libtiff-dev librtlsdr-dev zlib1g-dev \
+    && apt-get purge -y cmake make gcc g++ git pkg-config libfftw3-dev libvolk2-dev libpng-dev libjpeg-dev libtiff-dev librtlsdr-dev zlib1g-dev libnng-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
