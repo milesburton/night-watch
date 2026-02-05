@@ -97,8 +97,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Bun runtime
-RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
+# Install Node.js 22.x LTS
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g npm@latest tsx \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create app directories
 WORKDIR /app
@@ -108,10 +111,10 @@ RUN mkdir -p /app/data /app/recordings /app/images
 RUN rtl_power -h 2>&1 | head -1 || echo "rtl_power installed" \
     && satdump --help 2>&1 | head -1 || echo "satdump installed" \
     && sstv --version 2>&1 | head -1 || echo "sstv installed" \
-    && (bun --version || echo "bun installed (version check skipped)")
+    && node --version && npm --version
 
 # Labels
 LABEL org.opencontainers.image.title="Night Watch Base" \
-      org.opencontainers.image.description="Base image with rtl-sdr, SatDump (LRPT decoder), and bun runtime" \
+      org.opencontainers.image.description="Base image with rtl-sdr, SatDump (LRPT decoder), and Node.js runtime" \
       org.opencontainers.image.source="https://github.com/milesburton/noaa-satellite-capture" \
-      org.opencontainers.image.version="2026.02.04"
+      org.opencontainers.image.version="2026.02.05"
