@@ -35,14 +35,22 @@ async function main(): Promise<void> {
   }
 
   logger.info('Fetching TLE data...')
-  const tles = await getTles(SATELLITES.filter((s) => s.enabled), config.tle.updateIntervalHours)
+  const tles = await getTles(
+    SATELLITES.filter((s) => s.enabled),
+    config.tle.updateIntervalHours
+  )
   logger.info(`Loaded TLEs for ${tles.length} satellites`)
 
   logger.info('Predicting satellite passes...')
-  const allPasses = predictPasses(SATELLITES.filter((s) => s.enabled), tles, config.station, {
-    minElevation: config.recording.minElevation,
-    hoursAhead: 24,
-  })
+  const allPasses = predictPasses(
+    SATELLITES.filter((s) => s.enabled),
+    tles,
+    config.station,
+    {
+      minElevation: config.recording.minElevation,
+      hoursAhead: 24,
+    }
+  )
 
   if (allPasses.length === 0) {
     logger.warn('No passes found in the next 24 hours')

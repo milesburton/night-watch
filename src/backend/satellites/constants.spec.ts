@@ -1,4 +1,4 @@
-import { CELESTRAK_GP_API, SATELLITES, PASS_CONSTRAINTS } from '@backend/satellites/constants'
+import { CELESTRAK_GP_API, PASS_CONSTRAINTS, SATELLITES } from '@backend/satellites/constants'
 import type { SatelliteInfo } from '@backend/types'
 import { describe, expect, it } from 'vitest'
 

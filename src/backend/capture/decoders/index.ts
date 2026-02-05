@@ -2,7 +2,7 @@ import type { SignalType } from '@backend/types'
 import { logger } from '../../utils/logger'
 import { lrptDecoder } from './lrpt-decoder'
 import { getAllDecoders, getDecoder, hasDecoder, registerDecoder } from './registry'
-import { sstvDecoder} from './sstv-decoder'
+import { sstvDecoder } from './sstv-decoder'
 import type { DecoderResult } from './types'
 
 registerDecoder(lrptDecoder)

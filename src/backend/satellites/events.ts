@@ -4,7 +4,7 @@ import { logger } from '../utils/logger'
 
 let activeEvents: SSTVEvent[] = []
 let manualSstvEnabled = false
-let groundSstvScanEnabled = true // Default to enabled
+let groundSstvScanEnabled = false // Disabled by default - use API to enable
 
 export function setManualSstvEnabled(enabled: boolean): void {
   manualSstvEnabled = enabled

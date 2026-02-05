@@ -15,6 +15,10 @@ interface VersionInfo {
 }
 
 function getGitCommit(): string {
+  // Check for env var first (from Docker build args)
+  if (process.env.GIT_COMMIT) {
+    return process.env.GIT_COMMIT
+  }
   try {
     return execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim()
   } catch {

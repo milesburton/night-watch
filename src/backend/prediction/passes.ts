@@ -42,7 +42,8 @@ export function predictPasses(
       if (tleNoradMatch?.[1] && Number.parseInt(tleNoradMatch[1]) === sat.noradId) return true
 
       // Partial name match (for METEOR-M2 vs METEOR-M N2 variations)
-      if (tleName.includes(satName.slice(0, 8)) || satName.includes(tleName.slice(0, 8))) return true
+      if (tleName.includes(satName.slice(0, 8)) || satName.includes(tleName.slice(0, 8)))
+        return true
 
       return false
     })

@@ -18,13 +18,21 @@ export async function predictCommand(args: string[]): Promise<void> {
   )
   logger.info(`Predicting passes for next ${hoursAhead} hours...`)
 
-  const tles = await getTles(SATELLITES.filter((s) => s.enabled), config.tle.updateIntervalHours)
+  const tles = await getTles(
+    SATELLITES.filter((s) => s.enabled),
+    config.tle.updateIntervalHours
+  )
   logger.info(`Loaded TLEs for ${tles.length} satellites`)
 
-  const passes = predictPasses(SATELLITES.filter((s) => s.enabled), tles, config.station, {
-    minElevation: config.recording.minElevation,
-    hoursAhead,
-  })
+  const passes = predictPasses(
+    SATELLITES.filter((s) => s.enabled),
+    tles,
+    config.station,
+    {
+      minElevation: config.recording.minElevation,
+      hoursAhead,
+    }
+  )
 
   if (passes.length === 0) {
     logger.warn(`No passes found above ${config.recording.minElevation}° elevation`)

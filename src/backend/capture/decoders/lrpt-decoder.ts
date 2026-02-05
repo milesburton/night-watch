@@ -4,10 +4,7 @@ import { logger } from '../../utils/logger'
 import { runCommand } from '../../utils/shell'
 import type { Decoder, DecoderResult } from './types'
 
-const decodeWithSatDump = async (
-  wavPath: string,
-  outputDir: string
-): Promise<string[]> => {
+const decodeWithSatDump = async (wavPath: string, outputDir: string): Promise<string[]> => {
   const baseName = basename(wavPath, '.wav')
   const decodeOutputDir = join(outputDir, `${baseName}_lrpt`)
 
@@ -24,13 +21,7 @@ const decodeWithSatDump = async (
   if (success) {
     // SatDump creates PNG files in the output directory
     // Find all generated images
-    const lsResult = await runCommand('find', [
-      decodeOutputDir,
-      '-name',
-      '*.png',
-      '-type',
-      'f',
-    ])
+    const lsResult = await runCommand('find', [decodeOutputDir, '-name', '*.png', '-type', 'f'])
 
     const imagePaths =
       lsResult.exitCode === 0

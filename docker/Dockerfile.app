@@ -37,11 +37,13 @@ COPY src/frontend/postcss.config.js ./src/frontend/
 RUN cd src/frontend && bun run build
 
 # Layer 6: Generate version.json during build
+ARG GIT_COMMIT=unknown
+ARG BUILD_TIME
 COPY scripts/generate-version.ts ./scripts/
 COPY scripts/sstv-decode-wrapper.py ./scripts/
 COPY scripts/lrpt-decode-wrapper.sh ./scripts/
 RUN chmod +x scripts/lrpt-decode-wrapper.sh
-RUN bun run scripts/generate-version.ts
+RUN GIT_COMMIT=${GIT_COMMIT} BUILD_TIME=${BUILD_TIME} bun run scripts/generate-version.ts
 
 # Default environment variables
 
