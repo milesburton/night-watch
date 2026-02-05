@@ -8,6 +8,9 @@ export default defineConfig({
     include: ['src/**/*.spec.ts'],
     exclude: ['src/backend/db/database.spec.ts', 'src/backend/satellites/events.spec.ts'],
     setupFiles: ['src/test-setup.ts'],
+    restoreMocks: true,
+    mockReset: true,
+    isolate: true,
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'html', 'lcov'],

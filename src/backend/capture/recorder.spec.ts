@@ -24,11 +24,19 @@ vi.mock('node:child_process', () => {
 
 vi.mock('../utils/fs', () => ({
   ensureDir: vi.fn(() => Promise.resolve()),
+  ensureParentDir: vi.fn(() => Promise.resolve()),
+  fileExists: vi.fn(() => Promise.resolve(true)),
+  readTextFile: vi.fn(() => Promise.resolve('')),
+  writeTextFile: vi.fn(() => Promise.resolve()),
+  formatBytes: vi.fn((bytes: number) => `${bytes} B`),
   generateFilename: vi.fn(() => 'METEOR-M-N2-3_2025-01-01T12-00-00.wav'),
 }))
 
 vi.mock('../utils/shell', () => ({
   spawnProcess: vi.fn(),
+  runCommand: vi.fn(() => Promise.resolve({ exitCode: 0, stdout: '', stderr: '' })),
+  commandExists: vi.fn(() => Promise.resolve(true)),
+  checkDependencies: vi.fn(() => Promise.resolve(new Map())),
 }))
 
 import { spawn } from 'node:child_process'

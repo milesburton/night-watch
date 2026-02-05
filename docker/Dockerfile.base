@@ -23,7 +23,6 @@ RUN echo "1" > /var/lib/dpkg/info/format \
     && rm -rf /var/lib/apt/lists/*
 
 # Install runtime dependencies (rtl-sdr, sox, audio libs)
-# Cache bust: 2026-02-05-rebuild
 RUN apt-get update && apt-get install -y --no-install-recommends \
     rtl-sdr \
     sox \

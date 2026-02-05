@@ -18,7 +18,6 @@ describe('TLE fetcher', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch
-    vi.resetModules()
   })
 
   const getTleFunctions = async () => {

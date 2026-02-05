@@ -3,7 +3,12 @@ import type { Mock } from 'vitest'
 
 vi.mock('../../utils/fs', () => ({
   ensureDir: vi.fn(() => Promise.resolve()),
+  ensureParentDir: vi.fn(() => Promise.resolve()),
   fileExists: vi.fn(() => Promise.resolve(true)),
+  readTextFile: vi.fn(() => Promise.resolve('')),
+  writeTextFile: vi.fn(() => Promise.resolve()),
+  formatBytes: vi.fn((bytes: number) => `${bytes} B`),
+  generateFilename: vi.fn((satellite: string, extension: string) => `${satellite}.${extension}`),
 }))
 
 vi.mock('../../utils/shell', () => ({
