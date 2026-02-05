@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng16-16 \
     libjpeg62-turbo \
     libfftw3-double3 \
+    libfftw3-single3 \
     libvolk2.5 \
     libtiff6 \
     zlib1g \
