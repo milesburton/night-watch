@@ -3,10 +3,10 @@
  * Provides drop-in replacements for common Bun functions
  */
 
-import { readFile as fsReadFile, writeFile as fsWriteFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { readFile as fsReadFile, writeFile as fsWriteFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 /**
  * Sleep for a specified duration
@@ -37,7 +37,10 @@ export async function readFileBuffer(path: string): Promise<ArrayBuffer> {
  * Write buffer to file
  * Replacement for Bun.write()
  */
-export async function writeFile(path: string, data: ArrayBuffer | Uint8Array | string): Promise<void> {
+export async function writeFile(
+  path: string,
+  data: ArrayBuffer | Uint8Array | string
+): Promise<void> {
   await fsWriteFile(path, data instanceof ArrayBuffer ? Buffer.from(data) : data)
 }
 

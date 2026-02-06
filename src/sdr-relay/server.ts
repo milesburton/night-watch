@@ -5,9 +5,9 @@
  * Runs on Raspberry Pi with SDR hardware attached.
  */
 
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { readFile } from 'node:fs/promises'
-import { WebSocketServer, type WebSocket } from 'ws'
+import { type IncomingMessage, type Server, type ServerResponse, createServer } from 'node:http'
+import { type WebSocket, WebSocketServer } from 'ws'
 import {
   type FFTData,
   type FFTStreamConfig,
@@ -18,7 +18,7 @@ import {
   updateFFTFrequency,
 } from '../backend/capture/fft-stream'
 import { type RecordingSession, startRecording } from '../backend/capture/recorder'
-import { checkSignalStrength, verifySignalAtFrequency } from '../backend/capture/signal'
+import { verifySignalAtFrequency } from '../backend/capture/signal'
 import { logger } from '../backend/utils/logger'
 import { runCommand } from '../backend/utils/shell'
 import type {
@@ -374,12 +374,7 @@ export function startSDRRelayServer(port: number, host: string): Server {
         const sessionData = activeSessions.get(sessionId || '')
 
         if (!sessionData || sessionData.status !== 'complete') {
-          jsonResponse(
-            res,
-            { error: 'Recording not complete or not found' },
-            corsHeaders,
-            404
-          )
+          jsonResponse(res, { error: 'Recording not complete or not found' }, corsHeaders, 404)
           return
         }
 
@@ -392,12 +387,7 @@ export function startSDRRelayServer(port: number, host: string): Server {
           })
           res.end(audioData)
         } catch (error) {
-          jsonResponse(
-            res,
-            { error: 'Failed to read audio file' },
-            corsHeaders,
-            500
-          )
+          jsonResponse(res, { error: 'Failed to read audio file' }, corsHeaders, 500)
         }
         return
       }

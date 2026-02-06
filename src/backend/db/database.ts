@@ -1,8 +1,8 @@
-import Database from 'better-sqlite3'
+import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import { existsSync } from 'node:fs'
 import type { CaptureHistoryEntry, CaptureResult, SatellitePass, SignalType } from '@backend/types'
+import Database from 'better-sqlite3'
 
 export class CaptureDatabase {
   private db: Database.Database

@@ -1,7 +1,6 @@
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { readFile } from 'node:fs/promises'
-import { resolve, extname } from 'node:path'
-import { WebSocketServer, type WebSocket } from 'ws'
+import { type IncomingMessage, type ServerResponse, createServer } from 'node:http'
+import { resolve } from 'node:path'
 import {
   type FFTData,
   type NotchFilter,
@@ -26,6 +25,7 @@ import { stateManager } from '@backend/state/state-manager'
 import type { StateEvent } from '@backend/types'
 import { logger } from '@backend/utils/logger'
 import { fileExists, getDirname, readFileText } from '@backend/utils/node-compat'
+import { type WebSocket, WebSocketServer } from 'ws'
 import { type FrequencyBand, createAutoGain, createBandGainStore } from './auto-gain'
 import { getGlobeState } from './globe-service'
 
@@ -206,8 +206,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
     if (url.pathname === '/api/sstv/toggle' && req.method === 'POST') {
       try {
         const body = await readJsonBody(req)
-        const enabled =
-          (body.enabled as boolean | undefined) ?? !getSstvStatus().manualEnabled
+        const enabled = (body.enabled as boolean | undefined) ?? !getSstvStatus().manualEnabled
         setManualSstvEnabled(enabled)
         broadcastSstvStatus()
         jsonResponseNode(res, getSstvStatus())
@@ -221,8 +220,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
     if (url.pathname === '/api/sstv/ground-scan/toggle' && req.method === 'POST') {
       try {
         const body = await readJsonBody(req)
-        const enabled =
-          (body.enabled as boolean | undefined) ?? !getSstvStatus().groundScanEnabled
+        const enabled = (body.enabled as boolean | undefined) ?? !getSstvStatus().groundScanEnabled
         setGroundSstvScanEnabled(enabled)
         broadcastSstvStatus()
         jsonResponseNode(res, getSstvStatus())
@@ -642,7 +640,8 @@ function debouncedFFTStart(frequency: number) {
       autoGain.state.currentGain = gain
       autoGain.enable()
       logger.info(
-        `Band '${band}': no calibrated gain, starting auto-gain from ${gain} dB (target ${targets.targetMin} to ${targets.targetMax} dB)`
+        `Band '${band}': no calibrated gain, starting auto-gain from ${gain} dB ` +
+          `(target ${targets.targetMin} to ${targets.targetMax} dB)`
       )
     } else {
       autoGain.disable()
