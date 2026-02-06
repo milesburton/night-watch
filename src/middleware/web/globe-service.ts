@@ -11,8 +11,8 @@ const GROUND_TRACK_UPDATE_INTERVAL_MS = 60000
 const GROUND_TRACK_DURATION_MINUTES = 90
 const GROUND_TRACK_STEP_SECONDS = 30
 
-let positionInterval: Timer | null = null
-let groundTrackInterval: Timer | null = null
+let positionInterval: NodeJS.Timeout | null = null
+let groundTrackInterval: NodeJS.Timeout | null = null
 let cachedTles: TwoLineElement[] = []
 let cachedGroundTracks: GlobeState['groundTracks'] = []
 let stationCoords: Coordinates | null = null

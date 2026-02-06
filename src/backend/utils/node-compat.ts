@@ -3,6 +3,11 @@
  * Provides drop-in replacements for common Bun functions
  */
 
+import { readFile as fsReadFile, writeFile as fsWriteFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname } from 'node:path'
+
 /**
  * Sleep for a specified duration
  * Replacement for Bun.sleep()
@@ -16,8 +21,7 @@ export function sleep(ms: number): Promise<void> {
  * Replacement for Bun.file().text()
  */
 export async function readFileText(path: string): Promise<string> {
-  const { readFile } = await import('node:fs/promises')
-  return readFile(path, 'utf-8')
+  return fsReadFile(path, 'utf-8')
 }
 
 /**
@@ -25,8 +29,7 @@ export async function readFileText(path: string): Promise<string> {
  * Replacement for Bun.file().arrayBuffer()
  */
 export async function readFileBuffer(path: string): Promise<ArrayBuffer> {
-  const { readFile } = await import('node:fs/promises')
-  const buffer = await readFile(path)
+  const buffer = await fsReadFile(path)
   return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
 }
 
@@ -35,7 +38,6 @@ export async function readFileBuffer(path: string): Promise<ArrayBuffer> {
  * Replacement for Bun.write()
  */
 export async function writeFile(path: string, data: ArrayBuffer | Uint8Array | string): Promise<void> {
-  const { writeFile: fsWriteFile } = await import('node:fs/promises')
   await fsWriteFile(path, data instanceof ArrayBuffer ? Buffer.from(data) : data)
 }
 
@@ -43,6 +45,13 @@ export async function writeFile(path: string, data: ArrayBuffer | Uint8Array | s
  * Check if file exists
  */
 export function fileExists(path: string): boolean {
-  const { existsSync } = require('node:fs')
   return existsSync(path)
+}
+
+/**
+ * Get directory name from import.meta.url
+ * Replacement for import.meta.dir
+ */
+export function getDirname(importMetaUrl: string): string {
+  return dirname(fileURLToPath(importMetaUrl))
 }

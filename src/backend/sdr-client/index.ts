@@ -42,7 +42,7 @@ class RemoteFFTStream implements IFFTStream {
   private running = false
   private reconnectAttempts = 0
   private maxReconnectAttempts = 10
-  private reconnectTimeout: Timer | null = null
+  private reconnectTimeout: NodeJS.Timeout | null = null
 
   constructor(private relayUrl: string) {}
 
