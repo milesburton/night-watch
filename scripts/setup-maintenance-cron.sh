@@ -13,7 +13,7 @@ sudo touch "$LOG_FILE"
 sudo chown $USER:$USER "$LOG_FILE"
 
 # Create cron job
-CRON_CMD="cd $PROJECT_DIR && docker compose -f docker/compose.yaml exec -T rfcapture bun run /app/src/backend/cli/commands/maintenance.ts --all >> $LOG_FILE 2>&1"
+CRON_CMD="cd $PROJECT_DIR && docker compose -f docker/compose.yaml exec -T rfcapture npx tsx /app/src/backend/cli/commands/maintenance.ts --all >> $LOG_FILE 2>&1"
 
 # Check if cron job already exists
 if crontab -l 2>/dev/null | grep -q "maintenance.ts"; then

@@ -117,13 +117,13 @@ Once installed, SSTV decoding happens automatically:
 
 ```bash
 # Using npm scripts
-bun run maintenance:decode
+npm run maintenance:decode
 
 # Or directly
-bun run src/backend/cli/commands/maintenance.ts --decode
+npm run src/backend/cli/commands/maintenance.ts --decode
 
 # Inside Docker
-docker compose -f docker/compose.yaml exec rfcapture bun run maintenance:decode
+docker compose -f docker/compose.yaml exec rfcapture npm run maintenance:decode
 ```
 
 ### Manual Testing

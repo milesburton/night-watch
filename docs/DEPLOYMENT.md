@@ -142,48 +142,47 @@ SDR_RELAY_PORT=3001            # Port for relay (sdr-relay mode)
 export SERVICE_MODE=full
 export STATION_LATITUDE=51.5
 export STATION_LONGITUDE=-0.1
-bun run src/backend/cli/main.ts --help
+npx tsx src/backend/cli/main.ts --help
 
 # Predict passes
-bun run predict
+npm run predict
 
 # Run tests
-bun test  # Should see 206 pass
+npm test  # Should see 230 pass
 ```
 
 ### 2. Type Check
 
 ```bash
-bunx tsc --noEmit  # Should complete without errors
+npx tsc --noEmit  # Should complete without errors
 ```
 
 ### 3. Lint Check
 
 ```bash
-bunx biome check .  # Frontend warnings are non-blocking
+npx biome check .  # Frontend warnings are non-blocking
 ```
 
 ### 4. Build Frontend
 
 ```bash
-cd src/frontend && bun run build
+cd src/frontend && npm run build
 # Should see: ✓ built in ~2s
 ```
 
 ## Docker Build Commands
 
-### ⚠️ ARM Build Limitation
+### ARM Build Notes
 
-**IMPORTANT**: Docker builds with `bun install` hang on ARM devices (Raspberry Pi).
+**Deployment to Raspberry Pi 4:**
+The project uses Node.js 22.x LTS, which has excellent ARM compatibility including Cortex-A72 processors (Raspberry Pi 4).
 
-**Recommended Approach**:
-- Build images on x86_64 using GitHub Actions (automatic on push to `main`)
-- Or build locally on x86_64 and push to registry
-- Let the Pi pull pre-built ARM64 images
+**Build Strategy:**
+- Build images using GitHub Actions (multi-platform support)
+- Or build locally on x86_64 with cross-compilation
+- Pi pulls pre-built arm64 images from GitHub Container Registry
 
-**Why**: The `bun install` step during Docker build hangs indefinitely on ARM processors, likely due to Bun's ARM optimization issues during dependency installation.
-
-**Solution**: All image builds should use GitHub Actions or x86_64 machines with cross-compilation:
+**Historical Note:** The project originally used Bun runtime but switched to Node.js in Feb 2026 due to "Illegal instruction" crashes on Raspberry Pi 4's Cortex-A72. See [RUNTIME-MIGRATION.md](RUNTIME-MIGRATION.md) for details.
 
 ```bash
 # DO NOT run these on Raspberry Pi - they will hang!
@@ -251,15 +250,15 @@ docker inspect --format='{{json .State.Health.Status}}' rfcapture
 ### Tests Failing
 
 ```bash
-bun test  # Run tests
-# All 206 should pass
+npm test  # Run tests
+# All 230 should pass
 # Some TLE fetch errors are expected (test mocks)
 ```
 
 ### TypeScript Errors
 
 ```bash
-bunx tsc --noEmit  # Should complete silently
+npx tsc --noEmit  # Should complete silently
 ```
 
 ### Docker Build Issues

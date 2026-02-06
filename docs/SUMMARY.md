@@ -31,7 +31,7 @@
 
 **Cron Entry:**
 ```bash
-0 3 * * * cd /home/miles/noaa-satellite-capture && docker compose -f docker/compose.yaml exec -T rfcapture bun run maintenance:all >> /var/log/satellite-maintenance.log 2>&1
+0 3 * * * cd /home/miles/noaa-satellite-capture && docker compose -f docker/compose.yaml exec -T rfcapture npm run maintenance:all >> /var/log/satellite-maintenance.log 2>&1
 ```
 
 ### 3. ✅ Updated Documentation
@@ -82,13 +82,13 @@
 
 ```bash
 # Decode all recordings
-docker compose -f docker/compose.yaml exec rfcapture bun run maintenance:decode
+docker compose -f docker/compose.yaml exec rfcapture npm run maintenance:decode
 
 # Clean up failed recordings
-docker compose -f docker/compose.yaml exec rfcapture bun run maintenance:cleanup
+docker compose -f docker/compose.yaml exec rfcapture npm run maintenance:cleanup
 
 # Do both
-docker compose -f docker/compose.yaml exec rfcapture bun run maintenance:all
+docker compose -f docker/compose.yaml exec rfcapture npm run maintenance:all
 ```
 
 ### Check Maintenance Status
@@ -158,10 +158,10 @@ docker exec rfcapture ps aux
 ### Upcoming Passes
 ```bash
 # Next satellite passes
-docker compose -f docker/compose.yaml exec rfcapture bun run predict
+docker compose -f docker/compose.yaml exec rfcapture npm run predict
 
 # System status
-docker compose -f docker/compose.yaml exec rfcapture bun run status
+docker compose -f docker/compose.yaml exec rfcapture npm run status
 ```
 
 ### Image Management
@@ -195,7 +195,7 @@ http://192.168.1.206/
 
 **Next ISS Pass Check:**
 ```bash
-docker compose -f docker/compose.yaml exec rfcapture bun run predict | grep ISS
+docker compose -f docker/compose.yaml exec rfcapture npm run predict | grep ISS
 ```
 
 **Next Maintenance Run:** Tonight at 3:00 AM (automatic)

@@ -112,7 +112,7 @@ The system uses a single RTL-SDR device shared between the FFT stream (waterfall
 
 ## Technical Details
 
-**Runtime**: Bun
+**Runtime**: Node.js 22.x LTS
 **Backend**: TypeScript, SQLite
 **Frontend**: React, Vite, Tailwind CSS, Zustand
 **Signal Processing**: rtl_sdr → fft.js (real-time waterfall), rtl_fm → sox → SatDump (LRPT recording)

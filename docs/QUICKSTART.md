@@ -45,13 +45,13 @@ docker cp rfcapture:/app/images/NOAA-15_2026-02-03T07-05-39-a.png ./
 
 ```bash
 # Decode all unprocessed recordings
-docker compose -f docker/compose.yaml exec rfcapture bun run maintenance:decode
+docker compose -f docker/compose.yaml exec rfcapture npm run maintenance:decode
 
 # Clean up failed recordings
-docker compose -f docker/compose.yaml exec rfcapture bun run maintenance:cleanup
+docker compose -f docker/compose.yaml exec rfcapture npm run maintenance:cleanup
 
 # Do both
-docker compose -f docker/compose.yaml exec rfcapture bun run maintenance:all
+docker compose -f docker/compose.yaml exec rfcapture npm run maintenance:all
 ```
 
 **Note:** Maintenance runs automatically daily at 3 AM via cron job.
@@ -60,10 +60,10 @@ docker compose -f docker/compose.yaml exec rfcapture bun run maintenance:all
 
 ```bash
 # View upcoming passes
-docker compose -f docker/compose.yaml exec rfcapture bun run predict
+docker compose -f docker/compose.yaml exec rfcapture npm run predict
 
 # View system status
-docker compose -f docker/compose.yaml exec rfcapture bun run status
+docker compose -f docker/compose.yaml exec rfcapture npm run status
 ```
 
 ## Troubleshooting
@@ -107,7 +107,7 @@ docker exec rfcapture du -sh /app/recordings /app/images
 docker exec rfcapture find /app/recordings -name "*.wav" -mtime +30 -delete
 
 # Clean up failed recordings
-docker compose -f docker/compose.yaml exec rfcapture bun run maintenance:cleanup
+docker compose -f docker/compose.yaml exec rfcapture npm run maintenance:cleanup
 ```
 
 ## Common Tasks
@@ -146,7 +146,7 @@ ssh miles@192.168.1.206
 
 # Run maintenance
 cd ~/noaa-satellite-capture
-docker compose -f docker/compose.yaml exec -T rfcapture bun run maintenance:all
+docker compose -f docker/compose.yaml exec -T rfcapture npm run maintenance:all
 ```
 
 ## Important Files

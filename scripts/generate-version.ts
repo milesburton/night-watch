@@ -1,7 +1,7 @@
-#!/usr/bin/env bun
+#!/usr/bin/env tsx
 /**
  * Generate version.json file with build metadata
- * Usage: bun run scripts/generate-version.ts
+ * Usage: npm run version:generate
  */
 
 import { execSync } from 'node:child_process'

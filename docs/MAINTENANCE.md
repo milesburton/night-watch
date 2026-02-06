@@ -10,10 +10,10 @@ If you have recordings that were captured but never decoded (or failed to decode
 
 ```bash
 # Decode all recordings that don't have images
-bun run maintenance:decode
+npm run maintenance:decode
 
 # Or run directly
-bun run src/backend/cli/commands/maintenance.ts --decode
+npm run src/backend/cli/commands/maintenance.ts --decode
 ```
 
 ### Inside Docker Container
@@ -23,7 +23,7 @@ bun run src/backend/cli/commands/maintenance.ts --decode
 docker compose -f docker/compose.yaml exec rfcapture sh
 
 # Run maintenance
-bun run maintenance:decode
+npm run maintenance:decode
 ```
 
 ### What it does:
@@ -42,16 +42,16 @@ Small WAV files (typically 44 bytes) are failed recordings where no signal was c
 
 ```bash
 # Clean up failed recordings
-bun run maintenance:cleanup
+npm run maintenance:cleanup
 
 # Or run directly
-bun run src/backend/cli/commands/maintenance.ts --cleanup
+npm run src/backend/cli/commands/maintenance.ts --cleanup
 ```
 
 ### Inside Docker Container
 
 ```bash
-docker compose -f docker/compose.yaml exec rfcapture bun run maintenance:cleanup
+docker compose -f docker/compose.yaml exec rfcapture npm run maintenance:cleanup
 ```
 
 ### What it does:
@@ -64,10 +64,10 @@ docker compose -f docker/compose.yaml exec rfcapture bun run maintenance:cleanup
 
 ```bash
 # Decode + cleanup
-bun run maintenance:all
+npm run maintenance:all
 
 # Or
-bun run src/backend/cli/commands/maintenance.ts --all
+npm run src/backend/cli/commands/maintenance.ts --all
 ```
 
 ## Manual Cleanup
@@ -100,7 +100,7 @@ find ./recordings -name "*.wav" -size -10k -exec du -ch {} + | tail -1
 ## Example Output
 
 ```
-$ bun run maintenance:all
+$ npm run maintenance:all
 
 Found 47 WAV files in recordings directory
 
@@ -148,7 +148,7 @@ If you prefer to set it up manually:
 crontab -e
 
 # Add this line to run maintenance daily at 3 AM
-0 3 * * * cd /home/miles/noaa-satellite-capture && docker compose -f docker/compose.yaml exec -T rfcapture bun run maintenance:all >> /var/log/satellite-maintenance.log 2>&1
+0 3 * * * cd /home/miles/noaa-satellite-capture && docker compose -f docker/compose.yaml exec -T rfcapture npm run maintenance:all >> /var/log/satellite-maintenance.log 2>&1
 ```
 
 ### Check Cron Status
@@ -161,7 +161,7 @@ crontab -l
 tail -f /var/log/satellite-maintenance.log
 
 # Test maintenance manually
-cd ~/noaa-satellite-capture && docker compose -f docker/compose.yaml exec -T rfcapture bun run maintenance:all
+cd ~/noaa-satellite-capture && docker compose -f docker/compose.yaml exec -T rfcapture npm run maintenance:all
 ```
 
 ## Troubleshooting

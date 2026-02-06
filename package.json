@@ -5,24 +5,24 @@
   "type": "module",
   "main": "src/backend/cli/main.ts",
   "scripts": {
-    "start": "bun run src/backend/cli/main.ts run",
-    "dev": "bun run --watch src/backend/cli/main.ts run",
-    "dev:ui": "cd src/frontend && bun run dev",
-    "build:ui": "cd src/frontend && bun run build",
+    "start": "tsx src/backend/cli/main.ts run",
+    "dev": "tsx --watch src/backend/cli/main.ts run",
+    "dev:ui": "cd src/frontend && npm run dev",
+    "build:ui": "cd src/frontend && npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "bunx biome check .",
-    "lint:fix": "bunx biome check --write .",
-    "format": "bunx biome format --write .",
-    "typecheck": "bunx tsc --noEmit",
-    "predict": "bun run src/backend/cli/main.ts predict",
-    "status": "bun run src/backend/cli/main.ts status",
-    "version:generate": "bun run scripts/generate-version.ts",
-    "maintenance:decode": "bun run src/backend/cli/commands/maintenance.ts --decode",
-    "maintenance:cleanup": "bun run src/backend/cli/commands/maintenance.ts --cleanup",
-    "maintenance:all": "bun run src/backend/cli/commands/maintenance.ts --all",
-    "serve": "bun run src/backend/cli/main.ts serve",
+    "lint": "npx biome check .",
+    "lint:fix": "npx biome check --write .",
+    "format": "npx biome format --write .",
+    "typecheck": "npx tsc --noEmit",
+    "predict": "tsx src/backend/cli/main.ts predict",
+    "status": "tsx src/backend/cli/main.ts status",
+    "version:generate": "tsx scripts/generate-version.ts",
+    "maintenance:decode": "tsx src/backend/cli/commands/maintenance.ts --decode",
+    "maintenance:cleanup": "tsx src/backend/cli/commands/maintenance.ts --cleanup",
+    "maintenance:all": "tsx src/backend/cli/commands/maintenance.ts --all",
+    "serve": "tsx src/backend/cli/main.ts serve",
     "prepare": "husky"
   },
   "dependencies": {
@@ -38,14 +38,14 @@
     "@biomejs/biome": "^1.9.4",
     "@commitlint/cli": "^20.3.0",
     "@commitlint/config-conventional": "^20.3.0",
-    "@types/bun": "^1.1.14",
     "@vitest/coverage-istanbul": "^4.0.18",
     "@vitest/coverage-v8": "^4.0.17",
     "husky": "^9.1.7",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^4.0.17"
   },
   "engines": {
-    "bun": ">=1.0.0"
+    "node": ">=22.0.0"
   }
 }

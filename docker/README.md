@@ -43,9 +43,8 @@ SDR_RELAY_URL=http://your-pi-ip:3001 docker compose -f docker/compose.yaml --pro
 
 | File | Description |
 |------|-------------|
-| `Dockerfile` | Main production image with all dependencies |
-| `Dockerfile.app` | Fast rebuild image (extends base image) |
-| `Dockerfile.base` | Base image with OS, Bun, system deps |
+| `Dockerfile.app` | Application image (extends base image) |
+| `Dockerfile.base` | Base image with OS, Node.js, system deps |
 | `compose.yaml` | Docker Compose configuration |
 | `.dockerignore` | Files to exclude from Docker builds |
 
@@ -107,10 +106,10 @@ docker compose -f docker/compose.yaml build
 ### Two-Tier Build (Faster Deploys)
 
 The images are split into two layers:
-- **Base image** (`Dockerfile.base`): OS, rtl-sdr tools, aptdec decoder, Bun runtime. Build rarely.
+- **Base image** (`Dockerfile.base`): OS, rtl-sdr tools, SatDump decoder, Node.js 22.x runtime. Build rarely.
 - **App image** (`Dockerfile.app`): Application code only. Fast to rebuild.
 
-1. Build the base image once (contains OS, system tools, Bun):
+1. Build the base image once (contains OS, system tools, Node.js):
 
 ```bash
 # From project root
