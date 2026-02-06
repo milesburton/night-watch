@@ -34,7 +34,7 @@ export async function serveCommand(_args: string[]): Promise<void> {
   const shutdown = () => {
     logger.info('\nShutting down...')
     stopGlobeService()
-    server.stop()
+    server.close()
     closeDatabase()
     process.exit(0)
   }
