@@ -22,7 +22,8 @@
       "@/*": ["src/*"],
       "@backend/*": ["src/backend/*"],
       "@middleware/*": ["src/middleware/*"]
-    }
+    },
+    "types": ["node"]
   },
   "include": ["src/backend/**/*", "src/middleware/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist", "frontend"]
