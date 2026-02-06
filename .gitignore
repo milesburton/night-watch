@@ -47,6 +47,3 @@ e2e/__snapshots__/
 
 # TLE cache
 .tle-cache/
-
-# Bun lockfile (included in repo for reproducible builds)
-# bun.lockb

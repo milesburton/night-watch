@@ -20,6 +20,6 @@
     "source=${localEnv:HOME}/.config/claude,target=/home/node/.config/claude,type=bind"
   ],
   "runArgs": ["--privileged"],
-  "postCreateCommand": "bun install && echo 'RFCapture Dev Container Ready! Run: bun start'",
-  "postStartCommand": "bun install"
+  "postCreateCommand": "npm install && echo 'RFCapture Dev Container Ready! Run: npm start'",
+  "postStartCommand": "npm install"
 }
