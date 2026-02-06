@@ -1,6 +1,7 @@
 import type { SatelliteInfo } from '@backend/types'
 import { SIGNAL } from '../satellites/constants'
 import { logger } from '../utils/logger'
+import { sleep } from '../utils/node-compat'
 import { type RunningProcess, runCommand, spawnProcess } from '../utils/shell'
 
 export interface SignalStrength {
@@ -100,7 +101,7 @@ export async function verifySignal(
     results.push(isStrong)
 
     const isNotLastAttempt = i < attempts - 1
-    isNotLastAttempt && (await Bun.sleep(2000))
+    isNotLastAttempt && (await sleep(2000))
   }
 
   const successCount = results.filter(Boolean).length

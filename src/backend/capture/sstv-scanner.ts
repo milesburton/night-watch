@@ -3,6 +3,7 @@ import { getDatabase } from '../db/database'
 import { SIGNAL_CONFIGS } from '../satellites/constants'
 import { stateManager } from '../state/state-manager'
 import { logger } from '../utils/logger'
+import { sleep } from '../utils/node-compat'
 import { decodeRecording } from './decoders'
 import { getLatestFFTData, stopFFTStream } from './fft-stream'
 import { recordPass } from './recorder'
@@ -85,7 +86,7 @@ export async function scanForSstv(
         // Longer dwell time reduces waterfall disruption from frequent frequency changes
         let maxSeenPower = -999
         for (let i = 0; i < 40 && !shouldStop && Date.now() < endTime; i++) {
-          await Bun.sleep(500)
+          await sleep(500)
           const fftData = getLatestFFTData()
           if (fftData) {
             maxSeenPower = Math.max(maxSeenPower, fftData.maxPower)
@@ -113,7 +114,7 @@ export async function scanForSstv(
           // stopFFTStream now waits for process termination internally
           await stopFFTStream()
           // Additional delay to ensure USB device is fully released
-          await Bun.sleep(1000)
+          await sleep(1000)
 
           // Create a virtual satellite info for this capture
           const captureInfo: SatelliteInfo = {

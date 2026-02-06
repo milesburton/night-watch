@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import type { ReceiverConfig, SatelliteInfo } from '@backend/types'
 import { ensureDir, generateFilename } from '../utils/fs'
 import { logger } from '../utils/logger'
+import { sleep } from '../utils/node-compat'
 import { type RunningProcess, spawnProcess } from '../utils/shell'
 
 export interface RecordingSession {
@@ -120,7 +121,7 @@ export async function recordPass(
   while (Date.now() < endTime) {
     const elapsed = Math.floor((Date.now() - startTime) / 1000)
     onProgress?.(elapsed, durationSeconds)
-    await Bun.sleep(1000)
+    await sleep(1000)
   }
 
   await session.stop()

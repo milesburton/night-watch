@@ -1,6 +1,7 @@
 import { type ChildProcess, spawn } from 'node:child_process'
 import FFT from 'fft.js'
 import { logger } from '../utils/logger'
+import { sleep } from '../utils/node-compat'
 
 export interface FFTData {
   timestamp: number
@@ -180,7 +181,7 @@ export async function startFFTStream(
   if (timeSinceStop < MIN_RESTART_DELAY_MS && lastStopTime > 0) {
     const waitTime = MIN_RESTART_DELAY_MS - timeSinceStop
     logger.debug(`Waiting ${waitTime}ms for USB device to be released`)
-    await Bun.sleep(waitTime)
+    await sleep(waitTime)
   }
 
   const fullConfig = { ...DEFAULT_CONFIG, ...config } as Required<FFTStreamConfig>
@@ -399,7 +400,7 @@ export async function stopFFTStream(): Promise<void> {
     }, 500)
 
     // Wait for process to actually terminate (max 2s timeout)
-    await Promise.race([terminated, Bun.sleep(2000)])
+    await Promise.race([terminated, sleep(2000)])
 
     lastStopTime = Date.now()
   }

@@ -11,6 +11,7 @@ import { PASS_CONSTRAINTS } from '../satellites/constants'
 import { isGroundSstvScanEnabled } from '../satellites/events'
 import { stateManager } from '../state/state-manager'
 import { logger } from '../utils/logger'
+import { sleep } from '../utils/node-compat'
 
 // Minimum idle time (in seconds) before starting SSTV scanning
 const MIN_IDLE_FOR_SSTV_SCAN = 180 // 3 minutes
@@ -76,7 +77,7 @@ export async function waitForPass(pass: SatellitePass, config?: ReceiverConfig):
       }
     }, 1000)
 
-    await Bun.sleep(waitMs)
+    await sleep(waitMs)
 
     clearInterval(updateInterval)
     stopSstvScanner() // Ensure scanner is stopped
@@ -97,7 +98,7 @@ export async function waitForPass(pass: SatellitePass, config?: ReceiverConfig):
     }
   }, 1000)
 
-  await Bun.sleep(waitMs)
+  await sleep(waitMs)
 
   clearInterval(updateInterval)
   spinner.succeed(chalk.green('Pass starting!'))
@@ -138,7 +139,7 @@ export async function capturePass(
     logger.debug('Stopping FFT stream before recording to release SDR device')
     await stopFFTStream()
     // Additional delay to ensure USB device is fully released
-    await Bun.sleep(1000)
+    await sleep(1000)
   }
 
   stateManager.startPass(pass)

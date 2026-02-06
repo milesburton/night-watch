@@ -11,6 +11,7 @@ import { runScheduler } from '../../scheduler/scheduler'
 import { stateManager } from '../../state/state-manager'
 import { ensureDir } from '../../utils/fs'
 import { logger } from '../../utils/logger'
+import { sleep } from '../../utils/node-compat'
 import { checkDependencies } from '../../utils/shell'
 
 const REQUIRED_COMMANDS = ['rtl_fm', 'rtl_power', 'sox']
@@ -89,7 +90,7 @@ export async function runCommand(_args: string[]): Promise<void> {
       if (activeSatellites.length === 0) {
         logger.info('No active satellites. Enable SSTV mode or check satellite configuration.')
         stateManager.setStatus('idle')
-        await Bun.sleep(60 * 1000)
+        await sleep(60 * 1000)
         continue
       }
 
@@ -112,7 +113,7 @@ export async function runCommand(_args: string[]): Promise<void> {
 
         // Wait 1 hour before checking again
         logger.info('Checking again in 1 hour...')
-        await Bun.sleep(60 * 60 * 1000)
+        await sleep(60 * 60 * 1000)
         continue
       }
 
@@ -128,7 +129,7 @@ export async function runCommand(_args: string[]): Promise<void> {
       if (passes.length === 0) {
         logger.info('No high-quality passes, checking again in 1 hour...')
         stateManager.setStatus('idle')
-        await Bun.sleep(60 * 60 * 1000)
+        await sleep(60 * 60 * 1000)
         continue
       }
 
@@ -140,12 +141,12 @@ export async function runCommand(_args: string[]): Promise<void> {
 
       // Small delay before re-predicting
       stateManager.setStatus('idle')
-      await Bun.sleep(5000)
+      await sleep(5000)
     } catch (error) {
       logger.error('Error in capture loop:', error)
       stateManager.setStatus('idle')
       // Wait 5 minutes before retrying on error
-      await Bun.sleep(5 * 60 * 1000)
+      await sleep(5 * 60 * 1000)
     }
   }
 }

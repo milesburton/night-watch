@@ -30,6 +30,7 @@ import type {
 } from '../capture/sdr-interfaces'
 import { ensureDir } from '../utils/fs'
 import { logger } from '../utils/logger'
+import { sleep, writeFile } from '../utils/node-compat'
 
 /**
  * Remote FFT stream implementation
@@ -225,11 +226,11 @@ class RemoteRecorder implements IRecorder {
         }
       }
 
-      await Bun.sleep(1000)
+      await sleep(1000)
     }
 
     // Wait a bit for the recording to finish
-    await Bun.sleep(2000)
+    await sleep(2000)
 
     // Download the WAV file
     logger.info('Downloading recording from relay...')
@@ -246,7 +247,7 @@ class RemoteRecorder implements IRecorder {
     const localPath = join(this.localRecordingsDir, filename)
 
     const audioBuffer = await audioResponse.arrayBuffer()
-    await Bun.write(localPath, audioBuffer)
+    await writeFile(localPath, audioBuffer)
 
     logger.info(`Recording saved: ${localPath}`)
     return localPath
@@ -306,7 +307,7 @@ class RemoteSignalChecker implements ISignalChecker {
       }
 
       if (i < attempts - 1) {
-        await Bun.sleep(2000)
+        await sleep(2000)
       }
     }
 

@@ -1,14 +1,21 @@
-import { Database } from 'bun:sqlite'
+import Database from 'better-sqlite3'
 import { mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
+import { existsSync } from 'node:fs'
 import type { CaptureHistoryEntry, CaptureResult, SatellitePass, SignalType } from '@backend/types'
 
 export class CaptureDatabase {
-  private db: Database
+  private db: Database.Database
 
   constructor(dbPath: string) {
-    this.db = new Database(dbPath, { create: true })
-    this.db.exec('PRAGMA journal_mode = WAL')
+    // Ensure parent directory exists before creating database
+    const dir = dirname(dbPath)
+    if (!existsSync(dir)) {
+      throw new Error(`Database directory does not exist: ${dir}`)
+    }
+
+    this.db = new Database(dbPath)
+    this.db.pragma('journal_mode = WAL')
     this.initialize()
   }
 
@@ -60,7 +67,7 @@ export class CaptureDatabase {
   }
 
   private migrateIfNeeded(): void {
-    const columns = this.db.query<{ name: string }, []>('PRAGMA table_info(captures)').all()
+    const columns = this.db.prepare('PRAGMA table_info(captures)').all() as { name: string }[]
     const hasSignalType = columns.some((c) => c.name === 'signal_type')
     if (!hasSignalType) {
       this.db.exec(`ALTER TABLE captures ADD COLUMN signal_type TEXT NOT NULL DEFAULT 'lrpt'`)
@@ -79,7 +86,7 @@ export class CaptureDatabase {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
-    stmt.run(
+    const info = stmt.run(
       passId,
       result.satellite.name,
       result.satellite.noradId,
@@ -97,8 +104,7 @@ export class CaptureDatabase {
       result.error || null
     )
 
-    const lastId = this.db.query<{ id: number }, []>('SELECT last_insert_rowid() as id').get()
-    return lastId?.id ?? 0
+    return Number(info.lastInsertRowid)
   }
 
   saveImages(captureId: number, imagePaths: string[]): void {
@@ -119,29 +125,7 @@ export class CaptureDatabase {
 
   getRecentCaptures(limit = 50, offset = 0): CaptureHistoryEntry[] {
     const rows = this.db
-      .query<
-        {
-          id: number
-          pass_id: string
-          satellite_name: string
-          satellite_norad_id: number
-          frequency: number
-          signal_type: string
-          aos_time: string
-          los_time: string
-          max_elevation: number
-          duration_seconds: number
-          recording_path: string | null
-          start_time: string
-          end_time: string | null
-          max_signal_strength: number | null
-          success: number
-          error_message: string | null
-          created_at: string
-          image_paths: string | null
-        },
-        [number, number]
-      >(
+      .prepare(
         `
       SELECT c.*, GROUP_CONCAT(i.file_path) as image_paths
       FROM captures c
@@ -151,7 +135,26 @@ export class CaptureDatabase {
       LIMIT ? OFFSET ?
     `
       )
-      .all(limit, offset)
+      .all(limit, offset) as {
+      id: number
+      pass_id: string
+      satellite_name: string
+      satellite_norad_id: number
+      frequency: number
+      signal_type: string
+      aos_time: string
+      los_time: string
+      max_elevation: number
+      duration_seconds: number
+      recording_path: string | null
+      start_time: string
+      end_time: string | null
+      max_signal_strength: number | null
+      success: number
+      error_message: string | null
+      created_at: string
+      image_paths: string | null
+    }[]
 
     return rows.map((row) => ({
       id: row.id,
@@ -177,7 +180,7 @@ export class CaptureDatabase {
 
   getCaptureSummary(): { total: number; successful: number; failed: number } {
     const row = this.db
-      .query<{ total: number; successful: number | null; failed: number | null }, []>(
+      .prepare(
         `
       SELECT
         COUNT(*) as total,
@@ -186,7 +189,7 @@ export class CaptureDatabase {
       FROM captures
     `
       )
-      .get()
+      .get() as { total: number; successful: number | null; failed: number | null } | undefined
 
     return {
       total: row?.total ?? 0,
