@@ -90,7 +90,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
   let staticDir: string
 
   // Initialize static directory (async IIFE to set up before server starts handling requests)
-  getStaticDir().then((dir) => {
+  getStaticDir().then((dir: string) => {
     staticDir = dir
   })
 
@@ -206,7 +206,8 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
     if (url.pathname === '/api/sstv/toggle' && req.method === 'POST') {
       try {
         const body = await readJsonBody(req)
-        const enabled = body.enabled ?? !getSstvStatus().manualEnabled
+        const enabled =
+          (body.enabled as boolean | undefined) ?? !getSstvStatus().manualEnabled
         setManualSstvEnabled(enabled)
         broadcastSstvStatus()
         jsonResponseNode(res, getSstvStatus())
@@ -220,7 +221,8 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
     if (url.pathname === '/api/sstv/ground-scan/toggle' && req.method === 'POST') {
       try {
         const body = await readJsonBody(req)
-        const enabled = body.enabled ?? !getSstvStatus().groundScanEnabled
+        const enabled =
+          (body.enabled as boolean | undefined) ?? !getSstvStatus().groundScanEnabled
         setGroundSstvScanEnabled(enabled)
         broadcastSstvStatus()
         jsonResponseNode(res, getSstvStatus())
@@ -292,11 +294,11 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
       try {
         const body = await readJsonBody(req)
 
-        const frequency = body.frequency || 137_500_000
-        const bandwidth = body.bandwidth || 200_000
-        const gain = body.gain || currentGain
-        const fftSize = body.fftSize || 1024
-        const updateRate = body.updateRate || 10
+        const frequency = (body.frequency as number | undefined) || 137_500_000
+        const bandwidth = (body.bandwidth as number | undefined) || 200_000
+        const gain = (body.gain as number | undefined) || currentGain
+        const fftSize = (body.fftSize as number | undefined) || 1024
+        const updateRate = (body.updateRate as number | undefined) || 10
 
         const success = await startFFTStream(
           { frequency, bandwidth, fftSize, gain, updateRate },
@@ -315,7 +317,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
     if (url.pathname === '/api/config/gain' && req.method === 'POST') {
       try {
         const body = await readJsonBody(req)
-        if (body.auto === true) {
+        if ((body.auto as boolean | undefined) === true) {
           bandGainStore.clear(currentBand)
           autoGain.enable()
           logger.info(`Auto-gain calibration enabled for band '${currentBand}'`)
@@ -327,7 +329,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
           })
           return
         }
-        const gain = body.gain
+        const gain = body.gain as number | undefined
         if (gain === undefined || gain < 0 || gain > 49) {
           res.writeHead(400, { 'Content-Type': 'text/plain' })
           res.end('Gain must be between 0 and 49')
@@ -366,8 +368,8 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
     if (url.pathname === '/api/fft/notch' && req.method === 'POST') {
       try {
         const body = await readJsonBody(req)
-        const frequency = body.frequency
-        const width = body.width || 5000
+        const frequency = body.frequency as number | undefined
+        const width = (body.width as number | undefined) || 5000
 
         if (!frequency || typeof frequency !== 'number') {
           res.writeHead(400, { 'Content-Type': 'text/plain' })
@@ -388,7 +390,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
     if (url.pathname === '/api/fft/notch' && req.method === 'DELETE') {
       try {
         const body = await readJsonBody(req)
-        const frequency = body.frequency
+        const frequency = body.frequency as number | undefined
 
         if (!frequency || typeof frequency !== 'number') {
           res.writeHead(400, { 'Content-Type': 'text/plain' })
@@ -409,8 +411,8 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
     if (url.pathname === '/api/fft/notch/toggle' && req.method === 'POST') {
       try {
         const body = await readJsonBody(req)
-        const frequency = body.frequency
-        const enabled = body.enabled
+        const frequency = body.frequency as number | undefined
+        const enabled = body.enabled as boolean | undefined
 
         if (!frequency || typeof frequency !== 'number' || typeof enabled !== 'boolean') {
           res.writeHead(400, { 'Content-Type': 'text/plain' })
@@ -442,17 +444,20 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
   const wss = new WebSocketServer({ noServer: true })
 
   // Handle WebSocket upgrade
-  server.on('upgrade', (req: IncomingMessage, socket, head) => {
-    const url = new URL(req.url || '/', `http://${req.headers.host}`)
+  server.on(
+    'upgrade',
+    (req: IncomingMessage, socket: import('node:stream').Duplex, head: Buffer) => {
+      const url = new URL(req.url || '/', `http://${req.headers.host}`)
 
-    if (url.pathname === '/ws') {
-      wss.handleUpgrade(req, socket, head, (ws) => {
-        wss.emit('connection', ws, req)
-      })
-    } else {
-      socket.destroy()
+      if (url.pathname === '/ws') {
+        wss.handleUpgrade(req, socket, head, (ws: WebSocket) => {
+          wss.emit('connection', ws, req)
+        })
+      } else {
+        socket.destroy()
+      }
     }
-  })
+  )
 
   // WebSocket connection handler
   wss.on('connection', (ws: WebSocket) => {
@@ -480,7 +485,7 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
     })
 
     // Handle WebSocket messages
-    ws.on('message', (message) => {
+    ws.on('message', (message: import('ws').RawData) => {
       try {
         const data = JSON.parse(message.toString()) as { type: string; [key: string]: unknown }
 
@@ -676,7 +681,7 @@ function broadcastSstvStatus() {
   }
 }
 
-function broadcastFFTData(data: FFTData) {
+function broadcastFFTData(data: FFTData): void {
   // Always buffer, even if no subscribers (so late joiners get history)
   fftHistoryBuffer.push(data)
   if (fftHistoryBuffer.length > FFT_HISTORY_MAX) {
@@ -736,12 +741,12 @@ function broadcastFFTError(error: string) {
 async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     let body = ''
-    req.on('data', (chunk) => {
+    req.on('data', (chunk: Buffer) => {
       body += chunk.toString()
     })
     req.on('end', () => {
       try {
-        resolve(JSON.parse(body))
+        resolve(JSON.parse(body) as Record<string, unknown>)
       } catch (err) {
         reject(err)
       }

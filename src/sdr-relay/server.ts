@@ -190,15 +190,16 @@ export function startSDRRelayServer(port: number, host: string): Server {
 
       // POST /sdr/tune
       if (path === '/sdr/tune' && req.method === 'POST') {
-        const body = (await readJsonBody(req)) as TuneRequest
+        const body = await readJsonBody(req)
+        const tuneRequest = body as unknown as TuneRequest
 
         if (isFFTStreamRunning()) {
-          updateFFTFrequency(body.frequency)
+          updateFFTFrequency(tuneRequest.frequency)
         }
 
         const response: TuneResponse = {
           success: true,
-          frequency: body.frequency,
+          frequency: tuneRequest.frequency,
         }
         jsonResponse(res, response, corsHeaders)
         return
@@ -206,7 +207,8 @@ export function startSDRRelayServer(port: number, host: string): Server {
 
       // POST /sdr/capture/start
       if (path === '/sdr/capture/start' && req.method === 'POST') {
-        const body = (await readJsonBody(req)) as StartCaptureRequest
+        const body = await readJsonBody(req)
+        const startRequest = body as unknown as StartCaptureRequest
 
         // Check if already recording
         if (currentMode === 'recording') {
@@ -229,14 +231,14 @@ export function startSDRRelayServer(port: number, host: string): Server {
         try {
           // Create satellite info for recorder
           const satelliteInfo = {
-            name: body.satelliteName || 'Unknown',
+            name: startRequest.satelliteName || 'Unknown',
             noradId: 0,
-            frequency: body.frequency,
+            frequency: startRequest.frequency,
             signalType: 'lrpt' as const,
             signalConfig: {
               type: 'lrpt' as const,
               bandwidth: 120000,
-              sampleRate: body.sampleRate,
+              sampleRate: startRequest.sampleRate,
               demodulation: 'fm' as const,
             },
             enabled: true,
@@ -247,9 +249,9 @@ export function startSDRRelayServer(port: number, host: string): Server {
             sdrRelay: { port, host, url: undefined },
             station: { latitude: 0, longitude: 0, altitude: 0 },
             sdr: {
-              gain: body.gain,
-              sampleRate: body.sampleRate,
-              ppmCorrection: body.ppmCorrection || 0,
+              gain: startRequest.gain,
+              sampleRate: startRequest.sampleRate,
+              ppmCorrection: startRequest.ppmCorrection || 0,
             },
             recording: {
               minElevation: 0,
@@ -271,7 +273,7 @@ export function startSDRRelayServer(port: number, host: string): Server {
           activeSessions.set(sessionId, {
             session,
             startTime: new Date(),
-            durationSeconds: body.durationSeconds,
+            durationSeconds: startRequest.durationSeconds,
             status: 'recording',
             progress: 0,
           })
@@ -317,8 +319,9 @@ export function startSDRRelayServer(port: number, host: string): Server {
 
       // POST /sdr/capture/stop
       if (path === '/sdr/capture/stop' && req.method === 'POST') {
-        const body = (await readJsonBody(req)) as StopCaptureRequest
-        const sessionData = activeSessions.get(body.sessionId)
+        const body = await readJsonBody(req)
+        const stopRequest = body as unknown as StopCaptureRequest
+        const sessionData = activeSessions.get(stopRequest.sessionId)
 
         if (!sessionData) {
           const response: StopCaptureResponse = {
@@ -401,7 +404,8 @@ export function startSDRRelayServer(port: number, host: string): Server {
 
       // POST /sdr/signal/check
       if (path === '/sdr/signal/check' && req.method === 'POST') {
-        const body = (await readJsonBody(req)) as SignalCheckRequest
+        const body = await readJsonBody(req)
+        const signalRequest = body as unknown as SignalCheckRequest
 
         if (currentMode === 'recording') {
           jsonResponse(res, { error: 'SDR is currently recording' }, corsHeaders, 409)
@@ -416,13 +420,13 @@ export function startSDRRelayServer(port: number, host: string): Server {
 
         try {
           const detected = await verifySignalAtFrequency(
-            body.frequency,
-            body.gain,
+            signalRequest.frequency,
+            signalRequest.gain,
             -30 // Default threshold
           )
 
           const response: SignalCheckResponse = {
-            frequency: body.frequency,
+            frequency: signalRequest.frequency,
             power: detected ? -20 : -50, // Approximate
             detected,
             timestamp: new Date().toISOString(),
@@ -479,24 +483,27 @@ export function startSDRRelayServer(port: number, host: string): Server {
   const wss = new WebSocketServer({ noServer: true })
 
   // Handle WebSocket upgrade
-  server.on('upgrade', (req: IncomingMessage, socket, head) => {
-    const url = new URL(req.url || '/', `http://${req.headers.host}`)
+  server.on(
+    'upgrade',
+    (req: IncomingMessage, socket: import('node:stream').Duplex, head: Buffer) => {
+      const url = new URL(req.url || '/', `http://${req.headers.host}`)
 
-    if (url.pathname === '/sdr/fft') {
-      wss.handleUpgrade(req, socket, head, (ws) => {
-        wss.emit('connection', ws, req)
-      })
-    } else {
-      socket.destroy()
+      if (url.pathname === '/sdr/fft') {
+        wss.handleUpgrade(req, socket, head, (ws: WebSocket) => {
+          wss.emit('connection', ws, req)
+        })
+      } else {
+        socket.destroy()
+      }
     }
-  })
+  )
 
   // WebSocket connection handler
   wss.on('connection', (ws: WebSocket) => {
     logger.debug('FFT WebSocket connection opened')
 
     // Handle WebSocket messages
-    ws.on('message', (message) => {
+    ws.on('message', (message: import('ws').RawData) => {
       try {
         const data = JSON.parse(message.toString()) as FFTWSMessage
         handleFFTMessage(ws, data)
@@ -541,12 +548,12 @@ export function startSDRRelayServer(port: number, host: string): Server {
 async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     let body = ''
-    req.on('data', (chunk) => {
+    req.on('data', (chunk: Buffer) => {
       body += chunk.toString()
     })
     req.on('end', () => {
       try {
-        resolve(JSON.parse(body))
+        resolve(JSON.parse(body) as Record<string, unknown>)
       } catch (err) {
         reject(err)
       }
