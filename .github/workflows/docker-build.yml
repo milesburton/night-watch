@@ -19,8 +19,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    # Always build base on push to main (for now, until we fix the condition)
-    if: github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v4
@@ -53,6 +51,7 @@ jobs:
 
   # Build app image on every push (fast - uses base image)
   build-app:
+    needs: [build-base]
     runs-on: ubuntu-latest
     permissions:
       contents: read
