@@ -12,7 +12,7 @@ WORKDIR /app
 
 # Layer 1: Install backend dependencies (cached unless package.json changes)
 COPY package.json package-lock.json ./
-RUN npm install --ignore-scripts
+RUN npm install
 
 # Layer 2: Install frontend dependencies (cached unless frontend package.json changes)
 COPY src/frontend/package.json src/frontend/package-lock.json ./src/frontend/
