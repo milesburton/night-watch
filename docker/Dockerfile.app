@@ -34,6 +34,8 @@ COPY src/frontend/tailwind.config.js ./src/frontend/
 COPY src/frontend/postcss.config.js ./src/frontend/
 
 # Layer 5: Build frontend (only runs if Layer 4 changed)
+# Ensure output directory exists
+RUN mkdir -p src/middleware/web/static-react
 RUN cd src/frontend && npm run build
 
 # Layer 6: Generate version.json during build
