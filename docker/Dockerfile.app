@@ -11,12 +11,12 @@ FROM ${BASE_IMAGE}
 WORKDIR /app
 
 # Layer 1: Install backend dependencies (cached unless package.json changes)
-COPY package.json package-lock.json* ./
-RUN npm install --ignore-scripts
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
 
 # Layer 2: Install frontend dependencies (cached unless frontend package.json changes)
-COPY src/frontend/package.json src/frontend/package-lock.json* ./src/frontend/
-RUN cd src/frontend && npm install
+COPY src/frontend/package.json src/frontend/package-lock.json ./src/frontend/
+RUN cd src/frontend && npm ci
 
 # Layer 3: Copy backend code (doesn't trigger frontend rebuild)
 COPY src/backend ./src/backend
