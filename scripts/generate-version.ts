@@ -6,7 +6,8 @@
 
 import { execSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 interface VersionInfo {
   version: string
@@ -52,6 +53,7 @@ function main() {
     buildTime: new Date().toISOString(),
   }
 
+  const __dirname = dirname(fileURLToPath(import.meta.url))
   const outputPath = join(__dirname, '..', 'version.json')
   writeFileSync(outputPath, `${JSON.stringify(versionInfo)}\n`, 'utf8')
 
