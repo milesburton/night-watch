@@ -15,12 +15,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install frontend dependencies
-        run: cd src/frontend && npm install
+        run: cd src/frontend && npm ci
 
       - name: Type check
         run: npm run typecheck
