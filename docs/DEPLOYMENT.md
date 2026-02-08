@@ -1,12 +1,19 @@
 # Night Watch Deployment Guide
 
+> **⚠️ IMPORTANT**: Deployment scripts are in the `scripts/deploy/` submodule (private homelab repo).
+> **DO NOT** create new deployment scripts in the main repository. Use existing scripts:
+> - `./scripts/deploy/deploy.sh --target pi` - Deploy to Pi
+> - `./scripts/deploy/status.sh` - Check status
+> - `./scripts/deploy/logs.sh` - View logs
+
 ## Current Status
 
-**Version**: 2.0.0
-**Last Updated**: 2026-02-01
+**Version**: 2.0.20260208 (date-based)
+**Last Updated**: 2026-02-08
 **Git Branch**: main
-**Tests**: All passing
+**Tests**: All passing (234/234)
 **TypeScript**: No errors
+**Satellites**: METEOR-M LRPT, ISS SSTV, 2M SSTV
 
 ## Directory Structure Note
 
