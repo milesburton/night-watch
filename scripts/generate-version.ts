@@ -6,7 +6,7 @@
 
 import { execSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 interface VersionInfo {
