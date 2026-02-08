@@ -225,7 +225,7 @@ describe('auto-gain', () => {
 })
 
 describe('classifyBand', () => {
-  it('should classify NOAA frequencies as noaa band', () => {
+  it('should classify 137 MHz weather satellite frequencies as noaa band', () => {
     expect(classifyBand(137.1e6)).toBe('noaa')
     expect(classifyBand(137.6125e6)).toBe('noaa')
     expect(classifyBand(137.9125e6)).toBe('noaa')

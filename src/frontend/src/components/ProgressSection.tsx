@@ -25,11 +25,13 @@ const SATELLITE_INFO: Record<string, { description: string; wikiUrl: string }> =
     wikiUrl: 'https://en.wikipedia.org/wiki/International_Space_Station',
   },
   'METEOR-M N2-3': {
-    description: 'Russian weather satellite transmitting LRPT images at 137.9 MHz. High-resolution digital imagery.',
+    description:
+      'Russian weather satellite transmitting LRPT images at 137.9 MHz. High-resolution digital imagery.',
     wikiUrl: 'https://en.wikipedia.org/wiki/Meteor-M_N2-3',
   },
   'METEOR-M N2-4': {
-    description: 'Russian weather satellite transmitting LRPT images at 137.9 MHz. High-resolution digital imagery.',
+    description:
+      'Russian weather satellite transmitting LRPT images at 137.9 MHz. High-resolution digital imagery.',
     wikiUrl: 'https://en.wikipedia.org/wiki/Meteor-M_N2-4',
   },
 }

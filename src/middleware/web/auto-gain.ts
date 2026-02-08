@@ -7,7 +7,7 @@ import { logger } from '@backend/utils/logger'
 export type FrequencyBand = 'noaa' | '2m' | 'unknown'
 
 const BAND_RANGES: [FrequencyBand, number, number][] = [
-  ['noaa', 136e6, 138e6], // 136-138 MHz: NOAA APT satellites
+  ['noaa', 136e6, 138e6], // 136-138 MHz: METEOR-M LRPT (formerly NOAA APT)
   ['2m', 144e6, 146e6], // 144-146 MHz: ISS SSTV + ground SSTV
 ]
 
