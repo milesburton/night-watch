@@ -46,7 +46,8 @@ export async function waitForPass(pass: SatellitePass, config?: ReceiverConfig):
     logger.info('Starting 2m SSTV scan during idle time...')
 
     // Calculate max scan duration (leave 60s buffer before pass)
-    const maxScanDuration = Math.min(waitSeconds - 60, 120)
+    // Allow continuous scanning instead of 120s limit for better signal detection
+    const maxScanDuration = waitSeconds - 60
 
     // Run SSTV scan in background - don't await, let it run while we wait
     scanForSstv(config, maxScanDuration)
