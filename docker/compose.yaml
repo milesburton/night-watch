@@ -47,6 +47,8 @@ services:
       - WEB_HOST=0.0.0.0
       - TLE_UPDATE_INTERVAL_HOURS=${TLE_UPDATE_INTERVAL_HOURS:-24}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - GROUND_SSTV_SCAN_ENABLED=${GROUND_SSTV_SCAN_ENABLED:-false}
+      - ISS_SSTV_ENABLED=${ISS_SSTV_ENABLED:-true}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/status"]
       interval: 30s
@@ -127,6 +129,8 @@ services:
       - WEB_HOST=0.0.0.0
       - TLE_UPDATE_INTERVAL_HOURS=${TLE_UPDATE_INTERVAL_HOURS:-24}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - GROUND_SSTV_SCAN_ENABLED=${GROUND_SSTV_SCAN_ENABLED:-false}
+      - ISS_SSTV_ENABLED=${ISS_SSTV_ENABLED:-true}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/status"]
       interval: 30s
