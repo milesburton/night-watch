@@ -69,7 +69,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && make install \
     && cd / \
     && rm -rf /tmp/satdump \
-    && apt-get purge -y cmake make gcc g++ git pkg-config libfftw3-dev libvolk2-dev libpng-dev libjpeg-dev libtiff-dev librtlsdr-dev zlib1g-dev libnng-dev libcurl4-openssl-dev libjemalloc-dev \
+    && apt-get purge -y cmake git pkg-config libfftw3-dev libvolk2-dev libpng-dev libjpeg-dev libtiff-dev librtlsdr-dev zlib1g-dev libnng-dev libcurl4-openssl-dev libjemalloc-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
