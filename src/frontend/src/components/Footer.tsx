@@ -31,7 +31,7 @@ export function Footer({ version }: FooterProps) {
     <footer className="fixed bottom-0 left-0 right-0 h-8 bg-bg-secondary border-t border-border px-4 flex items-center justify-between text-xs z-50">
       <div className="flex items-center gap-4">
         <a
-          href="https://github.com/milesburton/noaa-satellite-capture"
+          href="https://github.com/milesburton/night-watch"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-text-secondary hover:text-accent transition-colors"
@@ -46,7 +46,7 @@ export function Footer({ version }: FooterProps) {
           <span>GitHub</span>
         </a>
         <a
-          href="https://github.com/milesburton/noaa-satellite-capture/blob/main/docs/API.md"
+          href="https://github.com/milesburton/night-watch/blob/main/docs/API.md"
           target="_blank"
           rel="noopener noreferrer"
           className="text-text-secondary hover:text-accent transition-colors"

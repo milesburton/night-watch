@@ -12,12 +12,12 @@ services:
   # Full mode: Everything on one machine (default)
   # Runs with: docker compose -f docker/compose.yaml up
   rfcapture:
-    image: ghcr.io/milesburton/noaa-satellite-capture:latest
+    image: ghcr.io/milesburton/night-watch:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile.app
       args:
-        BASE_IMAGE: ghcr.io/milesburton/noaa-satellite-capture-base:latest
+        BASE_IMAGE: ghcr.io/milesburton/night-watch-base:latest
     container_name: rfcapture
     restart: unless-stopped
     # No profile = runs by default with `docker compose up`
@@ -58,12 +58,12 @@ services:
 
   # SDR Relay: Lightweight service on Pi with SDR hardware
   sdr-relay:
-    image: ghcr.io/milesburton/noaa-satellite-capture:latest
+    image: ghcr.io/milesburton/night-watch:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile.app
       args:
-        BASE_IMAGE: ghcr.io/milesburton/noaa-satellite-capture-base:latest
+        BASE_IMAGE: ghcr.io/milesburton/night-watch-base:latest
     container_name: sdr-relay
     restart: unless-stopped
     profiles:
@@ -95,12 +95,12 @@ services:
 
   # Server: API + Frontend + Scheduler (no SDR hardware)
   server:
-    image: ghcr.io/milesburton/noaa-satellite-capture:latest
+    image: ghcr.io/milesburton/night-watch:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile.app
       args:
-        BASE_IMAGE: ghcr.io/milesburton/noaa-satellite-capture-base:latest
+        BASE_IMAGE: ghcr.io/milesburton/night-watch-base:latest
     container_name: rfcapture-server
     restart: unless-stopped
     profiles:

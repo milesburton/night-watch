@@ -13,7 +13,7 @@ echo
 # Verify we're in the right directory
 if [ ! -f "$COMPOSE_FILE" ]; then
     echo "ERROR: Must run from project root directory"
-    echo "cd ~/noaa-satellite-capture && bash scripts/test-decoder-pi.sh"
+    echo "cd ~/night-watch && bash scripts/test-decoder-pi.sh"
     exit 1
 fi
 

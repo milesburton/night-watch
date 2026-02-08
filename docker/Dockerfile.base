@@ -1,8 +1,8 @@
 # Base image with all system dependencies
 # Build rarely - only when OS/dependencies change
 #
-# Build:   docker build -f docker/Dockerfile.base -t ghcr.io/milesburton/noaa-satellite-capture-base:latest .
-# Push:    docker push ghcr.io/milesburton/noaa-satellite-capture-base:latest
+# Build:   docker build -f docker/Dockerfile.base -t ghcr.io/milesburton/night-watch-base:latest .
+# Push:    docker push ghcr.io/milesburton/night-watch-base:latest
 
 FROM debian:bookworm-slim
 

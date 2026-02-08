@@ -1,7 +1,7 @@
 # Night Watch
 
-[![CI](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/ci.yml/badge.svg)](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/ci.yml)
-[![Docker Build](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/docker-build.yml/badge.svg)](https://github.com/milesburton/noaa-satellite-capture/actions/workflows/docker-build.yml)
+[![CI](https://github.com/milesburton/night-watch/actions/workflows/ci.yml/badge.svg)](https://github.com/milesburton/night-watch/actions/workflows/ci.yml)
+[![Docker Build](https://github.com/milesburton/night-watch/actions/workflows/docker-build.yml/badge.svg)](https://github.com/milesburton/night-watch/actions/workflows/docker-build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Night Watch** - an automated satellite signal capture and decoding platform. Tracks satellites across the sky, receiving and decoding weather imagery from METEOR-M satellites and SSTV transmissions from the ISS.
@@ -39,8 +39,8 @@
 ### Setup
 
 ```bash
-git clone https://github.com/milesburton/noaa-satellite-capture.git
-cd noaa-satellite-capture
+git clone https://github.com/milesburton/night-watch.git
+cd night-watch
 
 cp .env.example .env
 vi .env  # Set your coordinates

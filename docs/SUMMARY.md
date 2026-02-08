@@ -179,7 +179,7 @@ http://192.168.1.206/
 ## Support Resources
 
 - **Documentation:** `/workspaces/noaa-satellite-capture/docs/`
-- **Issues:** https://github.com/milesburton/noaa-satellite-capture/issues
+- **Issues:** https://github.com/milesburton/night-watch/issues
 - **Logs:** `/var/log/satellite-maintenance.log`
 - **Web UI:** http://192.168.1.206
 

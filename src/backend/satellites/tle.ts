@@ -5,7 +5,7 @@ import { ensureDir, readTextFile, writeTextFile } from '../utils/fs'
 import { logger } from '../utils/logger'
 import { CELESTRAK_GP_API } from './constants'
 
-const TLE_CACHE_DIR = join(homedir(), '.noaa-satellite-capture', 'tle')
+const TLE_CACHE_DIR = join(homedir(), '.night-watch', 'tle')
 const TLE_CACHE_FILE = join(TLE_CACHE_DIR, 'weather.txt')
 
 interface TleCache {

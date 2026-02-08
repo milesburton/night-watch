@@ -1,11 +1,11 @@
 # App image - code only, extends base image
 # Builds FAST - just copies source and installs npm packages
 #
-# Build:   docker build -f docker/Dockerfile.app -t ghcr.io/milesburton/noaa-satellite-capture:latest .
+# Build:   docker build -f docker/Dockerfile.app -t ghcr.io/milesburton/night-watch:latest .
 # Or with custom base:
 #          docker build -f docker/Dockerfile.app --build-arg BASE_IMAGE=mybase:tag -t rfcapture:latest .
 
-ARG BASE_IMAGE=ghcr.io/milesburton/noaa-satellite-capture-base:latest
+ARG BASE_IMAGE=ghcr.io/milesburton/night-watch-base:latest
 FROM ${BASE_IMAGE}
 
 WORKDIR /app

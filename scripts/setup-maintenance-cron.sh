@@ -5,7 +5,7 @@
 #
 
 CRON_SCHEDULE="0 3 * * *"  # Run at 3 AM daily
-PROJECT_DIR="$HOME/noaa-satellite-capture"
+PROJECT_DIR="$HOME/night-watch"
 LOG_FILE="/var/log/satellite-maintenance.log"
 
 # Create log file if it doesn't exist

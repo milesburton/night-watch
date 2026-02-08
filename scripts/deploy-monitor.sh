@@ -21,13 +21,13 @@ while true; do
 
     # Deploy
     echo "📥 Pulling changes..." | tee -a "$LOG_FILE"
-    ssh -o ConnectTimeout=30 "${TARGET}" "cd /home/rfcapture/noaa-satellite-capture && git pull" | tee -a "$LOG_FILE"
+    ssh -o ConnectTimeout=30 "${TARGET}" "cd /home/rfcapture/night-watch && git pull" | tee -a "$LOG_FILE"
 
     echo "🔄 Restarting container..." | tee -a "$LOG_FILE"
-    ssh -o ConnectTimeout=30 "${TARGET}" "cd /home/rfcapture/noaa-satellite-capture && docker compose down && DEPLOY_PORT=${DEPLOY_PORT} docker compose up -d" | tee -a "$LOG_FILE"
+    ssh -o ConnectTimeout=30 "${TARGET}" "cd /home/rfcapture/night-watch && docker compose down && DEPLOY_PORT=${DEPLOY_PORT} docker compose up -d" | tee -a "$LOG_FILE"
 
     echo "✅ Deployment complete!" | tee -a "$LOG_FILE"
-    ssh -o ConnectTimeout=30 "${TARGET}" "cd /home/rfcapture/noaa-satellite-capture && docker compose ps" | tee -a "$LOG_FILE"
+    ssh -o ConnectTimeout=30 "${TARGET}" "cd /home/rfcapture/night-watch && docker compose ps" | tee -a "$LOG_FILE"
 
     echo "" | tee -a "$LOG_FILE"
     echo "🎉 SUCCESS! Access at: http://${TARGET#*@}:${DEPLOY_PORT}" | tee -a "$LOG_FILE"

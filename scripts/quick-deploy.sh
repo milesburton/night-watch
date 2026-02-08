@@ -13,15 +13,15 @@ echo ""
 
 # Pull latest changes
 echo "📥 Pulling latest changes from Git..."
-ssh -o ConnectTimeout=30 "${TARGET}" "cd /home/rfcapture/noaa-satellite-capture && git pull"
+ssh -o ConnectTimeout=30 "${TARGET}" "cd /home/rfcapture/night-watch && git pull"
 
 # Restart container
 echo "🔄 Restarting container..."
-ssh -o ConnectTimeout=30 "${TARGET}" "cd /home/rfcapture/noaa-satellite-capture && docker compose down && DEPLOY_PORT=${DEPLOY_PORT} docker compose up -d"
+ssh -o ConnectTimeout=30 "${TARGET}" "cd /home/rfcapture/night-watch && docker compose down && DEPLOY_PORT=${DEPLOY_PORT} docker compose up -d"
 
 # Check status
 echo "✅ Checking container status..."
-ssh -o ConnectTimeout=30 "${TARGET}" "cd /home/rfcapture/noaa-satellite-capture && docker compose ps"
+ssh -o ConnectTimeout=30 "${TARGET}" "cd /home/rfcapture/night-watch && docker compose ps"
 
 echo ""
 echo "✨ Deployment complete!"

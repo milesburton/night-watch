@@ -168,5 +168,5 @@ docker compose -f docker/compose.yaml exec -T rfcapture npm run maintenance:all
 ## Getting Help
 
 - Check logs: `docker logs rfcapture --tail 100`
-- View issues: https://github.com/milesburton/noaa-satellite-capture/issues
+- View issues: https://github.com/milesburton/night-watch/issues
 - Documentation: `docs/` directory
