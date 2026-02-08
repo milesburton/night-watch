@@ -63,7 +63,7 @@ export function Footer({ version }: FooterProps) {
         position="top"
       >
         <span className="text-text-muted cursor-help">
-          Night Watch {versionText} {version && `(${commitShort})`}
+          Night Watch {versionText} {version && commitShort !== 'unknown' && `(${commitShort})`}
         </span>
       </Tooltip>
       <span className="text-text-muted">MIT License</span>
