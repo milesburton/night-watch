@@ -13,8 +13,24 @@ env:
   APP_IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # Check if base image needs rebuild
+  check-base-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      base-changed: ${{ steps.filter.outputs.base }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            base:
+              - 'docker/Dockerfile.base'
+
   # Build base image only when Dockerfile.base changes
   build-base:
+    needs: check-base-changes
+    if: needs.check-base-changes.outputs.base-changed == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -53,7 +69,8 @@ jobs:
 
   # Build app image on every push (fast - uses base image)
   build-app:
-    needs: [build-base]
+    needs: [check-base-changes, build-base]
+    if: always() && !cancelled() && !failure()
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -88,6 +105,15 @@ jobs:
             type=sha,prefix=
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Determine base image tag
+        id: base-image
+        run: |
+          if [ "${{ needs.check-base-changes.outputs.base-changed }}" == "true" ]; then
+            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push app image
         uses: docker/build-push-action@v5
         with:
@@ -98,7 +124,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BASE_IMAGE=${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:${{ github.sha }}
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:${{ steps.base-image.outputs.tag }}
             GIT_COMMIT=${{ github.sha }}
             BUILD_TIME=${{ github.event.head_commit.timestamp }}
           cache-from: type=gha,scope=app

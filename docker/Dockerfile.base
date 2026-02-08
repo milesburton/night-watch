@@ -6,24 +6,12 @@
 
 FROM debian:bookworm-slim
 
-# Fix dpkg and setup apt with signing keys
-RUN echo "1" > /var/lib/dpkg/info/format \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean \
-    && apt-get update --allow-insecure-repositories \
-    && apt-get install -y --allow-unauthenticated ca-certificates gnupg curl \
-    && mkdir -p /etc/apt/keyrings \
-    && for key in 6ED0E7B82643E131 78DBA3BC47EF2265 F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8; do \
-         for i in 1 2 3 4 5; do \
-           gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $key && break || sleep 5; \
-         done; \
-       done \
-    && gpg --export 6ED0E7B82643E131 78DBA3BC47EF2265 F8D2585B8783D481 54404762BBB6E853 BDE6D2B9216EC7A8 | tee /etc/apt/trusted.gpg.d/debian.gpg > /dev/null \
-    && apt-get update \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install runtime dependencies (rtl-sdr, sox, audio libs)
+# Combine all apt operations into single layer for better caching
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    gnupg \
+    # Runtime dependencies (rtl-sdr, sox, audio libs)
     rtl-sdr \
     sox \
     unzip \
@@ -38,9 +26,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnng1 \
     libcurl4 \
     libjemalloc2 \
+    # Python for SSTV
+    python3 \
+    python3-pip \
+    python3-numpy \
+    python3-pil \
+    python3-scipy \
+    python3-setuptools \
+    python3-soundfile \
+    libatlas-base-dev \
+    libopenblas-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Build and install SatDump (METEOR LRPT decoder)
+# Multi-stage pattern: Build SatDump in separate layer for better caching
+# Pin to specific commit for cache stability
+ARG SATDUMP_VERSION=1.2.0
 RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     make \
@@ -58,7 +58,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnng-dev \
     libcurl4-openssl-dev \
     libjemalloc-dev \
-    && git clone --recursive https://github.com/SatDump/SatDump.git /tmp/satdump \
+    && git clone --depth 1 --branch ${SATDUMP_VERSION} --recursive https://github.com/SatDump/SatDump.git /tmp/satdump \
     && cd /tmp/satdump \
     && mkdir build && cd build \
     && cmake -DCMAKE_BUILD_TYPE=Release \
@@ -74,26 +74,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install SSTV decoder (for ISS and 2m SSTV)
-# Note: scipy on arm64 requires BLAS/LAPACK libraries
+# Pin to specific commit for cache stability
+ARG SSTV_COMMIT=b8a4307
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    python3-pip \
-    python3-numpy \
-    python3-pil \
-    python3-scipy \
-    python3-setuptools \
-    python3-soundfile \
-    libatlas-base-dev \
-    libopenblas-dev \
-    gfortran \
     git \
+    gfortran \
     && git clone https://github.com/colaclanth/sstv.git /tmp/sstv \
     && cd /tmp/sstv \
+    && git checkout ${SSTV_COMMIT} \
     && python3 setup.py install \
     && cd / \
     && rm -rf /tmp/sstv \
     && ln -s /usr/local/bin/sstv /usr/bin/sstv 2>/dev/null || true \
-    && apt-get purge -y git \
+    && apt-get purge -y git gfortran \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -116,5 +109,7 @@ RUN rtl_power -h 2>&1 | head -1 || echo "rtl_power installed" \
 # Labels
 LABEL org.opencontainers.image.title="Night Watch Base" \
       org.opencontainers.image.description="Base image with rtl-sdr, SatDump (LRPT decoder), and Node.js runtime" \
-      org.opencontainers.image.source="https://github.com/milesburton/noaa-satellite-capture" \
-      org.opencontainers.image.version="2026.02.05"
+      org.opencontainers.image.source="https://github.com/milesburton/night-watch" \
+      org.opencontainers.image.version="2026.02.08" \
+      satdump.version="${SATDUMP_VERSION}" \
+      sstv.commit="${SSTV_COMMIT}"

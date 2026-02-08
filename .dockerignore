@@ -1,0 +1,64 @@
+# Git and version control
+.git
+.gitignore
+.gitmodules
+.github
+
+# Documentation
+*.md
+README.md
+docs/
+PROFILE_README_TEMPLATE.md
+
+# Node modules (will be installed in container)
+node_modules
+src/frontend/node_modules
+
+# Build outputs
+dist
+build
+src/frontend/dist
+src/middleware/web/static-react
+
+# Data and recordings (runtime files, not needed for build)
+data/
+recordings/
+images/
+test-files/
+*.db
+*.db-journal
+*.db-wal
+
+# Logs
+*.log
+logs/
+
+# Environment and secrets
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+coverage/
+.nyc_output
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Deployment scripts (private submodule, not needed in container)
+scripts/deploy/
+
+# Lock files for local dev (will be copied explicitly when needed)
+bun.lock
