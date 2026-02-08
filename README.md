@@ -73,6 +73,17 @@ MIN_ELEVATION=20
 MIN_SIGNAL_STRENGTH=-30
 ```
 
+### Quick Frontend Updates
+
+For rapid UI iterations without full Docker rebuilds:
+
+```bash
+# Builds frontend, regenerates version.json, and deploys to Pi
+./scripts/deploy-frontend.sh
+
+# Clients auto-reload within 30 seconds when commit changes
+```
+
 ## Deployment Modes
 
 | Mode | Description | Use Case |
