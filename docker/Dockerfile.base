@@ -79,8 +79,9 @@ ARG SSTV_COMMIT=b8a4307
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     gfortran \
-    && git clone https://github.com/colaclanth/sstv.git /tmp/sstv \
+    && git clone --depth 1 https://github.com/colaclanth/sstv.git /tmp/sstv \
     && cd /tmp/sstv \
+    && git fetch --depth 1 origin ${SSTV_COMMIT} \
     && git checkout ${SSTV_COMMIT} \
     && python3 setup.py install \
     && cd / \
@@ -93,7 +94,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Node.js 22.x LTS
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g npm@latest tsx \
+    && npm install -g npm@10.9.2 tsx --no-fund --loglevel=error \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directories
