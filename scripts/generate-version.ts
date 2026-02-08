@@ -29,19 +29,17 @@ function getGitCommit(): string {
 
 function getVersion(): string {
   try {
-    // Read base version from package.json
-    const packageJson = require('../package.json')
-    const baseVersion = packageJson.version || '2.0.0'
-
     // Generate date-based build number (YYYYMMDD format)
     const now = new Date()
-    const dateBuild =
-      now.getUTCFullYear() * 10000 + (now.getUTCMonth() + 1) * 100 + now.getUTCDate()
+    const year = now.getUTCFullYear()
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(now.getUTCDate()).padStart(2, '0')
+    const dateBuild = `${year}${month}${day}`
 
     // Return version in format: 2.0.YYYYMMDD
-    const [major, minor] = baseVersion.split('.')
-    return `${major}.${minor}.${dateBuild}`
-  } catch {
+    return `2.0.${dateBuild}`
+  } catch (error) {
+    console.error('Error generating version:', error)
     return '2.0.0'
   }
 }
