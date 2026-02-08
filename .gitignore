@@ -47,3 +47,7 @@ e2e/__snapshots__/
 
 # TLE cache
 .tle-cache/
+
+# Test files directory
+test-files/
+*.wav

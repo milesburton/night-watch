@@ -13,16 +13,16 @@ import tempfile
 def main():
     print("=== SSTV Round-Trip Test ===\n")
 
-    # Check if SSTV module is available
+    # Check if SSTV modules are available
     try:
-        from sstv.encode import SSTVEncoder
+        from pysstv.color import Robot36
         from sstv.decode import SSTVDecoder
-        from sstv import spec
         from PIL import Image, ImageDraw, ImageFont
         print("✓ SSTV modules imported")
     except ImportError as e:
         print(f"ERROR: Failed to import SSTV modules: {e}")
-        print("\nInstall with: pip3 install git+https://github.com/colaclanth/sstv.git")
+        print("\nInstall encoder: pip3 install pysstv")
+        print("Install decoder: pip3 install git+https://github.com/colaclanth/sstv.git")
         return 1
 
     # Create test directory
@@ -57,11 +57,10 @@ def main():
     print("Step 2: Encoding image to SSTV audio...")
     try:
         # Robot36 is a fast SSTV mode (~36 seconds)
-        mode = spec.Robot36
-        encoder = SSTVEncoder(img, mode, 48000)
+        sstv = Robot36(img, 48000, 16)  # 48kHz, 16-bit
 
         output_wav = test_dir / "encoded.wav"
-        encoder.write(str(output_wav))
+        sstv.write_wav(str(output_wav))
 
         wav_size = output_wav.stat().st_size
         print(f"✓ SSTV audio encoded: {output_wav}")

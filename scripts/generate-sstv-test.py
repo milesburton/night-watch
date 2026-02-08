@@ -19,13 +19,12 @@ def main():
 
     # Check if SSTV module is available
     try:
-        from sstv.encode import SSTVEncoder
-        from sstv import spec
+        from pysstv.color import Robot36
         from PIL import Image, ImageDraw, ImageFont
         print("✓ SSTV encoder module loaded")
     except ImportError as e:
         print(f"ERROR: SSTV module not installed: {e}")
-        print("\nInstall with: pip3 install git+https://github.com/colaclanth/sstv.git")
+        print("\nInstall with: pip3 install pysstv")
         return 1
 
     # Create test pattern image (320x256 for Robot36)
@@ -67,9 +66,11 @@ def main():
     print("  This will take about 36 seconds of audio...")
 
     try:
-        mode = spec.Robot36
-        encoder = SSTVEncoder(img, mode, 48000)  # 48kHz sample rate
-        encoder.write(output_file)
+        # Create Robot36 SSTV mode with the image
+        sstv = Robot36(img, 48000, 16)  # 48kHz sample rate, 16-bit
+
+        # Generate the WAV file
+        sstv.write_wav(output_file)
 
         file_size = Path(output_file).stat().st_size
         print(f"\n✓ SSTV signal generated successfully!")
