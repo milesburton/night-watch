@@ -52,3 +52,4 @@ e2e/__snapshots__/
 test-files/
 *.wav
 scripts/deploy/
+GITHUB_PROFILE_README.md
