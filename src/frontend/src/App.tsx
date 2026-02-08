@@ -116,7 +116,12 @@ export default function App() {
     const checkVersion = async () => {
       try {
         const newVersion = await getVersion()
-        if (newVersion && newVersion.version !== version.version) {
+        // Auto-reload when commit hash changes
+        if (newVersion && newVersion.commit !== version.commit) {
+          console.log('New version detected, reloading...', {
+            old: version.commit?.substring(0, 7),
+            new: newVersion.commit?.substring(0, 7),
+          })
           window.location.reload()
         }
       } catch {
