@@ -88,7 +88,9 @@ async function healthCheck(): Promise<void> {
 
   if (!sdrOk) {
     health.consecutiveFailures++
-    logger.warn(`SDR health check failed (${health.consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES})`)
+    logger.warn(
+      `SDR health check failed (${health.consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES})`
+    )
 
     // Attempt recovery after multiple failures
     if (health.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
