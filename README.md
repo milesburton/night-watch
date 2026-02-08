@@ -145,3 +145,4 @@ MIT © 2025–2026 - See [LICENSE](LICENSE) for details.
 - [SatDump](https://github.com/SatDump/SatDump) - LRPT signal decoder
 - [satellite.js](https://github.com/shashwatak/satellite-js) - SGP4 implementation
 - [CelesTrak](https://celestrak.org/) - TLE data provider
+- [Claude](https://claude.ai) - AI pair programming assistant
