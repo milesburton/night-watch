@@ -385,6 +385,7 @@ export default function App() {
               systemStatus={systemState?.status}
               scanningFrequency={systemState?.scanningFrequency}
               scanningFrequencyName={systemState?.scanningFrequencyName}
+              wsConnected={wsState.connected}
               subscribeFFT={subscribeFFT}
               unsubscribeFFT={unsubscribeFFT}
               fftRunning={fftState.running}

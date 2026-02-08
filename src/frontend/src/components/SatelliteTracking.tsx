@@ -18,6 +18,7 @@ interface SatelliteTrackingProps {
   systemStatus?: SystemStatus
   scanningFrequency?: number
   scanningFrequencyName?: string
+  wsConnected: boolean
   subscribeFFT: (frequency?: number) => void
   unsubscribeFFT: () => void
   fftRunning: boolean
@@ -381,6 +382,7 @@ export function SatelliteTracking({
   systemStatus,
   scanningFrequency,
   scanningFrequencyName,
+  wsConnected,
   subscribeFFT,
   unsubscribeFFT,
   fftRunning,
@@ -415,12 +417,16 @@ export function SatelliteTracking({
     onFrequencyChange?.(currentFrequency, mode)
   }, [currentFrequency, mode, onFrequencyChange])
 
+  // Subscribe to FFT data when WebSocket connects or frequency changes
+  // This fixes the race condition where the component mounts before WebSocket is ready
   useEffect(() => {
-    subscribeFFT(currentFrequency)
+    if (wsConnected) {
+      subscribeFFT(currentFrequency)
+    }
     return () => {
       unsubscribeFFT()
     }
-  }, [currentFrequency, subscribeFFT, unsubscribeFFT])
+  }, [wsConnected, currentFrequency, subscribeFFT, unsubscribeFFT])
 
   const tabs = [
     {
