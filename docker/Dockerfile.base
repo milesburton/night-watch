@@ -113,3 +113,4 @@ LABEL org.opencontainers.image.title="Night Watch Base" \
       org.opencontainers.image.version="2026.02.08" \
       satdump.version="${SATDUMP_VERSION}" \
       sstv.commit="${SSTV_COMMIT}"
+
