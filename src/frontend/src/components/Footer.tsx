@@ -28,7 +28,7 @@ export function Footer({ version }: FooterProps) {
   const commitShort = version?.commit ? version.commit.slice(0, 7) : 'unknown'
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 h-8 bg-bg-secondary border-t border-border px-4 flex items-center justify-between text-xs z-30">
+    <footer className="fixed bottom-0 left-0 right-0 h-8 bg-bg-secondary border-t border-border px-4 flex items-center justify-between text-xs z-50">
       <div className="flex items-center gap-4">
         <a
           href="https://github.com/milesburton/noaa-satellite-capture"
