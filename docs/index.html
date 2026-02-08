@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Night Watch - Autonomous satellite ground station for METEOR-M LRPT and ISS SSTV reception">
+    <title>Night Watch - Satellite Ground Station</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --accent-hover: #79c0ff;
+            --border: #30363d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 2rem 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--accent) 0%, #79c0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .badges {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 2rem 0;
+        }
+
+        .badges img {
+            height: 20px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .features {
+            padding: 4rem 0;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+
+        .feature-card h3 {
+            color: var(--accent);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+        }
+
+        .satellites {
+            background: var(--bg-secondary);
+            padding: 4rem 0;
+            margin: 4rem 0;
+        }
+
+        .satellite-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .satellite-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .satellite-card h4 {
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .satellite-card .freq {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .quick-start {
+            padding: 4rem 0;
+        }
+
+        .code-block {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            color: var(--text-primary);
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+        }
+
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 2rem 0;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container hero">
+            <h1>🛰️ Night Watch</h1>
+            <p>Autonomous Satellite Ground Station</p>
+
+            <div class="badges">
+                <img src="https://github.com/milesburton/night-watch/actions/workflows/ci.yml/badge.svg" alt="CI">
+                <img src="https://github.com/milesburton/night-watch/actions/workflows/docker-build.yml/badge.svg" alt="Docker Build">
+                <img src="https://img.shields.io/badge/tests-234%20passing-brightgreen" alt="Tests">
+                <img src="https://img.shields.io/badge/TypeScript-5.x-blue.svg" alt="TypeScript">
+                <img src="https://img.shields.io/badge/docker-multi--arch-2496ED?logo=docker&logoColor=white" alt="Docker">
+                <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
+            </div>
+
+            <div class="cta-buttons">
+                <a href="https://github.com/milesburton/night-watch" class="btn btn-primary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    View on GitHub
+                </a>
+                <a href="https://github.com/milesburton/night-watch/blob/main/docs/DEPLOYMENT.md" class="btn btn-secondary">
+                    📚 Documentation
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="features">
+            <h2>✨ Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🤖 Autonomous Operation</h3>
+                    <p>Automatically predicts, schedules, and captures satellite passes. No manual intervention required.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🌍 Real-Time Visualization</h3>
+                    <p>Web dashboard with live 3D globe tracking, FFT waterfall/spectrum display, and pass timeline.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>📡 Multi-Signal Support</h3>
+                    <p>Decodes LRPT from METEOR-M weather satellites and SSTV from ISS and 2m ground stations.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>📻 2m SSTV Scanner</h3>
+                    <p>Scans amateur SSTV frequencies (144.5/145.5 MHz) during idle time using FFT-based signal detection.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>⚙️ Auto Gain Calibration</h3>
+                    <p>Automatic gain adjustment per frequency band for optimal signal quality.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🐳 Docker Ready</h3>
+                    <p>Multi-architecture Docker images (AMD64/ARM64) for Raspberry Pi 4/5 and x86_64 systems.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="satellites">
+        <div class="container">
+            <h2>🛰️ Supported Satellites</h2>
+            <div class="satellite-grid">
+                <div class="satellite-card">
+                    <h4>METEOR-M N2-3</h4>
+                    <p class="freq">137.9 MHz LRPT</p>
+                    <p>High-resolution weather imagery from Russian satellite</p>
+                </div>
+
+                <div class="satellite-card">
+                    <h4>METEOR-M N2-4</h4>
+                    <p class="freq">137.9 MHz LRPT</p>
+                    <p>High-resolution weather imagery from Russian satellite</p>
+                </div>
+
+                <div class="satellite-card">
+                    <h4>ISS</h4>
+                    <p class="freq">145.8 MHz SSTV</p>
+                    <p>Event-based SSTV transmissions from International Space Station</p>
+                </div>
+
+                <div class="satellite-card">
+                    <h4>2M SSTV</h4>
+                    <p class="freq">144.5 / 145.5 MHz</p>
+                    <p>Amateur radio SSTV ground stations</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="quick-start">
+            <h2>🚀 Quick Start</h2>
+
+            <h3>Prerequisites</h3>
+            <ul style="color: var(--text-secondary); margin: 1rem 0 2rem 2rem;">
+                <li>RTL-SDR dongle (RTL2832U-based)</li>
+                <li>VHF antenna (137MHz for METEOR-M, 145MHz for ISS)</li>
+                <li>Docker and Docker Compose v2</li>
+                <li>Raspberry Pi 4/5 or Linux machine</li>
+            </ul>
+
+            <h3>Installation</h3>
+            <div class="code-block">
+                <code>git clone https://github.com/milesburton/night-watch.git
+cd night-watch
+
+cp .env.example .env
+vi .env  # Set your coordinates
+
+docker compose -f docker/compose.yaml up -d</code>
+            </div>
+
+            <p style="margin-top: 1rem;">Access dashboard at <a href="http://localhost:8002" style="color: var(--accent);">http://localhost:8002</a></p>
+
+            <div style="margin-top: 2rem;">
+                <a href="https://github.com/milesburton/night-watch/blob/main/docs/DEPLOYMENT.md" class="btn btn-primary">
+                    Full Deployment Guide →
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <div class="footer">
+        <div class="container">
+            <p>MIT © 2025–2026 | Built with ❤️ for satellite enthusiasts</p>
+            <p style="margin-top: 0.5rem;">
+                <a href="https://github.com/milesburton/night-watch" style="color: var(--accent); text-decoration: none;">GitHub</a> •
+                <a href="https://github.com/milesburton/night-watch/issues" style="color: var(--accent); text-decoration: none;">Issues</a> •
+                <a href="https://github.com/milesburton/night-watch/blob/main/docs/API.md" style="color: var(--accent); text-decoration: none;">API Docs</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
