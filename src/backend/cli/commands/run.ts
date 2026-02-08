@@ -3,6 +3,7 @@ import { startWebServer } from '@middleware/web/server'
 import chalk from 'chalk'
 import { loadConfig } from '../../config/config'
 import { closeDatabase, initializeDatabase } from '../../db/database'
+import { startWatchdog } from '../../health/watchdog'
 import { filterHighQualityPasses, formatPassesTable, predictPasses } from '../../prediction/passes'
 import { SATELLITES } from '../../satellites/constants'
 import { isSstvActive, setManualSstvEnabled } from '../../satellites/events'
@@ -62,6 +63,9 @@ export async function runCommand(_args: string[]): Promise<void> {
   // Start web server
   const server = startWebServer(config.web.port, config.web.host, config.recording.imagesDir)
   logger.info(`Web dashboard running at http://${config.web.host}:${config.web.port}`)
+
+  // Start health monitoring watchdog
+  startWatchdog()
 
   // Start globe service for real-time satellite positions
   await startGlobeService(config.station)

@@ -253,6 +253,13 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
       return
     }
 
+    if (url.pathname === '/api/health') {
+      const { getHealthStatus } = await import('../../backend/health/watchdog')
+      const health = getHealthStatus()
+      jsonResponseNode(res, health)
+      return
+    }
+
     if (url.pathname === '/api/config') {
       const globe = getGlobeState()
       jsonResponseNode(res, {
