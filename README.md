@@ -2,6 +2,9 @@
 
 [![CI](https://github.com/milesburton/night-watch/actions/workflows/ci.yml/badge.svg)](https://github.com/milesburton/night-watch/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/milesburton/night-watch/actions/workflows/docker-build.yml/badge.svg)](https://github.com/milesburton/night-watch/actions/workflows/docker-build.yml)
+[![Tests](https://img.shields.io/badge/tests-234%20passing-brightgreen)](https://github.com/milesburton/night-watch/actions)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![Docker](https://img.shields.io/badge/docker-multi--arch-2496ED?logo=docker&logoColor=white)](https://github.com/milesburton/night-watch/pkgs/container/night-watch)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Night Watch** - an automated satellite signal capture and decoding platform. Tracks satellites across the sky, receiving and decoding weather imagery from METEOR-M satellites and SSTV transmissions from the ISS.
