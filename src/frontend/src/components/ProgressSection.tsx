@@ -24,13 +24,13 @@ const SATELLITE_INFO: Record<string, { description: string; wikiUrl: string }> =
     description: 'International Space Station. Occasionally transmits SSTV images at 145.8 MHz.',
     wikiUrl: 'https://en.wikipedia.org/wiki/International_Space_Station',
   },
-  'METEOR-M2-3': {
-    description: 'Russian weather satellite transmitting LRPT images at 137.9 MHz.',
-    wikiUrl: 'https://en.wikipedia.org/wiki/Meteor_(satellite)',
+  'METEOR-M N2-3': {
+    description: 'Russian weather satellite transmitting LRPT images at 137.9 MHz. High-resolution digital imagery.',
+    wikiUrl: 'https://en.wikipedia.org/wiki/Meteor-M_N2-3',
   },
-  'METEOR-M2-4': {
-    description: 'Russian weather satellite transmitting LRPT images at 137.1 MHz.',
-    wikiUrl: 'https://en.wikipedia.org/wiki/Meteor_(satellite)',
+  'METEOR-M N2-4': {
+    description: 'Russian weather satellite transmitting LRPT images at 137.9 MHz. High-resolution digital imagery.',
+    wikiUrl: 'https://en.wikipedia.org/wiki/Meteor-M_N2-4',
   },
 }
 

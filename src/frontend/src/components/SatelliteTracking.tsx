@@ -427,7 +427,7 @@ export function SatelliteTracking({
       id: 'satellite' as const,
       label: 'Satellites',
       color: 'accent',
-      tooltip: 'Track NOAA weather satellites and ISS passes',
+      tooltip: 'Track METEOR-M weather satellites and ISS passes',
     },
     {
       id: 'sstv-2m' as const,

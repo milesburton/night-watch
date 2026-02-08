@@ -252,10 +252,10 @@ export default function App() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
             <ToggleChip
-              label="NOAA"
+              label="METEOR"
               enabled={noaaEnabled}
               color="bg-accent"
-              tooltip="NOAA APT weather satellites (137 MHz) - Always enabled"
+              tooltip="METEOR-M LRPT weather satellites (137.9 MHz) - High-resolution weather imagery from Russian satellites"
               onClick={handleNoaaToggle}
             />
             <ToggleChip
