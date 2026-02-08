@@ -51,3 +51,4 @@ e2e/__snapshots__/
 # Test files directory
 test-files/
 *.wav
+scripts/deploy/
