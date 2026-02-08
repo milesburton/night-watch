@@ -10,6 +10,12 @@ import os
 from pathlib import Path
 import tempfile
 
+# Monkey patch get_terminal_size to avoid "Inappropriate ioctl for device" error
+# This happens when running in Docker, CI, or non-interactive shells
+from collections import namedtuple
+TermSize = namedtuple("TermSize", ["columns", "lines"])
+os.get_terminal_size = lambda: TermSize(80, 24)
+
 def main():
     print("=== SSTV Round-Trip Test ===\n")
 
