@@ -12,8 +12,13 @@ WORKDIR /app
 
 # Layer 1: Install backend dependencies (cached unless package.json changes)
 COPY package.json package-lock.json ./
+ARG TARGETARCH
 RUN npm install --ignore-scripts && \
-    npm install --no-save @esbuild/linux-arm64 @esbuild/linux-x64
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        npm install --no-save @esbuild/linux-arm64; \
+    else \
+        npm install --no-save @esbuild/linux-x64; \
+    fi
 
 # Layer 2: Install frontend dependencies (cached unless frontend package.json changes)
 COPY src/frontend/package.json src/frontend/package-lock.json ./src/frontend/
