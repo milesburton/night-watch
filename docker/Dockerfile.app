@@ -18,7 +18,10 @@ RUN npm install --ignore-scripts && \
         npm install --no-save @esbuild/linux-arm64; \
     else \
         npm install --no-save @esbuild/linux-x64; \
-    fi
+    fi && \
+    # Manually trigger better-sqlite3 prebuilt binary download \
+    cd node_modules/better-sqlite3 && \
+    npm run install || echo "Warning: better-sqlite3 prebuild download may have failed"
 
 # Layer 2: Install frontend dependencies (cached unless frontend package.json changes)
 COPY src/frontend/package.json src/frontend/package-lock.json ./src/frontend/
