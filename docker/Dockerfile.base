@@ -74,19 +74,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install SSTV decoder (for ISS and 2m SSTV)
-# Pin to specific commit for cache stability
-ARG SSTV_COMMIT=b8a4307
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     gfortran \
-    && git clone --depth 1 https://github.com/colaclanth/sstv.git /tmp/sstv \
+    && git clone https://github.com/colaclanth/sstv.git /tmp/sstv \
     && cd /tmp/sstv \
-    && git fetch --depth 1 origin ${SSTV_COMMIT} \
-    && git checkout ${SSTV_COMMIT} \
     && pip3 install --break-system-packages . \
+    && find /usr/local/lib -name "common.py" -path "*/sstv/*" -exec sed -i 's/cols = get_terminal_size().columns/cols = 80/g' {} \; \
+    && python3 -c "from sstv.decode import SSTVDecoder; print('SSTV decoder verified')" \
     && cd / \
     && rm -rf /tmp/sstv \
-    && ln -s /usr/local/bin/sstv /usr/bin/sstv 2>/dev/null || true \
     && apt-get purge -y git gfortran \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
