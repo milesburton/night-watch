@@ -397,6 +397,7 @@ export default function App() {
               fftError={fftState.error ?? null}
               latestFFTData={latestFFTData}
               onFrequencyChange={handleFrequencyChange}
+              progress={progress}
             />
           </div>
 

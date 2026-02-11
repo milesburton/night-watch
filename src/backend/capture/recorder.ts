@@ -27,6 +27,11 @@ export async function startRecording(
 
   logger.capture(`Starting recording: ${satellite.name} at ${satellite.frequency / 1e6} MHz`)
 
+  // Use different rtl_fm parameters for SSTV vs LRPT
+  // SSTV needs: no de-emphasis, wideband FM
+  // LRPT needs: de-emphasis, narrow FM
+  const isSstv = satellite.signalType === 'sstv'
+
   const rtlProcess = spawn(
     'rtl_fm',
     [
@@ -39,9 +44,9 @@ export async function startRecording(
       '-p',
       config.sdr.ppmCorrection.toString(),
       '-E',
-      'deemp',
+      isSstv ? 'dc' : 'deemp', // SSTV: DC blocking only, LRPT: de-emphasis
       '-F',
-      '9',
+      isSstv ? '0' : '9', // SSTV: auto-wideband, LRPT: narrow
       '-',
     ],
     { stdio: ['pipe', 'pipe', 'pipe'] }

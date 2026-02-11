@@ -10,9 +10,10 @@ import { recordPass } from './recorder'
 
 // Common 2m SSTV frequencies (in Hz)
 // Note: ISS (145.800 MHz) is NOT included here - it's handled as a scheduled pass like NOAA satellites
+// TEMPORARILY: Only scan 144.5 MHz to avoid USB lock issues during frequency switching
 export const SSTV_SCAN_FREQUENCIES = [
   { frequency: 144.5e6, name: '2m SSTV Calling' },
-  { frequency: 145.5e6, name: '2m SSTV Alt' },
+  // { frequency: 145.5e6, name: '2m SSTV Alt' }, // Disabled to prevent USB conflicts
 ]
 
 // Virtual satellite info for ground-based SSTV
@@ -92,7 +93,7 @@ export async function scanForSstv(
             maxSeenPower = Math.max(maxSeenPower, fftData.maxPower)
             if (fftData.maxPower > signalThreshold) {
               hasSignal = true
-              logger.debug(
+              logger.info(
                 `Signal detected: peak ${fftData.maxPower.toFixed(1)} dB > threshold ${signalThreshold} dB`
               )
               break
@@ -102,9 +103,11 @@ export async function scanForSstv(
 
         // Log what we saw even if no signal detected (for debugging)
         if (!hasSignal && maxSeenPower > -999) {
-          logger.debug(
+          logger.info(
             `${freq.name}: max power ${maxSeenPower.toFixed(1)} dB < threshold ${signalThreshold} dB`
           )
+        } else if (!hasSignal) {
+          logger.warn(`${freq.name}: No FFT data received during 20s dwell period!`)
         }
 
         if (hasSignal && !shouldStop) {

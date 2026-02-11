@@ -1,4 +1,4 @@
-import type { FFTData } from '@/types'
+import type { CaptureProgress, FFTData, SatellitePass } from '@/types'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface WaterfallViewProps {
@@ -9,6 +9,8 @@ interface WaterfallViewProps {
   fftRunning: boolean
   fftError?: string | null
   latestFFTData: FFTData | null
+  progress?: CaptureProgress | null
+  currentPass?: SatellitePass | null
 }
 
 const MAX_HISTORY_ROWS = 300 // Increased for better time resolution
@@ -24,6 +26,8 @@ export function WaterfallView({
   fftRunning,
   fftError,
   latestFFTData,
+  progress,
+  currentPass,
 }: WaterfallViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [fftHistory, setFftHistory] = useState<FFTData[]>([])
@@ -106,15 +110,29 @@ export function WaterfallView({
 
       // Show capture message if actively receiving
       if (isActive && !fftRunning) {
+        let yPos = height / 2 - 50
+
         ctx.fillStyle = '#22c55e'
-        ctx.font = 'bold 16px sans-serif'
-        ctx.fillText('📡 Capturing Satellite Signal', width / 2, height / 2 - 30)
-        ctx.fillStyle = '#94a3b8'
-        ctx.font = '13px sans-serif'
-        ctx.fillText('Waterfall paused during signal reception', width / 2, height / 2)
-        ctx.font = '12px sans-serif'
+        ctx.font = 'bold 18px sans-serif'
+        ctx.fillText('🔴 Recording in Progress', width / 2, yPos)
+
+        yPos += 30
+
+        if (currentPass) {
+          const satelliteName = currentPass.satellite?.name || 'Unknown'
+          ctx.fillStyle = '#94a3b8'
+          ctx.font = '16px sans-serif'
+          ctx.fillText(`Capturing ${satelliteName}`, width / 2, yPos)
+        } else if (frequencyName) {
+          ctx.fillStyle = '#94a3b8'
+          ctx.font = '16px sans-serif'
+          ctx.fillText(`Capturing ${frequencyName}`, width / 2, yPos)
+        }
+
+        yPos += 30
         ctx.fillStyle = '#64748b'
-        ctx.fillText('SDR device is exclusively recording the pass', width / 2, height / 2 + 25)
+        ctx.font = '14px sans-serif'
+        ctx.fillText('Waterfall paused during signal reception', width / 2, yPos)
       } else {
         ctx.fillText(
           fftRunning ? 'Waiting for FFT data...' : 'FFT stream not running',
@@ -247,23 +265,85 @@ export function WaterfallView({
 
     // Draw capture overlay if actively receiving but FFT stopped
     if (isActive && !fftRunning && fftHistory.length > 0) {
-      // Semi-transparent overlay
-      ctx.fillStyle = 'rgba(26, 35, 50, 0.85)'
+      // Semi-transparent overlay with slight blur effect
+      ctx.fillStyle = 'rgba(26, 35, 50, 0.90)'
       ctx.fillRect(0, 0, width, historyHeight)
 
-      // Capture message
+      let yPos = height / 2 - 60
+
+      // Main heading - Signal Detected
       ctx.fillStyle = '#22c55e'
-      ctx.font = 'bold 18px sans-serif'
+      ctx.font = 'bold 22px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('📡 Capturing Satellite Signal', width / 2, height / 2 - 35)
+      ctx.fillText('🔴 Signal Detected - Recording in Progress', width / 2, yPos)
 
-      ctx.fillStyle = '#94a3b8'
+      yPos += 35
+
+      // What's being recorded
+      if (currentPass) {
+        const satelliteName = currentPass.satellite?.name || 'Unknown'
+        const signalType = currentPass.satellite?.signalType?.toUpperCase() || ''
+        const freqMhz = (currentPass.satellite?.frequency || 0) / 1e6
+
+        ctx.fillStyle = '#94a3b8'
+        ctx.font = '16px sans-serif'
+        ctx.fillText(
+          `Recording ${satelliteName} ${signalType} at ${freqMhz.toFixed(3)} MHz`,
+          width / 2,
+          yPos
+        )
+      } else if (frequencyName) {
+        ctx.fillStyle = '#94a3b8'
+        ctx.font = '16px sans-serif'
+        ctx.fillText(`Recording ${frequencyName}`, width / 2, yPos)
+      }
+
+      yPos += 30
+
+      // Time remaining
+      if (progress) {
+        const remaining = progress.total - progress.elapsed
+        const remainingMin = Math.floor(remaining / 60)
+        const remainingSec = remaining % 60
+
+        ctx.fillStyle = '#fbbf24'
+        ctx.font = 'bold 18px sans-serif'
+        ctx.fillText(
+          `Time Remaining: ${remainingMin}:${remainingSec.toString().padStart(2, '0')}`,
+          width / 2,
+          yPos
+        )
+
+        yPos += 25
+
+        // Progress bar
+        const barWidth = 400
+        const barHeight = 8
+        const barX = (width - barWidth) / 2
+        const barY = yPos
+
+        // Background
+        ctx.fillStyle = '#334155'
+        ctx.fillRect(barX, barY, barWidth, barHeight)
+
+        // Progress
+        const progressWidth = (barWidth * progress.percentage) / 100
+        ctx.fillStyle = '#22c55e'
+        ctx.fillRect(barX, barY, progressWidth, barHeight)
+
+        yPos += 30
+      }
+
+      // Informational message
       ctx.font = '14px sans-serif'
-      ctx.fillText('Waterfall paused during signal reception', width / 2, height / 2 - 5)
-
-      ctx.font = '12px sans-serif'
       ctx.fillStyle = '#64748b'
-      ctx.fillText('SDR device is exclusively recording the pass', width / 2, height / 2 + 25)
+      ctx.fillText('Waterfall paused - SDR device exclusively recording', width / 2, yPos)
+
+      yPos += 20
+
+      ctx.font = '13px sans-serif'
+      ctx.fillStyle = '#475569'
+      ctx.fillText('Please wait for recording to complete...', width / 2, yPos)
     }
   }, [
     fftHistory,
@@ -275,6 +355,8 @@ export function WaterfallView({
     fftRunning,
     currentConfig,
     getWaterfallColorRGB,
+    progress,
+    currentPass,
   ])
 
   useEffect(() => {
