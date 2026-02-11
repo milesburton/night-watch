@@ -48,14 +48,15 @@ describe('sstv-scanner', () => {
       expect(calling?.frequency).toBe(144.5e6)
     })
 
-    it('should contain 2m SSTV alternate frequency', () => {
+    // Temporarily disabled - 145.5 MHz removed to prevent USB lock issues
+    it.skip('should contain 2m SSTV alternate frequency', () => {
       const alt = SSTV_SCAN_FREQUENCIES.find((f) => f.name === '2m SSTV Alt')
       expect(alt).toBeDefined()
       expect(alt?.frequency).toBe(145.5e6)
     })
 
-    it('should have two frequencies', () => {
-      expect(SSTV_SCAN_FREQUENCIES).toHaveLength(2)
+    it('should have one frequency (temporarily - 145.5 MHz disabled)', () => {
+      expect(SSTV_SCAN_FREQUENCIES).toHaveLength(1)
     })
   })
 

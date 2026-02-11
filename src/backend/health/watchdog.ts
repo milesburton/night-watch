@@ -37,7 +37,9 @@ async function checkSdrHealth(): Promise<boolean> {
     // Check for "Found" in output (device detected successfully)
     // Note: R820T tuners may exit with non-zero code due to "No E4000 tuner" message,
     // but this is normal and doesn't indicate a problem
-    return result.stdout?.includes('Found') ?? false
+    // rtl_test outputs to stderr, not stdout
+    const output = (result.stdout ?? '') + (result.stderr ?? '')
+    return output.includes('Found')
   } catch {
     return false
   }
@@ -117,13 +119,20 @@ async function healthCheck(): Promise<void> {
 export function startWatchdog(): void {
   logger.info('Starting health watchdog...')
 
+  // TEMPORARILY DISABLED: Watchdog creates false positives when FFT stream is active
+  // The healthCheck runs rtl_test which tries to claim the USB interface,
+  // conflicting with the active FFT stream. This causes continuous recovery cycles
+  // that kill the SSTV scanner before it can capture anything.
+  //
+  // TODO: Rewrite healthCheck to not interfere with active SDR usage
+
   // Initial check
-  healthCheck()
+  // healthCheck()
 
   // Periodic checks
-  setInterval(healthCheck, CHECK_INTERVAL_MS)
+  // setInterval(healthCheck, CHECK_INTERVAL_MS)
 
-  logger.info(`Watchdog monitoring every ${CHECK_INTERVAL_MS / 1000}s`)
+  logger.info('Watchdog disabled (prevents SSTV scanner interference)')
 }
 
 /**
