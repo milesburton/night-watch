@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store'
-import type { FFTData, GlobeState, SatellitePass, SystemStatus } from '@/types'
+import type { CaptureProgress, FFTData, GlobeState, SatellitePass, SystemStatus } from '@/types'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Tooltip } from './Tooltip'
 import { WaterfallView } from './WaterfallView'
@@ -25,6 +25,7 @@ interface SatelliteTrackingProps {
   fftError: string | null
   latestFFTData: FFTData | null
   onFrequencyChange?: (freq: number | null, mode: ViewMode) => void
+  progress?: CaptureProgress | null
 }
 
 function SkyView({ globeState }: { globeState: GlobeState | null }) {
@@ -389,6 +390,7 @@ export function SatelliteTracking({
   fftError,
   latestFFTData,
   onFrequencyChange,
+  progress,
 }: SatelliteTrackingProps) {
   // Use persisted store for tab state
   const { waterfallMode: mode, setWaterfallMode: setMode } = useUIStore()
@@ -508,6 +510,8 @@ export function SatelliteTracking({
                   fftRunning={fftRunning}
                   fftError={fftError}
                   latestFFTData={latestFFTData}
+                  progress={progress}
+                  currentPass={currentPass}
                 />
               </div>
             </div>
