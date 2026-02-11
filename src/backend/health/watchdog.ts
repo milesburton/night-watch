@@ -37,7 +37,9 @@ async function checkSdrHealth(): Promise<boolean> {
     // Check for "Found" in output (device detected successfully)
     // Note: R820T tuners may exit with non-zero code due to "No E4000 tuner" message,
     // but this is normal and doesn't indicate a problem
-    return result.stdout?.includes('Found') ?? false
+    // rtl_test outputs to stderr, not stdout
+    const output = (result.stdout ?? '') + (result.stderr ?? '')
+    return output.includes('Found')
   } catch {
     return false
   }
