@@ -29,12 +29,14 @@ async function checkSdrHealth(): Promise<boolean> {
     // Use timeout command to limit execution to 5 seconds
     const result = await runCommand('timeout', ['5', 'rtl_test', '-t'])
 
-    // If we see "usb_claim_interface error" or the command fails, SDR is locked
-    if (result.exitCode !== 0 || result.stderr?.includes('usb_claim_interface')) {
+    // Check for actual USB lock (usb_claim_interface error)
+    if (result.stderr?.includes('usb_claim_interface')) {
       return false
     }
 
-    // Check for "Found 1 device(s)" in output
+    // Check for "Found" in output (device detected successfully)
+    // Note: R820T tuners may exit with non-zero code due to "No E4000 tuner" message,
+    // but this is normal and doesn't indicate a problem
     return result.stdout?.includes('Found') ?? false
   } catch {
     return false

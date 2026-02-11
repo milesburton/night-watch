@@ -83,7 +83,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && cd /tmp/sstv \
     && git fetch --depth 1 origin ${SSTV_COMMIT} \
     && git checkout ${SSTV_COMMIT} \
-    && python3 setup.py install \
+    && pip3 install --break-system-packages . \
     && cd / \
     && rm -rf /tmp/sstv \
     && ln -s /usr/local/bin/sstv /usr/bin/sstv 2>/dev/null || true \
