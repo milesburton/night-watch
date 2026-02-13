@@ -6,6 +6,7 @@ import {
   PassTimeline,
   ProgressSection,
   SatelliteTracking,
+  Tooltip,
 } from '@/components'
 import { useApi } from '@/hooks/useApi'
 import { useFavicon } from '@/hooks/useFavicon'
@@ -229,23 +230,29 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3 border-l border-border pl-3">
-            <div className="flex items-center gap-1" data-testid="system-status">
-              <span className={cn('w-1.5 h-1.5 rounded-full', getStatusColor())} />
-              <span className="font-mono text-[10px]">{getStatusText()}</span>
-            </div>
-            <div className="flex items-center gap-1" data-testid="sdr-status">
-              <span className={cn('w-1.5 h-1.5 rounded-full', sdrStatus.class)} />
-              <span className="text-[10px]">{sdrStatus.text}</span>
-            </div>
-            <div className="flex items-center gap-1" data-testid="ws-status">
-              <span
-                className={cn(
-                  'w-1.5 h-1.5 rounded-full',
-                  wsState.connected ? 'bg-success' : 'bg-error animate-pulse'
-                )}
-              />
-              <span className="text-[10px]">{wsState.connected ? 'WS' : 'WS!'}</span>
-            </div>
+            <Tooltip content="System status: IDLE (waiting), WAIT (pass scheduled), CAPT (capturing), SCAN (scanning frequencies)">
+              <div className="flex items-center gap-1" data-testid="system-status">
+                <span className={cn('w-1.5 h-1.5 rounded-full', getStatusColor())} />
+                <span className="font-mono text-[10px]">{getStatusText()}</span>
+              </div>
+            </Tooltip>
+            <Tooltip content={`SDR hardware: ${sdrConnected ? 'Ready' : 'Not detected'}`}>
+              <div className="flex items-center gap-1" data-testid="sdr-status">
+                <span className={cn('w-1.5 h-1.5 rounded-full', sdrStatus.class)} />
+                <span className="text-[10px]">{sdrStatus.text}</span>
+              </div>
+            </Tooltip>
+            <Tooltip content={`WebSocket: ${wsState.connected ? 'Connected to backend' : 'Disconnected - reconnecting...'}`}>
+              <div className="flex items-center gap-1" data-testid="ws-status">
+                <span
+                  className={cn(
+                    'w-1.5 h-1.5 rounded-full',
+                    wsState.connected ? 'bg-success' : 'bg-error animate-pulse'
+                  )}
+                />
+                <span className="text-[10px]">{wsState.connected ? 'WS' : 'WS!'}</span>
+              </div>
+            </Tooltip>
             <div className="flex items-center gap-1 font-mono" data-testid="current-frequency">
               {status === 'scanning' && systemState?.scanningFrequency ? (
                 <>
