@@ -407,8 +407,10 @@ export function WaterfallView({
         role="button"
         tabIndex={0}
         title="Real-time frequency spectrum waterfall visualization. Click or press Enter to control FFT stream."
-        aria-label={`Waterfall display${isActive ? ' - Recording in progress' : ''} at ${frequencyName || frequencyMHz}`}
-      />\n      <output
+        aria-label={`Waterfall display${isActive ? ' - Recording in progress' : ''} at ${frequencyName || (frequency ? (frequency / 1e6).toFixed(3) : 'Unknown')}`}
+      />
+      \n{' '}
+      <output
         className="absolute top-2 right-2 flex items-center gap-2 bg-bg-primary/80 px-2 py-1 rounded text-xs"
         aria-live="polite"
       >

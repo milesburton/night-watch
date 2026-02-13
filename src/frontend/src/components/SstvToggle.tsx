@@ -1,17 +1,13 @@
 import { useApi } from '@/hooks/useApi'
 import type { SstvStatus } from '@/types'
 import { useEffect, useState } from 'react'
-import { Tooltip } from './Tooltip'
 
 interface SstvToggleProps {
   sstvStatus: SstvStatus | null
-  onToggle?: (enabled: boolean) => void
 }
 
-export function SstvToggle({ sstvStatus, onToggle }: SstvToggleProps) {
-  const { toggleSstv, toggleGroundScan, getSstvStatus } = useApi()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingGround, setIsLoadingGround] = useState(false)
+export function SstvToggle({ sstvStatus }: SstvToggleProps) {
+  const { getSstvStatus } = useApi()
   const [enabled, setEnabled] = useState(false)
   const [groundScanEnabled, setGroundScanEnabled] = useState(true)
   const [initialLoaded, setInitialLoaded] = useState(false)
@@ -34,35 +30,6 @@ export function SstvToggle({ sstvStatus, onToggle }: SstvToggleProps) {
       setGroundScanEnabled(sstvStatus.groundScanEnabled ?? true)
     }
   }, [sstvStatus, initialLoaded])
-
-  const handleToggle = async () => {
-    setIsLoading(true)
-    try {
-      const newStatus = await toggleSstv(!enabled)
-      if (newStatus) {
-        setEnabled(newStatus.enabled)
-        onToggle?.(newStatus.enabled)
-      }
-    } catch (error) {
-      console.error('Failed to toggle SSTV:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleGroundScanToggle = async () => {
-    setIsLoadingGround(true)
-    try {
-      const newStatus = await toggleGroundScan(!groundScanEnabled)
-      if (newStatus) {
-        setGroundScanEnabled(newStatus.groundScanEnabled ?? true)
-      }
-    } catch (error) {
-      console.error('Failed to toggle ground scan:', error)
-    } finally {
-      setIsLoadingGround(false)
-    }
-  }
 
   const isActive = sstvStatus?.status === 'capturing'
   const isScanning = sstvStatus?.status === 'scanning'

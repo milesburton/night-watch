@@ -57,28 +57,7 @@ export default function App() {
     systemState?.currentPass?.satellite.name || systemState?.nextPass?.satellite.name
   )
 
-  const [issEnabled, setIssEnabled] = useState(false)
-  const [groundEnabled, setGroundEnabled] = useState(true)
-  const [noaaEnabled] = useState(true)
   const [capturing, setCapturing] = useState(false)
-
-  useEffect(() => {
-    const fetchSstvStatus = async () => {
-      const status = await getSstvStatus()
-      if (status) {
-        setIssEnabled(status.enabled)
-        setGroundEnabled(status.groundScanEnabled ?? true)
-      }
-    }
-    fetchSstvStatus()
-  }, [getSstvStatus])
-
-  useEffect(() => {
-    if (sstvStatus) {
-      setIssEnabled(sstvStatus.enabled)
-      setGroundEnabled(sstvStatus.groundScanEnabled ?? true)
-    }
-  }, [sstvStatus])
 
   useEffect(() => {
     const updateTime = () => {
@@ -217,28 +196,7 @@ export default function App() {
     }, duration * 1000)
   }
 
-  const StatusChip = ({
-    label,
-    enabled,
-    color,
-    tooltip,
-  }: {
-    label: string
-    enabled: boolean
-    color: string
-    tooltip: string
-  }) => (
-    <output
-      title={tooltip}
-      className={cn(
-        'px-1.5 py-0.5 rounded text-[10px] font-medium',
-        enabled ? `${color} text-white` : 'bg-bg-tertiary text-text-muted'
-      )}
-      aria-label={`${label}: ${enabled ? 'enabled' : 'disabled'}`}
-    >
-      {label}
-    </output>
-  )
+
 
   return (
     <div className="h-screen bg-bg-primary text-text-primary flex flex-col overflow-hidden">
