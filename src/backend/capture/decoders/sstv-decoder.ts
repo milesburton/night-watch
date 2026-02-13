@@ -6,8 +6,9 @@ import { runCommand } from '../../utils/shell'
 import type { Decoder, DecoderResult } from './types'
 
 // Resolve wrapper path relative to project root (works in Docker /app and local dev)
+// Path from /app/src/backend/capture/decoders -> /app (4 levels up)
 const currentDir = dirname(fileURLToPath(import.meta.url))
-const projectRoot = join(currentDir, '..', '..', '..')
+const projectRoot = join(currentDir, '..', '..', '..', '..')
 const WRAPPER_PATH = join(projectRoot, 'scripts', 'sstv-decode-wrapper.py')
 
 const decodeWithSstv = async (
