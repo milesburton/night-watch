@@ -44,7 +44,7 @@ export default function App() {
     unsubscribeFFT,
   } = useWebSocket({ onFFTData: handleFFTData })
 
-  const { getVersion, getSstvStatus, toggleSstv, toggleGroundScan, captureSstv } = useApi()
+  const { getVersion, getSstvStatus, captureSstv } = useApi()
   const [version, setVersion] = useState<VersionInfo | null>(null)
   const [serverTime, setServerTime] = useState<string>('')
   const [, setTick] = useState(0)
@@ -59,8 +59,7 @@ export default function App() {
 
   const [issEnabled, setIssEnabled] = useState(false)
   const [groundEnabled, setGroundEnabled] = useState(true)
-  const [noaaEnabled, setNoaaEnabled] = useState(true)
-  const [sstvLoading, setSstvLoading] = useState<string | null>(null)
+  const [noaaEnabled] = useState(true)
   const [capturing, setCapturing] = useState(false)
 
   useEffect(() => {
@@ -199,24 +198,6 @@ export default function App() {
   const sdrStatus = getSdrStatus()
   const versionText = `${version?.version || '-.-.-'}`
 
-  const handleIssToggle = async () => {
-    setSstvLoading('iss')
-    const result = await toggleSstv(!issEnabled)
-    if (result) setIssEnabled(result.enabled)
-    setSstvLoading(null)
-  }
-
-  const handleGroundToggle = async () => {
-    setSstvLoading('ground')
-    const result = await toggleGroundScan(!groundEnabled)
-    if (result) setGroundEnabled(result.groundScanEnabled ?? true)
-    setSstvLoading(null)
-  }
-
-  const handleNoaaToggle = () => {
-    setNoaaEnabled(!noaaEnabled)
-  }
-
   const handleManualCapture = async () => {
     if (!currentFreq || capturing) return
 
@@ -236,35 +217,27 @@ export default function App() {
     }, duration * 1000)
   }
 
-  const ToggleChip = ({
+  const StatusChip = ({
     label,
     enabled,
-    loading,
     color,
     tooltip,
-    onClick,
   }: {
     label: string
     enabled: boolean
-    loading?: boolean
     color: string
     tooltip: string
-    onClick: () => void
   }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={loading}
+    <output
       title={tooltip}
       className={cn(
-        'px-1.5 py-0.5 rounded text-[10px] font-medium transition-all',
-        enabled ? `${color} text-white` : 'bg-bg-tertiary text-text-muted',
-        loading && 'opacity-50 cursor-wait',
-        !loading && 'hover:opacity-80'
+        'px-1.5 py-0.5 rounded text-[10px] font-medium',
+        enabled ? `${color} text-white` : 'bg-bg-tertiary text-text-muted'
       )}
+      aria-label={`${label}: ${enabled ? 'enabled' : 'disabled'}`}
     >
       {label}
-    </button>
+    </output>
   )
 
   return (
@@ -276,28 +249,23 @@ export default function App() {
       >
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
-            <ToggleChip
+            <StatusChip
               label="METEOR"
               enabled={noaaEnabled}
               color="bg-accent"
-              tooltip="METEOR-M LRPT weather satellites (137.9 MHz) - High-resolution weather imagery from Russian satellites"
-              onClick={handleNoaaToggle}
+              tooltip="METEOR-M LRPT weather satellites (137.9 MHz) - Status indicator"
             />
-            <ToggleChip
+            <StatusChip
               label="ISS"
               enabled={issEnabled}
-              loading={sstvLoading === 'iss'}
               color="bg-purple"
-              tooltip="ISS SSTV events on 145.800 MHz - Capture slow-scan TV from the International Space Station"
-              onClick={handleIssToggle}
+              tooltip="ISS SSTV events on 145.800 MHz - Status indicator"
             />
-            <ToggleChip
+            <StatusChip
               label="2M"
               enabled={groundEnabled}
-              loading={sstvLoading === 'ground'}
               color="bg-purple"
-              tooltip="2M ground SSTV scanning (144.5, 145.5, 145.8 MHz) - Scan for amateur radio SSTV during idle time"
-              onClick={handleGroundToggle}
+              tooltip="2M ground SSTV scanning (144.5, 145.5, 145.8 MHz) - Status indicator"
             />
             {currentFreq && waterfallMode === 'sstv-2m' && (
               <button
