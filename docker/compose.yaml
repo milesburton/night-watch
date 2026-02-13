@@ -18,6 +18,8 @@ services:
       dockerfile: docker/Dockerfile.app
       args:
         BASE_IMAGE: ghcr.io/milesburton/night-watch-base:latest
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME}
     container_name: rfcapture
     restart: unless-stopped
     # No profile = runs by default with `docker compose up`
@@ -64,6 +66,8 @@ services:
       dockerfile: docker/Dockerfile.app
       args:
         BASE_IMAGE: ghcr.io/milesburton/night-watch-base:latest
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME}
     container_name: sdr-relay
     restart: unless-stopped
     profiles:
@@ -101,6 +105,8 @@ services:
       dockerfile: docker/Dockerfile.app
       args:
         BASE_IMAGE: ghcr.io/milesburton/night-watch-base:latest
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME}
     container_name: rfcapture-server
     restart: unless-stopped
     profiles:

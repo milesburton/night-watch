@@ -29,15 +29,18 @@ function getGitCommit(): string {
 
 function getVersion(): string {
   try {
-    // Generate date-based build number (YYYYMMDD format)
+    // Generate timestamp-based build number (YYYYMMDD.HHMMSS format)
     const now = new Date()
     const year = now.getUTCFullYear()
     const month = String(now.getUTCMonth() + 1).padStart(2, '0')
     const day = String(now.getUTCDate()).padStart(2, '0')
-    const dateBuild = `${year}${month}${day}`
+    const hour = String(now.getUTCHours()).padStart(2, '0')
+    const minute = String(now.getUTCMinutes()).padStart(2, '0')
+    const second = String(now.getUTCSeconds()).padStart(2, '0')
+    const timestamp = `${year}${month}${day}.${hour}${minute}${second}`
 
-    // Return version in format: 2.0.YYYYMMDD
-    return `2.0.${dateBuild}`
+    // Return version in format: 2.0.YYYYMMDD.HHMMSS
+    return `2.0.${timestamp}`
   } catch (error) {
     console.error('Error generating version:', error)
     return '2.0.0'

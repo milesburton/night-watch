@@ -269,7 +269,7 @@ export function DiagnosticsPanel({
 
       case 'sdr': {
         const sdrActive =
-          systemState?.status === 'recording' ||
+          systemState?.status === 'capturing' ||
           systemState?.status === 'scanning' ||
           systemState?.status === 'decoding'
         const sdrReady = systemState?.status === 'idle' || systemState?.status === 'waiting'
@@ -390,8 +390,10 @@ export function DiagnosticsPanel({
 
   return (
     <div
-      className="fixed left-0 right-0 z-40 bg-bg-primary border-b border-border shadow-2xl"
+      className="fixed left-0 right-0 z-10 bg-bg-primary border-b border-border shadow-2xl"
       style={{ height: panelHeight, top: 68 }}
+      role="complementary"
+      aria-label="Developer diagnostics panel"
     >
       {/* Tab Bar */}
       <div className="flex items-center justify-between border-b border-border px-2">
