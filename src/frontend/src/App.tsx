@@ -249,24 +249,7 @@ export default function App() {
       >
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
-            <StatusChip
-              label="METEOR"
-              enabled={noaaEnabled}
-              color="bg-accent"
-              tooltip="METEOR-M LRPT weather satellites (137.9 MHz) - Status indicator"
-            />
-            <StatusChip
-              label="ISS"
-              enabled={issEnabled}
-              color="bg-purple"
-              tooltip="ISS SSTV events on 145.800 MHz - Status indicator"
-            />
-            <StatusChip
-              label="2M"
-              enabled={groundEnabled}
-              color="bg-purple"
-              tooltip="2M ground SSTV scanning (144.5, 145.5, 145.8 MHz) - Status indicator"
-            />
+            {/* System is automatic - status pills removed */}
             {currentFreq && waterfallMode === 'sstv-2m' && (
               <button
                 type="button"
