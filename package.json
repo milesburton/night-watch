@@ -38,8 +38,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@commitlint/cli": "^20.3.0",
-    "@commitlint/config-conventional": "^20.3.0",
+    "@commitlint/cli": "^20.4.1",
+    "@commitlint/config-conventional": "^20.4.1",
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.10.2",
     "@types/ws": "^8.5.13",
