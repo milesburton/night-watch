@@ -231,6 +231,39 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
       return
     }
 
+    if (url.pathname === '/api/sstv/capture' && req.method === 'POST') {
+      try {
+        const body = await readJsonBody(req)
+        const duration = (body.duration as number | undefined) || 60 // Default 60 seconds
+        const frequency = (body.frequency as number | undefined) || 144.5e6 // Default 144.5 MHz
+
+        // Trigger manual SSTV capture (imported dynamically to access config)
+        const { loadConfig } = await import('../../backend/config/config')
+        const { captureSstvManual } = await import('../../backend/capture/sstv-manual')
+        const config = loadConfig()
+
+        // Start capture in background (non-blocking)
+        captureSstvManual(frequency, duration, config)
+          .then((result) => {
+            if (result?.success) {
+              logger.info(`Manual SSTV capture successful: ${result.imagePaths.join(', ')}`)
+            } else {
+              logger.warn('Manual SSTV capture failed or produced no images')
+            }
+          })
+          .catch((error) => {
+            logger.error(`Manual SSTV capture error: ${error}`)
+          })
+
+        jsonResponseNode(res, { success: true, message: 'SSTV capture started', duration, frequency })
+      } catch (error) {
+        logger.error(`Failed to start SSTV capture: ${error}`)
+        res.writeHead(500, { 'Content-Type': 'text/plain' })
+        res.end('Internal Server Error')
+      }
+      return
+    }
+
     if (url.pathname === '/api/globe') {
       const globe = getGlobeState()
       jsonResponseNode(res, globe)

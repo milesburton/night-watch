@@ -44,7 +44,7 @@ export default function App() {
     unsubscribeFFT,
   } = useWebSocket({ onFFTData: handleFFTData })
 
-  const { getVersion, getSstvStatus, toggleSstv, toggleGroundScan } = useApi()
+  const { getVersion, getSstvStatus, toggleSstv, toggleGroundScan, captureSstv } = useApi()
   const [version, setVersion] = useState<VersionInfo | null>(null)
   const [serverTime, setServerTime] = useState<string>('')
   const [, setTick] = useState(0)
@@ -61,6 +61,7 @@ export default function App() {
   const [groundEnabled, setGroundEnabled] = useState(true)
   const [noaaEnabled, setNoaaEnabled] = useState(true)
   const [sstvLoading, setSstvLoading] = useState<string | null>(null)
+  const [capturing, setCapturing] = useState(false)
 
   useEffect(() => {
     const fetchSstvStatus = async () => {
@@ -216,6 +217,25 @@ export default function App() {
     setNoaaEnabled(!noaaEnabled)
   }
 
+  const handleManualCapture = async () => {
+    if (!currentFreq || capturing) return
+
+    setCapturing(true)
+    const duration = 60 // 60 seconds
+    const result = await captureSstv(currentFreq, duration)
+
+    if (result?.success) {
+      console.log(`Manual SSTV capture started: ${result.message}`)
+    } else {
+      console.error('Failed to start manual SSTV capture')
+    }
+
+    // Keep capturing state for the duration
+    setTimeout(() => {
+      setCapturing(false)
+    }, duration * 1000)
+  }
+
   const ToggleChip = ({
     label,
     enabled,
@@ -279,6 +299,23 @@ export default function App() {
               tooltip="2M ground SSTV scanning (144.5, 145.5, 145.8 MHz) - Scan for amateur radio SSTV during idle time"
               onClick={handleGroundToggle}
             />
+            {currentFreq && waterfallMode === 'sstv-2m' && (
+              <button
+                type="button"
+                onClick={handleManualCapture}
+                disabled={capturing || status === 'recording'}
+                title={`Manually capture SSTV at ${(currentFreq / 1e6).toFixed(3)} MHz for 60 seconds`}
+                className={cn(
+                  'px-2 py-0.5 rounded text-[10px] font-medium transition-all',
+                  capturing || status === 'recording'
+                    ? 'bg-bg-tertiary text-text-muted cursor-not-allowed opacity-50'
+                    : 'bg-error text-white hover:opacity-80',
+                  capturing && 'animate-pulse'
+                )}
+              >
+                {capturing || status === 'recording' ? '● REC' : '● CAPTURE'}
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-3 border-l border-border pl-3">
