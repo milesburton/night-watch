@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run integration",
     "lint": "npx biome check .",
     "lint:fix": "npx biome check --write .",
     "format": "npx biome format --write .",
