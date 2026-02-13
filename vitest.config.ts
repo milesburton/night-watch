@@ -15,7 +15,24 @@ export default defineConfig({
       provider: 'istanbul',
       reporter: ['text', 'html', 'lcov'],
       include: ['src/backend/**/*.ts', 'src/middleware/**/*.ts'],
-      exclude: ['src/backend/cli/**', '**/*.d.ts', '**/*.spec.ts'],
+      exclude: [
+        // Test files
+        '**/*.spec.ts',
+        '**/*.d.ts',
+
+        // CLI (entry points - should be tested via integration tests)
+        'src/backend/cli/**',
+        'src/backend/index.ts',
+
+        // Infrastructure (should be tested via integration tests)
+        'src/middleware/web/server.ts',
+        'src/backend/sdr-client/**',
+        'src/backend/capture/*-provider.ts', // All SDR providers
+
+        // Thin wrappers/compatibility shims
+        'src/backend/utils/node-compat.ts',
+        'src/backend/utils/logger.ts',
+      ],
     },
     testTimeout: 10_000,
     server: {

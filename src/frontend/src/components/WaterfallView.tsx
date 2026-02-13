@@ -359,8 +359,30 @@ export function WaterfallView({
     currentPass,
   ])
 
+  // Throttle redraws using requestAnimationFrame for smooth 60fps rendering
   useEffect(() => {
-    drawWaterfall()
+    let rafId: number | null = null
+    let needsRedraw = true
+
+    const scheduleRedraw = () => {
+      if (needsRedraw && rafId === null) {
+        rafId = requestAnimationFrame(() => {
+          drawWaterfall()
+          rafId = null
+          needsRedraw = false
+        })
+      }
+    }
+
+    // Mark as needing redraw whenever dependencies change
+    needsRedraw = true
+    scheduleRedraw()
+
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+      }
+    }
   }, [drawWaterfall])
 
   const handleClick = useCallback(() => {
