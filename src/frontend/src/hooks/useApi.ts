@@ -78,8 +78,14 @@ export function useApi() {
   }, [fetchJson])
 
   const captureSstv = useCallback(
-    async (frequency: number, duration: number): Promise<{ success: boolean; message: string } | null> => {
-      return postJson<{ success: boolean; message: string }>('/api/sstv/capture', { frequency, duration })
+    async (
+      frequency: number,
+      duration: number
+    ): Promise<{ success: boolean; message: string } | null> => {
+      return postJson<{ success: boolean; message: string }>('/api/sstv/capture', {
+        frequency,
+        duration,
+      })
     },
     [postJson]
   )

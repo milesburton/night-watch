@@ -52,10 +52,15 @@ export async function captureSstvManual(
     // Record at the specified frequency
     logger.satellite(captureInfo.name, `Recording SSTV for ${durationSeconds}s`)
 
-    const recordingPath = await recordPass(captureInfo, durationSeconds, config, (elapsed, total) => {
-      const progress = Math.round((elapsed / total) * 100)
-      stateManager.updateProgress(progress, elapsed, total)
-    })
+    const recordingPath = await recordPass(
+      captureInfo,
+      durationSeconds,
+      config,
+      (elapsed, total) => {
+        const progress = Math.round((elapsed / total) * 100)
+        stateManager.updateProgress(progress, elapsed, total)
+      }
+    )
 
     // Decode the recording
     stateManager.setStatus('decoding')

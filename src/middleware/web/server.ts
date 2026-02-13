@@ -255,7 +255,12 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
             logger.error(`Manual SSTV capture error: ${error}`)
           })
 
-        jsonResponseNode(res, { success: true, message: 'SSTV capture started', duration, frequency })
+        jsonResponseNode(res, {
+          success: true,
+          message: 'SSTV capture started',
+          duration,
+          frequency,
+        })
       } catch (error) {
         logger.error(`Failed to start SSTV capture: ${error}`)
         res.writeHead(500, { 'Content-Type': 'text/plain' })
