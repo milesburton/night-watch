@@ -20,7 +20,7 @@ export function useFavicon(status: SystemStatus) {
     let pulseEffect = false
 
     switch (status) {
-      case 'recording':
+      case 'capturing':
       case 'scanning':
         color = '#22c55e' // green - active
         pulseEffect = true

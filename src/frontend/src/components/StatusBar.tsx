@@ -32,7 +32,7 @@ export function StatusBar({
     switch (status) {
       case 'waiting':
         return nextPass ? `Waiting for ${nextPass.satellite.name}` : 'Waiting for Pass'
-      case 'recording':
+      case 'capturing':
         return 'Recording Signal'
       case 'decoding':
         return 'Decoding Image'
@@ -44,7 +44,7 @@ export function StatusBar({
   }
 
   const getSdrStatus = () => {
-    if (status === 'recording' || status === 'scanning') {
+    if (status === 'capturing' || status === 'scanning') {
       return { text: 'SDR: Active', class: 'bg-success shadow-[0_0_6px_var(--success)]' }
     }
     if (sdrConnected) {

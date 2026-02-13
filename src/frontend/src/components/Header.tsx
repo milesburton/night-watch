@@ -16,7 +16,7 @@ export function Header({ status, statusMessage, connected }: HeaderProps) {
         return 'Standby'
       case 'waiting':
         return 'Waiting for Pass'
-      case 'recording':
+      case 'capturing':
         return 'Recording'
       case 'decoding':
         return 'Decoding'
@@ -33,7 +33,7 @@ export function Header({ status, statusMessage, connected }: HeaderProps) {
         return 'System is idle, waiting for next scheduled pass or SSTV scan'
       case 'waiting':
         return 'Satellite pass approaching, preparing to capture'
-      case 'recording':
+      case 'capturing':
         return 'Actively recording RF signal from satellite'
       case 'decoding':
         return 'Processing recorded audio into weather images'
@@ -54,7 +54,7 @@ export function Header({ status, statusMessage, connected }: HeaderProps) {
               'px-3 py-1 rounded-full text-sm font-medium cursor-help',
               status === 'idle' && 'bg-text-secondary/20 text-text-secondary',
               status === 'waiting' && 'bg-warning/20 text-warning',
-              status === 'recording' && 'bg-accent/20 text-accent animate-pulse',
+              status === 'capturing' && 'bg-accent/20 text-accent animate-pulse',
               status === 'decoding' && 'bg-success/20 text-success',
               status === 'scanning' && 'bg-purple/20 text-purple animate-pulse'
             )}

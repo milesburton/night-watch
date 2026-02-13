@@ -56,7 +56,7 @@ export function StatusCards({ systemState, nextPass }: StatusCardsProps) {
           <span className={cn('status-badge', `status-${status}`)}>
             {status === 'idle' && 'Standby'}
             {status === 'waiting' && 'Waiting for Pass'}
-            {status === 'recording' && 'Recording'}
+            {status === 'capturing' && 'Recording'}
             {status === 'decoding' && 'Decoding'}
             {status === 'scanning' && 'Scanning 2m SSTV'}
           </span>

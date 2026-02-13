@@ -9,7 +9,7 @@ export function usePageTitle(status: SystemStatus, satelliteName?: string) {
     let title: string
 
     switch (status) {
-      case 'recording':
+      case 'capturing':
         title = satelliteName
           ? `🛰️ Recording ${satelliteName} - Night Watch`
           : '🛰️ Recording - Night Watch'

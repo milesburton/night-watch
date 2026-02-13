@@ -89,7 +89,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
                 ? {
                     ...prev,
                     currentPass: data.pass,
-                    status: 'recording',
+                    status: 'capturing',
                   }
                 : null
             )
