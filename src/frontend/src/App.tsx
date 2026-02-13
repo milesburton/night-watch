@@ -44,7 +44,7 @@ export default function App() {
     unsubscribeFFT,
   } = useWebSocket({ onFFTData: handleFFTData })
 
-  const { getVersion, getSstvStatus, captureSstv } = useApi()
+  const { getVersion, captureSstv } = useApi()
   const [version, setVersion] = useState<VersionInfo | null>(null)
   const [serverTime, setServerTime] = useState<string>('')
   const [, setTick] = useState(0)
@@ -195,8 +195,6 @@ export default function App() {
       setCapturing(false)
     }, duration * 1000)
   }
-
-
 
   return (
     <div className="h-screen bg-bg-primary text-text-primary flex flex-col overflow-hidden">
