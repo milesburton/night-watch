@@ -4,7 +4,9 @@ import type { ReceiverConfig, SatelliteInfo } from '@backend/types'
 import { ensureDir, generateFilename } from '../utils/fs'
 import { logger } from '../utils/logger'
 import { sleep } from '../utils/node-compat'
-import { type RunningProcess, spawnProcess } from '../utils/shell'
+
+// SSTV audio sample rate - must match what the Python decoder expects
+const SSTV_SAMPLE_RATE = 48_000
 
 export interface RecordingSession {
   satellite: SatelliteInfo
@@ -13,6 +15,31 @@ export interface RecordingSession {
   rtlProcess: ChildProcess
   soxProcess: ChildProcess
   stop: () => Promise<void>
+}
+
+function killAndWait(proc: ChildProcess, name: string, timeoutMs = 3000): Promise<void> {
+  return new Promise<void>((resolve) => {
+    if (proc.killed || proc.exitCode !== null) {
+      resolve()
+      return
+    }
+
+    const onClose = () => {
+      clearTimeout(killTimer)
+      resolve()
+    }
+
+    proc.once('close', onClose)
+
+    proc.kill('SIGTERM')
+
+    const killTimer = setTimeout(() => {
+      if (!proc.killed && proc.exitCode === null) {
+        logger.warn(`${name} did not terminate, sending SIGKILL`)
+        proc.kill('SIGKILL')
+      }
+    }, timeoutMs)
+  })
 }
 
 export async function startRecording(
@@ -25,32 +52,35 @@ export async function startRecording(
   const outputPath = join(config.recording.recordingsDir, filename)
   const freqHz = satellite.frequency.toString()
 
-  logger.capture(`Starting recording: ${satellite.name} at ${satellite.frequency / 1e6} MHz`)
-
-  // Use different rtl_fm parameters for SSTV vs LRPT
-  // SSTV needs: no de-emphasis, wideband FM
-  // LRPT needs: de-emphasis, narrow FM
+  // Use signal-specific sample rate for SSTV, global SDR rate for others
   const isSstv = satellite.signalType === 'sstv'
+  const sampleRate = isSstv ? SSTV_SAMPLE_RATE : config.sdr.sampleRate
 
-  const rtlProcess = spawn(
-    'rtl_fm',
-    [
-      '-f',
-      freqHz,
-      '-s',
-      config.sdr.sampleRate.toString(),
-      '-g',
-      config.sdr.gain.toString(),
-      '-p',
-      config.sdr.ppmCorrection.toString(),
-      '-E',
-      isSstv ? 'dc' : 'deemp', // SSTV: DC blocking only, LRPT: de-emphasis
-      '-F',
-      isSstv ? '0' : '9', // SSTV: auto-wideband, LRPT: narrow
-      '-',
-    ],
-    { stdio: ['pipe', 'pipe', 'pipe'] }
+  logger.capture(
+    `Starting recording: ${satellite.name} at ${satellite.frequency / 1e6} MHz (${sampleRate} Hz)`
   )
+
+  // SSTV: DC blocking, wider filter for FM SSTV audio
+  // LRPT: de-emphasis, FIR filter order 9
+  const rtlArgs = [
+    '-f',
+    freqHz,
+    '-s',
+    sampleRate.toString(),
+    '-g',
+    config.sdr.gain.toString(),
+    '-p',
+    config.sdr.ppmCorrection.toString(),
+    '-E',
+    isSstv ? 'dc' : 'deemp',
+    '-F',
+    isSstv ? '9' : '9',
+    '-',
+  ]
+
+  logger.debug(`rtl_fm args: ${rtlArgs.join(' ')}`)
+
+  const rtlProcess = spawn('rtl_fm', rtlArgs, { stdio: ['pipe', 'pipe', 'pipe'] })
 
   const soxProcess = spawn(
     'sox',
@@ -58,7 +88,7 @@ export async function startRecording(
       '-t',
       'raw',
       '-r',
-      config.sdr.sampleRate.toString(),
+      sampleRate.toString(),
       '-e',
       's',
       '-b',
@@ -76,7 +106,12 @@ export async function startRecording(
   soxProcess.stdin && rtlProcess.stdout?.pipe(soxProcess.stdin)
 
   rtlProcess.stderr?.on('data', (data: Buffer) => {
-    logger.debug(`rtl_fm: ${data.toString().trim()}`)
+    const msg = data.toString().trim()
+    if (msg.includes('error') || msg.includes('failed') || msg.includes('usb_')) {
+      logger.error(`rtl_fm: ${msg}`)
+    } else {
+      logger.debug(`rtl_fm: ${msg}`)
+    }
   })
 
   soxProcess.stderr?.on('data', (data: Buffer) => {
@@ -93,17 +128,11 @@ export async function startRecording(
     async stop(): Promise<void> {
       logger.capture('Stopping recording...')
 
-      rtlProcess.kill('SIGTERM')
+      // Kill rtl_fm first and wait for it to terminate (releases SDR device)
+      await killAndWait(rtlProcess, 'rtl_fm')
 
-      await new Promise<void>((resolve) => {
-        soxProcess.on('close', () => resolve())
-        setTimeout(() => {
-          if (!soxProcess.killed) {
-            soxProcess.kill('SIGTERM')
-          }
-          resolve()
-        }, 5000)
-      })
+      // Then wait for sox to finish writing the WAV file
+      await killAndWait(soxProcess, 'sox', 5000)
 
       logger.capture(`Recording saved: ${outputPath}`)
     },

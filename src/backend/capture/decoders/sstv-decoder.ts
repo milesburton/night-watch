@@ -1,8 +1,14 @@
-import { basename, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { ensureDir, fileExists } from '../../utils/fs'
 import { logger } from '../../utils/logger'
 import { runCommand } from '../../utils/shell'
 import type { Decoder, DecoderResult } from './types'
+
+// Resolve wrapper path relative to project root (works in Docker /app and local dev)
+const currentDir = dirname(fileURLToPath(import.meta.url))
+const projectRoot = join(currentDir, '..', '..', '..')
+const WRAPPER_PATH = join(projectRoot, 'scripts', 'sstv-decode-wrapper.py')
 
 const decodeWithSstv = async (
   wavPath: string,
@@ -11,19 +17,28 @@ const decodeWithSstv = async (
   const baseName = basename(wavPath, '.wav')
   const outputPath = join(outputDir, `${baseName}-sstv.png`)
 
-  logger.image('Decoding SSTV image...')
+  logger.image(`Decoding SSTV image from ${wavPath}...`)
 
-  // Use Python wrapper to avoid TTY issues in non-interactive environments
-  const wrapperPath = join(process.cwd(), 'scripts', 'sstv-decode-wrapper.py')
-  const result = await runCommand('python3', [wrapperPath, wavPath, outputPath], {
-    timeout: 300000,
+  const result = await runCommand('python3', [WRAPPER_PATH, wavPath, outputPath], {
+    timeout: 300_000, // 5 minutes max for decode
   })
 
-  const success = result.exitCode === 0 && (await fileExists(outputPath))
+  if (result.exitCode !== 0) {
+    logger.error(`SSTV decode failed (exit ${result.exitCode}): ${result.stderr.trim()}`)
+    if (result.stdout.trim()) {
+      logger.debug(`SSTV decoder stdout: ${result.stdout.trim()}`)
+    }
+    return null
+  }
 
-  success ? logger.image(`SSTV image saved: ${outputPath}`) : logger.warn('SSTV decoding failed')
+  const outputExists = await fileExists(outputPath)
+  if (!outputExists) {
+    logger.warn('SSTV decoder exited OK but no output image was created')
+    return null
+  }
 
-  return success ? { outputPaths: [outputPath], metadata: { mode: 'auto-detected' } } : null
+  logger.image(`SSTV image saved: ${outputPath}`)
+  return { outputPaths: [outputPath], metadata: { mode: 'auto-detected' } }
 }
 
 export const sstvDecoder: Decoder = {
@@ -35,27 +50,34 @@ export const sstvDecoder: Decoder = {
 
     if (!fileFound) {
       logger.error(`Recording file not found: ${wavPath}`)
+      return null
     }
 
-    await (fileFound ? ensureDir(outputDir) : Promise.resolve())
-
-    return fileFound ? decodeWithSstv(wavPath, outputDir) : null
+    await ensureDir(outputDir)
+    return decodeWithSstv(wavPath, outputDir)
   },
 
   async checkInstalled(): Promise<boolean> {
     try {
-      // Check if Python wrapper script exists and sstv module is available
-      const wrapperPath = join(process.cwd(), 'scripts', 'sstv-decode-wrapper.py')
-      const wrapperExists = await fileExists(wrapperPath)
+      const wrapperExists = await fileExists(WRAPPER_PATH)
 
       if (!wrapperExists) {
-        logger.warn('SSTV decoder wrapper script not found')
+        logger.warn(`SSTV decoder wrapper not found at: ${WRAPPER_PATH}`)
         return false
       }
 
-      // Check if sstv Python module is installed
-      const result = await runCommand('python3', ['-c', 'import sstv; print("OK")'])
-      return result.exitCode === 0 && result.stdout.includes('OK')
+      // Check if sstv Python module and its dependencies are importable
+      const result = await runCommand('python3', [
+        '-c',
+        'import sstv; from PIL import Image; print("OK")',
+      ])
+
+      if (result.exitCode !== 0) {
+        logger.warn(`SSTV decoder dependencies missing: ${result.stderr.trim()}`)
+        return false
+      }
+
+      return result.stdout.includes('OK')
     } catch {
       return false
     }

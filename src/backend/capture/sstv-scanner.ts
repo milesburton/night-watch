@@ -5,7 +5,7 @@ import { stateManager } from '../state/state-manager'
 import { logger } from '../utils/logger'
 import { sleep } from '../utils/node-compat'
 import { decodeRecording } from './decoders'
-import { getLatestFFTData, stopFFTStream } from './fft-stream'
+import { getLatestFFTData, getPeakPowerInBand, stopFFTStream } from './fft-stream'
 import { recordPass } from './recorder'
 
 // Common 2m SSTV frequencies (in Hz)
@@ -15,6 +15,10 @@ export const SSTV_SCAN_FREQUENCIES = [
   { frequency: 144.5e6, name: '2m SSTV Calling' },
   // { frequency: 145.5e6, name: '2m SSTV Alt' }, // Disabled to prevent USB conflicts
 ]
+
+// SSTV recording duration: Robot36 is ~36s, Scottie/Martin modes are ~110s
+// Record 45s to capture a full Robot36 frame with buffer
+const SSTV_RECORD_DURATION_SECONDS = 45
 
 // Virtual satellite info for ground-based SSTV
 const GROUND_SSTV_INFO: SatelliteInfo = {
@@ -80,7 +84,10 @@ export async function scanForSstv(
         logger.info(`Scanning ${freq.name} (${(freq.frequency / 1e6).toFixed(3)} MHz)`)
 
         // Dwell and check FFT power for signal detection
+        // Use band-specific power (±5kHz around center) instead of full 250kHz maxPower
+        // to avoid false positives from noise spikes outside the SSTV signal bandwidth
         const signalThreshold = config.recording.minSignalStrength - 5
+        const detectionBandwidthHz = 10_000 // ±5kHz around center (SSTV is ~3kHz)
         let hasSignal = false
 
         // Sample FFT data over the dwell period (20s total, checking every 500ms)
@@ -88,13 +95,13 @@ export async function scanForSstv(
         let maxSeenPower = -999
         for (let i = 0; i < 40 && !shouldStop && Date.now() < endTime; i++) {
           await sleep(500)
-          const fftData = getLatestFFTData()
-          if (fftData) {
-            maxSeenPower = Math.max(maxSeenPower, fftData.maxPower)
-            if (fftData.maxPower > signalThreshold) {
+          const bandPower = getPeakPowerInBand(detectionBandwidthHz)
+          if (bandPower !== null) {
+            maxSeenPower = Math.max(maxSeenPower, bandPower)
+            if (bandPower > signalThreshold) {
               hasSignal = true
               logger.info(
-                `Signal detected: peak ${fftData.maxPower.toFixed(1)} dB > threshold ${signalThreshold} dB`
+                `Signal detected: band peak ${bandPower.toFixed(1)} dB > threshold ${signalThreshold} dB`
               )
               break
             }
@@ -104,7 +111,7 @@ export async function scanForSstv(
         // Log what we saw even if no signal detected (for debugging)
         if (!hasSignal && maxSeenPower > -999) {
           logger.info(
-            `${freq.name}: max power ${maxSeenPower.toFixed(1)} dB < threshold ${signalThreshold} dB`
+            `${freq.name}: band peak ${maxSeenPower.toFixed(1)} dB < threshold ${signalThreshold} dB (±${detectionBandwidthHz / 2 / 1000}kHz)`
           )
         } else if (!hasSignal) {
           logger.warn(`${freq.name}: No FFT data received during 20s dwell period!`)
@@ -126,8 +133,8 @@ export async function scanForSstv(
             frequency: freq.frequency,
           }
 
-          // Record for the specified duration
-          const result = await captureSstv(captureInfo, config, maxDurationSeconds)
+          // Record for SSTV-appropriate duration (not the full scan timeout)
+          const result = await captureSstv(captureInfo, config, SSTV_RECORD_DURATION_SECONDS)
 
           if (result?.success) {
             isScanning = false
@@ -167,9 +174,16 @@ async function captureSstv(
       stateManager.updateProgress(progress, elapsed, total)
     })
 
+    logger.satellite(info.name, `Recording complete: ${recordingPath}`)
     stateManager.setStatus('decoding')
     const decoderResult = await decodeRecording(recordingPath, config.recording.imagesDir, 'sstv')
     const imagePaths = decoderResult?.outputPaths ?? []
+
+    if (imagePaths.length === 0) {
+      logger.warn(`${info.name}: No SSTV image decoded from ${recordingPath}`)
+    } else {
+      logger.info(`${info.name}: Decoded ${imagePaths.length} SSTV image(s)`)
+    }
 
     const result: CaptureResult = {
       satellite: info,

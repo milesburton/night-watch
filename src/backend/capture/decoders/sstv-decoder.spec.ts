@@ -136,7 +136,10 @@ describe('sstvDecoder', () => {
       const result = await sstvDecoder.checkInstalled()
 
       expect(result).toBe(true)
-      expect(mockRunCommand).toHaveBeenCalledWith('python3', ['-c', 'import sstv; print("OK")'])
+      expect(mockRunCommand).toHaveBeenCalledWith('python3', [
+        '-c',
+        'import sstv; from PIL import Image; print("OK")',
+      ])
     })
 
     it('should return false when sstv is not installed', async () => {

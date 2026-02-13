@@ -7,14 +7,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('node:child_process', () => {
   const createMockProcess = (isRtl: boolean) => {
     const emitter = new EventEmitter()
-    return Object.assign(emitter, {
+    const proc = Object.assign(emitter, {
       stdout: Object.assign(new EventEmitter(), { pipe: vi.fn() }),
       stderr: new EventEmitter(),
       stdin: isRtl ? null : { pipe: vi.fn() },
       killed: false,
+      exitCode: null as number | null,
       kill: vi.fn(),
       pid: isRtl ? 1234 : 5678,
     }) as unknown as ChildProcess
+    // Simulate process termination when kill is called
+    ;(proc.kill as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      Object.assign(proc, { killed: true, exitCode: 0 })
+      setTimeout(() => proc.emit('close', 0), 5)
+      return true
+    })
+    return proc
   }
 
   return {
@@ -150,10 +158,6 @@ describe('recorder', () => {
   describe('session.stop', () => {
     it('should kill rtl_fm process', async () => {
       const session = await startRecording(TEST_SATELLITE, mockConfig)
-
-      setTimeout(() => {
-        session.soxProcess.emit('close')
-      }, 10)
 
       await session.stop()
 

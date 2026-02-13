@@ -502,6 +502,40 @@ export function getLatestFFTData(): FFTData | null {
 }
 
 /**
+ * Get peak power within a specific bandwidth around center frequency.
+ * Use this instead of maxPower when detecting narrowband signals (e.g. 3kHz SSTV)
+ * within the wider 250kHz FFT bandwidth.
+ * @param bandwidthHz - Signal bandwidth to check (e.g. 6000 for ±3kHz around center)
+ * @returns Peak power in dB within the specified band, or null if no data
+ */
+export function getPeakPowerInBand(bandwidthHz: number): number | null {
+  if (!latestData || !currentConfig) return null
+
+  const { bins, centerFreq } = latestData
+  const fftSize = bins.length
+  const binWidth = SAMPLE_RATE / fftSize
+
+  // Calculate bin range for the signal bandwidth around center
+  const halfBandwidth = bandwidthHz / 2
+  const startFreq = centerFreq - SAMPLE_RATE / 2
+  const centerBin = Math.floor((centerFreq - startFreq) / binWidth)
+  const halfBins = Math.ceil(halfBandwidth / binWidth)
+
+  const lowBin = Math.max(0, centerBin - halfBins)
+  const highBin = Math.min(fftSize - 1, centerBin + halfBins)
+
+  let peakPower = -999
+  for (let i = lowBin; i <= highBin; i++) {
+    const power = bins[i] ?? -120
+    if (power > peakPower) {
+      peakPower = power
+    }
+  }
+
+  return peakPower > -999 ? peakPower : null
+}
+
+/**
  * Get last SDR error (null if no error)
  */
 export function getFFTStreamError(): string | null {

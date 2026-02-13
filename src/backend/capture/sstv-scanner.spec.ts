@@ -22,6 +22,7 @@ vi.mock('./decoders', () => ({
 
 vi.mock('./fft-stream', () => ({
   getLatestFFTData: vi.fn(() => null),
+  getPeakPowerInBand: vi.fn(() => null),
   stopFFTStream: vi.fn(),
 }))
 
@@ -37,7 +38,7 @@ import { TEST_STATION } from '@/test-fixtures'
 import type { ReceiverConfig } from '@backend/types'
 import { stateManager } from '../state/state-manager'
 import { decodeRecording } from './decoders'
-import { getLatestFFTData, stopFFTStream } from './fft-stream'
+import { getPeakPowerInBand, stopFFTStream } from './fft-stream'
 import { recordPass } from './recorder'
 import {
   SSTV_SCAN_FREQUENCIES,
@@ -132,7 +133,7 @@ describe('sstv-scanner', () => {
 
   describe('scanForSstv', () => {
     beforeEach(() => {
-      vi.mocked(getLatestFFTData).mockReturnValue(null)
+      vi.mocked(getPeakPowerInBand).mockReturnValue(null)
       vi.mocked(stopFFTStream).mockResolvedValue()
       vi.mocked(recordPass).mockResolvedValue('/recordings/test.wav')
       vi.mocked(decodeRecording).mockResolvedValue({ outputPaths: ['/images/test.png'] })
@@ -152,12 +153,12 @@ describe('sstv-scanner', () => {
     })
 
     it('should set scanning status at start', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -50, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-50)
 
       const scanPromise = scanForSstv(mockConfig, 1)
 
       // Give it a moment to start
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       expect(vi.mocked(stateManager.setStatus)).toHaveBeenCalledWith('scanning')
 
@@ -166,7 +167,7 @@ describe('sstv-scanner', () => {
     })
 
     it('should set idle status when done scanning', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -50, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-50)
 
       await scanForSstv(mockConfig, 1)
 
@@ -174,7 +175,7 @@ describe('sstv-scanner', () => {
     })
 
     it('should return null when stopped early', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -50, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-50)
 
       const scanPromise = scanForSstv(mockConfig, 10)
 
@@ -187,7 +188,7 @@ describe('sstv-scanner', () => {
     })
 
     it('should return null when timeout is reached without signal', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -80, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-80)
 
       const result = await scanForSstv(mockConfig, 1)
 
@@ -195,11 +196,11 @@ describe('sstv-scanner', () => {
     })
 
     it('should scan frequencies and set scanning frequency', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -80, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-80)
 
       const scanPromise = scanForSstv(mockConfig, 1)
 
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       expect(vi.mocked(stateManager.setScanningFrequency)).toHaveBeenCalled()
 
@@ -208,8 +209,8 @@ describe('sstv-scanner', () => {
     })
 
     it('should detect signal above threshold and capture', async () => {
-      // Return strong signal
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -30, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      // Return strong signal (threshold is -35 - 5 = -40)
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-30)
 
       const result = await scanForSstv(mockConfig, 10)
 
@@ -222,7 +223,7 @@ describe('sstv-scanner', () => {
 
     it('should not capture if signal is below threshold', async () => {
       // Signal below threshold (-35 dB - 5 = -40 dB threshold)
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -45, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-45)
 
       const result = await scanForSstv(mockConfig, 1)
 
@@ -231,7 +232,7 @@ describe('sstv-scanner', () => {
     })
 
     it('should stop FFT stream before recording', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -30, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-30)
 
       await scanForSstv(mockConfig, 10)
 
@@ -239,7 +240,7 @@ describe('sstv-scanner', () => {
     })
 
     it('should record with correct satellite info', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -30, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-30)
 
       await scanForSstv(mockConfig, 10)
 
@@ -248,14 +249,14 @@ describe('sstv-scanner', () => {
           frequency: 144.5e6,
           signalType: 'sstv',
         }),
-        10,
+        45,
         mockConfig,
         expect.any(Function)
       )
     })
 
     it('should decode recording with SSTV decoder', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -30, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-30)
 
       await scanForSstv(mockConfig, 10)
 
@@ -267,8 +268,10 @@ describe('sstv-scanner', () => {
     })
 
     it('should return success result when images are decoded', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -30, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
-      vi.mocked(decodeRecording).mockResolvedValue({ outputPaths: ['/images/img1.png', '/images/img2.png'] })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-30)
+      vi.mocked(decodeRecording).mockResolvedValue({
+        outputPaths: ['/images/img1.png', '/images/img2.png'],
+      })
 
       const result = await scanForSstv(mockConfig, 10)
 
@@ -277,7 +280,7 @@ describe('sstv-scanner', () => {
     })
 
     it('should return failed result when no images are decoded', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -30, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-30)
       vi.mocked(decodeRecording).mockResolvedValue({ outputPaths: [] })
 
       const result = await scanForSstv(mockConfig, 1)
@@ -287,13 +290,13 @@ describe('sstv-scanner', () => {
     }, 15000)
 
     it('should continue scanning after failed capture', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -30, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-30)
       vi.mocked(decodeRecording).mockResolvedValue({ outputPaths: [] })
 
       const scanPromise = scanForSstv(mockConfig, 1)
 
       // Let it start
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, 50))
       stopSstvScanner()
 
       await scanPromise
@@ -303,7 +306,7 @@ describe('sstv-scanner', () => {
     })
 
     it('should handle recording errors gracefully', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -30, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-30)
       vi.mocked(recordPass).mockRejectedValue(new Error('Recording failed'))
 
       const result = await scanForSstv(mockConfig, 1)
@@ -313,14 +316,16 @@ describe('sstv-scanner', () => {
     }, 15000)
 
     it('should update progress during recording', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -30, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-30)
 
-      vi.mocked(recordPass).mockImplementation(async (_satellite, _duration, _config, onProgress) => {
-        if (onProgress) {
-          onProgress(5, 10)
+      vi.mocked(recordPass).mockImplementation(
+        async (_satellite, _duration, _config, onProgress) => {
+          if (onProgress) {
+            onProgress(5, 10)
+          }
+          return '/recordings/test.wav'
         }
-        return '/recordings/test.wav'
-      })
+      )
 
       await scanForSstv(mockConfig, 10)
 
@@ -328,7 +333,7 @@ describe('sstv-scanner', () => {
     })
 
     it('should not scan if already scanning', async () => {
-      vi.mocked(getLatestFFTData).mockReturnValue({ maxPower: -80, minPower: -100, centerFreq: 144.5e6, bins: [], timestamp: Date.now() })
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-80)
 
       const scan1 = scanForSstv(mockConfig, 1)
       const scan2 = scanForSstv(mockConfig, 1)

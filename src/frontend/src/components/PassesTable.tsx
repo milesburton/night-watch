@@ -39,15 +39,34 @@ export function PassesTable({ passes }: PassesTableProps) {
     <div className="card">
       <h2 className="text-lg font-semibold mb-4">Upcoming Passes</h2>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table
+          className="w-full text-sm"
+          aria-label="Upcoming satellite passes with times, frequencies, and maximum elevation angles"
+        >
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left py-3 px-2 text-text-secondary font-medium">Satellite</th>
-              <th className="text-left py-3 px-2 text-text-secondary font-medium">Signal</th>
-              <th className="text-left py-3 px-2 text-text-secondary font-medium">Frequency</th>
-              <th className="text-left py-3 px-2 text-text-secondary font-medium">Time</th>
-              <th className="text-left py-3 px-2 text-text-secondary font-medium">Duration</th>
-              <th className="text-left py-3 px-2 text-text-secondary font-medium">Max Elev</th>
+              <th
+                className="text-left py-3 px-2 text-text-secondary font-medium"
+                scope="col"
+                aria-sort="none"
+              >
+                Satellite
+              </th>
+              <th className="text-left py-3 px-2 text-text-secondary font-medium" scope="col">
+                Signal
+              </th>
+              <th className="text-left py-3 px-2 text-text-secondary font-medium" scope="col">
+                Frequency
+              </th>
+              <th className="text-left py-3 px-2 text-text-secondary font-medium" scope="col">
+                Time
+              </th>
+              <th className="text-left py-3 px-2 text-text-secondary font-medium" scope="col">
+                Duration
+              </th>
+              <th className="text-left py-3 px-2 text-text-secondary font-medium" scope="col">
+                Max Elev
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -57,6 +76,7 @@ export function PassesTable({ passes }: PassesTableProps) {
                 className={`border-b border-border/50 hover:bg-bg-secondary/50 transition-colors ${
                   index === 0 ? 'bg-accent/5' : ''
                 }`}
+                aria-label={`${pass.satellite.name} pass at ${formatTime(pass.aos)}, maximum elevation ${pass.maxElevation.toFixed(1)} degrees`}
               >
                 <td className="py-3 px-2 font-medium">{pass.satellite.name}</td>
                 <td className="py-3 px-2">

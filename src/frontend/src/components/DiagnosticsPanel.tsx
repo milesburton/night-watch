@@ -390,8 +390,8 @@ export function DiagnosticsPanel({
 
   return (
     <div
-      className="fixed left-0 right-0 z-10 bg-bg-primary border-b border-border shadow-2xl"
-      style={{ height: panelHeight, top: 68 }}
+      className="fixed left-0 right-0 z-10 bg-bg-primary border-t border-border shadow-2xl"
+      style={{ height: panelHeight, bottom: 0 }}
       role="complementary"
       aria-label="Developer diagnostics panel"
     >

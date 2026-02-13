@@ -406,12 +406,20 @@ export function WaterfallView({
         }}
         role="button"
         tabIndex={0}
-      />
-      <div className="absolute top-2 right-2 flex items-center gap-2 bg-bg-primary/80 px-2 py-1 rounded text-xs">
+        title="Real-time frequency spectrum waterfall visualization. Click or press Enter to control FFT stream."
+        aria-label={`Waterfall display${isActive ? ' - Recording in progress' : ''} at ${frequencyName || frequencyMHz}`}
+      />\n      <output
+        className="absolute top-2 right-2 flex items-center gap-2 bg-bg-primary/80 px-2 py-1 rounded text-xs"
+        aria-live="polite"
+      >
         <span
           className={`w-2 h-2 rounded-full ${fftError ? 'bg-red-500' : fftRunning ? (isActive ? 'bg-success animate-pulse' : isScanning ? 'bg-purple animate-pulse' : 'bg-accent') : 'bg-text-muted'}`}
+          aria-hidden="true"
         />
-        <span className="text-text-secondary">
+        <span
+          className="text-text-secondary"
+          aria-label={`FFT status: ${fftError ? 'Hardware error' : fftRunning ? (isActive ? 'Signal detected and recording' : isScanning ? 'System scanning' : 'Monitoring') : 'FFT stream offline'}`}
+        >
           {fftError
             ? 'No Hardware'
             : fftRunning
@@ -422,7 +430,7 @@ export function WaterfallView({
                   : 'Monitoring'
               : 'Offline'}
         </span>
-      </div>
+      </output>
     </div>
   )
 }

@@ -246,27 +246,11 @@ export default function App() {
       <header
         className="bg-bg-secondary border-b border-border px-2 py-1 flex items-center justify-between text-xs shrink-0"
         data-testid="status-bar"
+        aria-label="Application status bar"
       >
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
-            <StatusChip
-              label="METEOR"
-              enabled={noaaEnabled}
-              color="bg-accent"
-              tooltip="METEOR-M LRPT weather satellites (137.9 MHz) - Status indicator"
-            />
-            <StatusChip
-              label="ISS"
-              enabled={issEnabled}
-              color="bg-purple"
-              tooltip="ISS SSTV events on 145.800 MHz - Status indicator"
-            />
-            <StatusChip
-              label="2M"
-              enabled={groundEnabled}
-              color="bg-purple"
-              tooltip="2M ground SSTV scanning (144.5, 145.5, 145.8 MHz) - Status indicator"
-            />
+            {/* System is automatic - status pills removed */}
             {currentFreq && waterfallMode === 'sstv-2m' && (
               <button
                 type="button"
@@ -280,6 +264,8 @@ export default function App() {
                     : 'bg-error text-white hover:opacity-80',
                   capturing && 'animate-pulse'
                 )}
+                aria-label={`Manual SSTV capture - ${capturing ? 'Recording in progress' : 'Ready to capture'}`}
+                aria-pressed={capturing}
               >
                 {capturing || status === 'capturing' ? '● REC' : '● CAPTURE'}
               </button>
@@ -334,23 +320,37 @@ export default function App() {
         </div>
         <div className="flex items-center gap-3">
           {nextPass && (
-            <div
+            <output
               className="flex items-center gap-1.5 font-mono text-[10px]"
               data-testid="next-pass"
+              aria-live="polite"
+              aria-label={`Next pass: ${nextPass.satellite.name} in ${formatCountdown()} at ${nextPass.maxElevation.toFixed(0)} degrees`}
             >
-              <span className="text-accent">{nextPass.satellite.name}</span>
-              <span className="text-warning">{formatCountdown()}</span>
-              <span className="text-text-muted">{nextPass.maxElevation.toFixed(0)}°</span>
-            </div>
+              <span className="text-accent" title="Satellite name">
+                {nextPass.satellite.name}
+              </span>
+              <span className="text-warning" title="Time until next pass">
+                {formatCountdown()}
+              </span>
+              <span className="text-text-muted" title="Maximum elevation angle">
+                {nextPass.maxElevation.toFixed(0)}°
+              </span>
+            </output>
           )}
           <span
             className="font-mono text-text-muted text-[10px]"
             data-testid="server-time"
             title="Server time (UTC)"
+            aria-label={`Current server time: ${serverTime} UTC`}
           >
             {serverTime} UTC
           </span>
-          <span className="font-mono text-text-muted text-[10px]" data-testid="version">
+          <span
+            className="font-mono text-text-muted text-[10px]"
+            data-testid="version"
+            title="Application version"
+            aria-label={`App version ${versionText}`}
+          >
             {versionText}
           </span>
           <button
@@ -362,6 +362,9 @@ export default function App() {
             )}
             data-testid="diagnostics-toggle"
             title={diagnosticsOpen ? 'Close dev tools' : 'Open dev tools'}
+            aria-label="Developer diagnostics toggle"
+            aria-pressed={diagnosticsOpen}
+            aria-expanded={diagnosticsOpen}
           >
             <span className="font-medium">Dev</span>
             <svg
@@ -370,6 +373,7 @@ export default function App() {
               viewBox="0 0 24 24"
               stroke="currentColor"
               aria-hidden="true"
+              focusable="false"
             >
               <path
                 strokeLinecap="round"

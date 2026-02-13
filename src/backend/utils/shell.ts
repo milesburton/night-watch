@@ -13,16 +13,36 @@ export interface RunningProcess {
   wait: () => Promise<CommandResult>
 }
 
+export interface RunCommandOptions extends SpawnOptions {
+  timeout?: number // Timeout in milliseconds - kills process if exceeded
+}
+
 export function runCommand(
   command: string,
   args: string[],
-  options: SpawnOptions = {}
+  options: RunCommandOptions = {}
 ): Promise<CommandResult> {
+  const { timeout, ...spawnOptions } = options
+
   return new Promise((resolve, reject) => {
-    const proc = spawn(command, args, { ...options, stdio: 'pipe' })
+    const proc = spawn(command, args, { ...spawnOptions, stdio: 'pipe' })
 
     let stdout = ''
     let stderr = ''
+    let timedOut = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    if (timeout && timeout > 0) {
+      timer = setTimeout(() => {
+        timedOut = true
+        proc.kill('SIGTERM')
+        setTimeout(() => {
+          if (!proc.killed) {
+            proc.kill('SIGKILL')
+          }
+        }, 2000)
+      }, timeout)
+    }
 
     proc.stdout?.on('data', (data) => {
       stdout += data.toString()
@@ -33,15 +53,25 @@ export function runCommand(
     })
 
     proc.on('error', (error) => {
+      if (timer) clearTimeout(timer)
       reject(new Error(`Failed to start ${command}: ${error.message}`))
     })
 
     proc.on('close', (code) => {
-      resolve({
-        stdout,
-        stderr,
-        exitCode: code ?? 0,
-      })
+      if (timer) clearTimeout(timer)
+      if (timedOut) {
+        resolve({
+          stdout,
+          stderr: stderr || `Process timed out after ${timeout}ms`,
+          exitCode: code ?? 1,
+        })
+      } else {
+        resolve({
+          stdout,
+          stderr,
+          exitCode: code ?? 0,
+        })
+      }
     })
   })
 }

@@ -46,10 +46,12 @@ export function ProgressSection({ progress, visible, currentPass }: ProgressSect
   const signalType = currentPass?.satellite?.signalType?.toUpperCase() || 'RF'
 
   return (
-    <div className="card">
+    <section className="card" aria-labelledby="progress-heading" aria-live="polite">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h2 className="text-lg font-semibold">Capturing: {satName}</h2>
+          <h2 id="progress-heading" className="text-lg font-semibold">
+            {satName}
+          </h2>
           <p className="text-sm text-text-secondary mt-1">
             {signalType} signal at{' '}
             <span className="font-mono text-accent">
@@ -104,17 +106,27 @@ export function ProgressSection({ progress, visible, currentPass }: ProgressSect
       )}
 
       <div className="space-y-3">
-        <div className="h-3 bg-bg-tertiary rounded-full overflow-hidden">
+        <div
+          className="h-3 bg-bg-tertiary rounded-full overflow-hidden"
+          role="progressbar"
+          tabIndex={0}
+          aria-valuenow={percentage}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Recording progress: ${percentage}% complete`}
+        >
           <div
             className="h-full bg-gradient-to-r from-accent to-purple transition-all duration-500 ease-out"
             style={{ width: `${percentage}%` }}
           />
         </div>
         <div className="flex justify-between text-sm text-text-secondary">
-          <span>{percentage}%</span>
-          <span>{formatDuration(remaining)} remaining</span>
+          <span aria-label={`Progress: ${percentage} percent`}>{percentage}%</span>
+          <span aria-label={`Remaining time: ${formatDuration(remaining)}`}>
+            {formatDuration(remaining)} remaining
+          </span>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
