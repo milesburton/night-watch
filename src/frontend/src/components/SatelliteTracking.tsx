@@ -396,7 +396,7 @@ export function SatelliteTracking({
   const { waterfallMode: mode, setWaterfallMode: setMode } = useUIStore()
   const [sstvFreqIndex, setSstvFreqIndex] = useState(0)
 
-  const isCapturing = !!currentPass
+  const isCapturing = !!currentPass || systemStatus === 'capturing'
   const isScanning = systemStatus === 'scanning'
 
   // Note: We intentionally do NOT auto-switch tabs based on system status.

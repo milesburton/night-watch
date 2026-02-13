@@ -133,14 +133,14 @@ export default function App() {
     return () => clearInterval(interval)
   }, [version, getVersion])
 
-  const showProgress = systemState?.status === 'recording' || systemState?.status === 'decoding'
+  const showProgress = systemState?.status === 'capturing' || systemState?.status === 'decoding'
   const status = systemState?.status || 'idle'
   const sdrConnected = systemState?.sdrConnected ?? false
   const nextPass = passes[0] || null
 
   const getStatusColor = () => {
     switch (status) {
-      case 'recording':
+      case 'capturing':
         return 'bg-accent animate-pulse'
       case 'decoding':
         return 'bg-success'
@@ -159,7 +159,7 @@ export default function App() {
         return 'IDLE'
       case 'waiting':
         return 'WAIT'
-      case 'recording':
+      case 'capturing':
         return 'REC'
       case 'decoding':
         return 'DEC'
@@ -171,7 +171,7 @@ export default function App() {
   }
 
   const getSdrStatus = () => {
-    if (status === 'recording' || status === 'scanning') {
+    if (status === 'capturing' || status === 'scanning') {
       return { text: 'ACT', class: 'bg-success shadow-[0_0_6px_var(--success)]' }
     }
     if (sdrConnected) {
@@ -271,17 +271,17 @@ export default function App() {
               <button
                 type="button"
                 onClick={handleManualCapture}
-                disabled={capturing || status === 'recording'}
+                disabled={capturing || status === 'capturing'}
                 title={`Manually capture SSTV at ${(currentFreq / 1e6).toFixed(3)} MHz for 60 seconds`}
                 className={cn(
                   'px-2 py-0.5 rounded text-[10px] font-medium transition-all',
-                  capturing || status === 'recording'
+                  capturing || status === 'capturing'
                     ? 'bg-bg-tertiary text-text-muted cursor-not-allowed opacity-50'
                     : 'bg-error text-white hover:opacity-80',
                   capturing && 'animate-pulse'
                 )}
               >
-                {capturing || status === 'recording' ? '● REC' : '● CAPTURE'}
+                {capturing || status === 'capturing' ? '● REC' : '● CAPTURE'}
               </button>
             )}
           </div>

@@ -269,7 +269,7 @@ export function DiagnosticsPanel({
 
       case 'sdr': {
         const sdrActive =
-          systemState?.status === 'recording' ||
+          systemState?.status === 'capturing' ||
           systemState?.status === 'scanning' ||
           systemState?.status === 'decoding'
         const sdrReady = systemState?.status === 'idle' || systemState?.status === 'waiting'

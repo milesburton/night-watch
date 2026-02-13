@@ -1,4 +1,4 @@
-export type SystemStatus = 'idle' | 'waiting' | 'recording' | 'decoding' | 'scanning'
+export type SystemStatus = 'idle' | 'waiting' | 'capturing' | 'decoding' | 'scanning'
 
 export interface SatelliteInfo {
   name: string
