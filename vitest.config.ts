@@ -6,7 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/**/*.spec.ts'],
-    exclude: ['src/backend/db/database.spec.ts', 'src/backend/satellites/events.spec.ts'],
+    exclude: [],
     setupFiles: ['src/test-setup.ts'],
     restoreMocks: true,
     mockReset: true,
