@@ -242,7 +242,9 @@ export default function App() {
                 <span className="text-[10px]">{sdrStatus.text}</span>
               </div>
             </Tooltip>
-            <Tooltip content={`WebSocket: ${wsState.connected ? 'Connected to backend' : 'Disconnected - reconnecting...'}`}>
+            <Tooltip
+              content={`WebSocket: ${wsState.connected ? 'Connected to backend' : 'Disconnected - reconnecting...'}`}
+            >
               <div className="flex items-center gap-1" data-testid="ws-status">
                 <span
                   className={cn(
