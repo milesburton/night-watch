@@ -145,14 +145,18 @@ function SpectrumWaterfall({
   frequency,
   frequencyName,
   isScanning,
+  isActive,
   fftRunning,
   latestFFTData,
+  progress,
 }: {
   frequency: number
   frequencyName?: string
   isScanning: boolean
+  isActive: boolean
   fftRunning: boolean
   latestFFTData: FFTData | null
+  progress?: CaptureProgress | null
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [fftHistory, setFftHistory] = useState<FFTData[]>([])
@@ -346,7 +350,79 @@ function SpectrumWaterfall({
     if (latestFFTData) {
       ctx.fillText(`Peak: ${latestFFTData.maxPower.toFixed(1)} dB`, width - 10, scaleY + 35)
     }
-  }, [fftHistory, latestFFTData, frequency, frequencyName, isScanning, fftRunning, getColor])
+
+    // Draw capture overlay if actively capturing but FFT stopped
+    if (isActive && !fftRunning && fftHistory.length > 0) {
+      // Semi-transparent overlay
+      ctx.fillStyle = 'rgba(26, 35, 50, 0.90)'
+      ctx.fillRect(0, 0, width, height)
+
+      let yPos = height / 2 - 60
+
+      // Main heading
+      ctx.fillStyle = '#22c55e'
+      ctx.font = 'bold 22px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('🔴 Signal Detected - Recording in Progress', width / 2, yPos)
+
+      yPos += 35
+
+      // What's being recorded
+      if (frequencyName) {
+        ctx.fillStyle = '#94a3b8'
+        ctx.font = '16px sans-serif'
+        const freqMhz = (frequency / 1e6).toFixed(3)
+        ctx.fillText(`Recording RF signal at ${freqMhz} MHz`, width / 2, yPos)
+      }
+
+      yPos += 30
+
+      // Time remaining
+      if (progress) {
+        const remaining = progress.total - progress.elapsed
+        const remainingMin = Math.floor(remaining / 60)
+        const remainingSec = remaining % 60
+
+        ctx.fillStyle = '#fbbf24'
+        ctx.font = 'bold 18px sans-serif'
+        ctx.fillText(
+          `Time Remaining: ${remainingMin}:${remainingSec.toString().padStart(2, '0')}`,
+          width / 2,
+          yPos
+        )
+
+        yPos += 25
+
+        // Progress bar
+        const barWidth = 400
+        const barHeight = 8
+        const barX = (width - barWidth) / 2
+        const barY = yPos
+
+        // Background
+        ctx.fillStyle = '#334155'
+        ctx.fillRect(barX, barY, barWidth, barHeight)
+
+        // Progress
+        const progressWidth = (barWidth * progress.percentage) / 100
+        ctx.fillStyle = '#22c55e'
+        ctx.fillRect(barX, barY, progressWidth, barHeight)
+
+        yPos += 30
+      }
+
+      // Informational message
+      ctx.font = '14px sans-serif'
+      ctx.fillStyle = '#64748b'
+      ctx.fillText('Waterfall paused - SDR device exclusively recording', width / 2, yPos)
+
+      yPos += 20
+
+      ctx.font = '13px sans-serif'
+      ctx.fillStyle = '#475569'
+      ctx.fillText('Please wait for recording to complete...', width / 2, yPos)
+    }
+  }, [fftHistory, latestFFTData, frequency, frequencyName, isScanning, isActive, fftRunning, getColor, progress])
 
   useEffect(() => {
     draw()
@@ -524,8 +600,10 @@ export function SatelliteTracking({
                 isScanning ? scanningFrequencyName : SSTV_2M_FREQUENCIES[sstvFreqIndex]?.label
               }
               isScanning={isScanning}
+              isActive={isCapturing}
               fftRunning={fftRunning}
               latestFFTData={latestFFTData}
+              progress={progress}
             />
           </div>
         )}
