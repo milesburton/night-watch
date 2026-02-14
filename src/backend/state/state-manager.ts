@@ -54,6 +54,20 @@ export class StateManager extends EventEmitter {
     this.emitEvent({ type: 'pass_start', pass })
   }
 
+  /**
+   * Start a manual capture (e.g., SSTV manual recording)
+   * Creates a virtual pass for UI consistency
+   */
+  startManualCapture(pass: SatellitePass, durationSeconds: number): void {
+    this.state.currentPass = pass
+    this.state.status = 'capturing'
+    this.state.captureProgress = 0
+    this.state.captureElapsed = 0
+    this.state.captureTotal = durationSeconds
+    this.state.lastUpdate = new Date()
+    this.emitEvent({ type: 'pass_start', pass })
+  }
+
   updateProgress(progress: number, elapsed: number, total: number): void {
     this.state.captureProgress = progress
     this.state.captureElapsed = elapsed

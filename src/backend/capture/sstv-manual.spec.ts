@@ -11,6 +11,7 @@ vi.mock('@backend/state/state-manager', () => ({
   stateManager: {
     setStatus: vi.fn(),
     updateProgress: vi.fn(),
+    startManualCapture: vi.fn(),
   },
 }))
 
@@ -107,10 +108,20 @@ describe('sstv-manual', () => {
       expect(result?.satellite.frequency).toBe(145.8e6)
     })
 
-    it('should set status to capturing during recording', async () => {
+    it('should call startManualCapture with virtual pass', async () => {
       await captureSstvManual(145.8e6, 120, mockConfig)
 
-      expect(vi.mocked(stateManager.setStatus)).toHaveBeenCalledWith('capturing')
+      expect(vi.mocked(stateManager.startManualCapture)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          satellite: expect.objectContaining({
+            name: 'Manual 145.800 MHz',
+            frequency: 145.8e6,
+            signalType: 'sstv',
+          }),
+          duration: 120,
+        }),
+        120
+      )
     })
 
     it('should set status to decoding during decoding', async () => {

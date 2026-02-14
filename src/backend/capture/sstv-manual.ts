@@ -1,4 +1,4 @@
-import type { CaptureResult, ReceiverConfig, SatelliteInfo } from '@backend/types'
+import type { CaptureResult, ReceiverConfig, SatelliteInfo, SatellitePass } from '@backend/types'
 import { getDatabase } from '../db/database'
 import { SIGNAL_CONFIGS } from '../satellites/constants'
 import { stateManager } from '../state/state-manager'
@@ -28,7 +28,6 @@ export async function captureSstvManual(
   const frequencyName = `Manual ${freqMHz} MHz`
 
   logger.info(`Manual SSTV capture triggered: ${frequencyName} for ${durationSeconds}s`)
-  stateManager.setStatus('capturing')
 
   // Create a virtual satellite info for this manual capture
   const captureInfo: SatelliteInfo = {
@@ -39,6 +38,19 @@ export async function captureSstvManual(
     signalConfig: SIGNAL_CONFIGS.sstv,
     enabled: true,
   }
+
+  // Create a virtual pass for state manager
+  const virtualPass: SatellitePass = {
+    satellite: captureInfo,
+    aos: startTime,
+    los: new Date(startTime.getTime() + durationSeconds * 1000),
+    maxElevation: 90, // Manual capture, no elevation concept
+    maxElevationTime: startTime,
+    duration: durationSeconds,
+  }
+
+  // Update state manager with virtual pass for UI consistency
+  stateManager.startManualCapture(virtualPass, durationSeconds)
 
   try {
     // Stop FFT stream to release SDR for recording
@@ -80,16 +92,7 @@ export async function captureSstvManual(
     // Save to database
     try {
       const db = getDatabase()
-      // Create a fake pass for database compatibility
-      const fakePass = {
-        satellite: captureInfo,
-        aos: startTime,
-        los: new Date(),
-        maxElevation: 90, // Manual capture, no elevation concept
-        maxElevationTime: startTime,
-        duration: durationSeconds,
-      }
-      const captureId = db.saveCapture(result, fakePass)
+      const captureId = db.saveCapture(result, virtualPass)
       if (imagePaths.length > 0) {
         db.saveImages(captureId, imagePaths)
         logger.info(`Manual SSTV capture saved ${imagePaths.length} image(s)`)
