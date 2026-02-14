@@ -36,6 +36,10 @@ RUN git clone --recursive https://github.com/Xerbo/aptdec.git /tmp/aptdec \
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
 
+# Install OpenClaw for claude-mem enhanced capabilities (optional)
+# Handles dependencies, plugin setup, and AI provider configuration
+RUN curl -fsSL https://install.cmem.ai/openclaw.sh | bash || echo "OpenClaw installation skipped"
+
 WORKDIR /workspace
 
 CMD ["bash"]
