@@ -422,7 +422,17 @@ function SpectrumWaterfall({
       ctx.fillStyle = '#475569'
       ctx.fillText('Please wait for recording to complete...', width / 2, yPos)
     }
-  }, [fftHistory, latestFFTData, frequency, frequencyName, isScanning, isActive, fftRunning, getColor, progress])
+  }, [
+    fftHistory,
+    latestFFTData,
+    frequency,
+    frequencyName,
+    isScanning,
+    isActive,
+    fftRunning,
+    getColor,
+    progress,
+  ])
 
   useEffect(() => {
     draw()
