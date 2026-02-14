@@ -31,11 +31,11 @@ def main():
     try:
         # Decode SSTV signal
         decoder = SSTVDecoder(input_wav)
-        decoder.decode()
+        image = decoder.decode()
 
         # Check if we got an image
-        if hasattr(decoder, 'image') and decoder.image:
-            decoder.image.save(output_png)
+        if image is not None:
+            image.save(output_png)
             print(f"SUCCESS: Saved SSTV image to {output_png}")
             sys.exit(0)
         else:
