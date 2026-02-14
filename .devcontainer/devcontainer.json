@@ -40,7 +40,8 @@
     "source=${localEnv:HOME}/.config/claude,target=/home/node/.config/claude,type=bind",
     "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind",
     "source=${localEnv:HOME}/.openclaw,target=/root/.openclaw,type=bind",
-    "source=${localEnv:HOME}/.claude-mem,target=/root/.claude-mem,type=bind"
+    "source=${localEnv:HOME}/.claude-mem,target=/root/.claude-mem,type=bind",
+    "source=${localEnv:HOME}/.config/gh,target=/root/.config/gh,type=bind"
   ],
   "runArgs": ["--privileged"],
   "postCreateCommand": "npm install && echo 'RFCapture Dev Container Ready! Read docs/README.md for docs overview, then: npm start'",
