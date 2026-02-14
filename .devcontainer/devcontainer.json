@@ -10,7 +10,7 @@
         "terminal.integrated.defaultProfile.linux": "bash"
       },
       "extensions": [
-        "Anthropic.claude-dev",
+        "anthropics.claude-code",
         "ms-azuretools.vscode-docker",
         "eamodio.gitlens",
         "biomejs.biome",
