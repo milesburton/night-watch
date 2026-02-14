@@ -36,9 +36,13 @@ RUN git clone --recursive https://github.com/Xerbo/aptdec.git /tmp/aptdec \
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
 
-# Install OpenClaw for claude-mem enhanced capabilities (optional)
-# Handles dependencies, plugin setup, and AI provider configuration
-RUN curl -fsSL https://install.cmem.ai/openclaw.sh | bash || echo "OpenClaw installation skipped"
+# Install Node.js (required for npm packages)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
+# Copy and run claude-mem setup script
+COPY .devcontainer/setup-claude-mem.sh /tmp/setup-claude-mem.sh
+RUN chmod +x /tmp/setup-claude-mem.sh && /tmp/setup-claude-mem.sh
 
 WORKDIR /workspace
 

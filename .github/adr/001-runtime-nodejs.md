@@ -1,8 +1,6 @@
-# Runtime Migration: Bun → Node.js
+# ADR-001: Node.js Runtime (Bun → Node.js Migration)
 
-## Decision Record
-
-**Date:** February 6, 2026
+**Date:** February 6, 2026  
 **Status:** Implemented
 
 ## Problem
@@ -13,8 +11,8 @@ Night Watch originally used the Bun runtime for its speed and modern TypeScript 
 Bun's ARM build uses CPU instructions (likely ARMv8.2+ SIMD extensions) not available on the Raspberry Pi 4's Cortex-A72 processor (ARMv8.0-A).
 
 **Impact:**
-- SatDump (METEOR LRPT decoder) cannot run in Docker with Bun on Pi 4
-- Core satellite capture functionality blocked
+- SatDump (METEOR LRPT decoder) will not run in Docker with Bun on Pi 4
+- This is the primary signal source for the system
 - Production deployment impossible
 
 ## Solution
@@ -53,41 +51,28 @@ Bun's ARM build uses CPU instructions (likely ARMv8.2+ SIMD extensions) not avai
 | `bun.lockb` | `package-lock.json` |
 | `.bun/` cache | `node_modules/.cache/` |
 
-## Migration Checklist
-
-- [x] Docker base image switched to Node.js 22.x
-- [x] Docker app image uses npm/npx
-- [x] package.json scripts updated
-- [x] CI/CD pipeline updated
-- [x] All documentation updated
-- [ ] Local development verified
-- [ ] Docker build verified
-- [ ] Deployment tested on Raspberry Pi 4
-
-## Performance Comparison
-
-**Development experience:**
-- Bun startup: ~50ms
-- Node.js + tsx startup: ~100-150ms
-- **Verdict:** Minimal impact, worth the compatibility
+## Results
 
 **Build times:**
 - Frontend build with Vite: No difference (uses same bundler)
 - Docker image build: ~10% slower (npm vs bun install)
 - **Verdict:** Acceptable trade-off
 
-## Future Considerations
+**Development experience:**
+- Bun startup: ~50ms
+- Node.js + tsx startup: ~100-150ms
+- **Verdict:** Minimal impact for the improved compatibility
 
-If Bun adds Cortex-A72 support in the future:
-1. Verify compatibility on actual Pi 4 hardware
-2. Run full test suite in Docker on arm64
-3. Consider switching back if performance gains are significant
+## Files Changed
 
-For now, Node.js provides the stability and compatibility needed for production deployment.
+- `Dockerfile.base` - Node.js 22.x installation
+- `Dockerfile.app` - npm install commands
+- `package.json` - npm scripts
+- `.github/workflows/*.yml` - CI/CD Node.js setup
+- All documentation
 
 ## References
 
-- Raspberry Pi 4 specs: Cortex-A72 (ARMv8.0-A)
-- Bun ARM compatibility: https://github.com/oven-sh/bun/issues (various issues)
-- Node.js ARM support: Official builds for armv7l, arm64
-- Commit: See git log for complete migration commit
+- [Node.js Releases](https://nodejs.org/en/)
+- [NodeSource Repository](https://github.com/nodesource/distributions)
+- [Raspberry Pi 4 Specs](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/specifications/)

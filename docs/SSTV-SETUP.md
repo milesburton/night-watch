@@ -1,161 +1,105 @@
 # SSTV Decoder Setup
 
-This document explains how to enable SSTV decoding for ISS and 2m amateur radio SSTV transmissions.
+Night Watch uses the [colaclanth/sstv](https://github.com/colaclanth/sstv) Python decoder for ISS and 2m amateur SSTV transmissions.
 
-## Background
+## Overview
 
-The system uses the [colaclanth/sstv](https://github.com/colaclanth/sstv) Python decoder to decode SSTV (Slow Scan Television) images from audio recordings. This decoder supports multiple SSTV modes including:
+SSTV (Slow Scan Television) encodes images as audio. The decoder:
+- Reads WAV files captured by the SDR
+- Detects SSTV mode (Robot, Martin, Scottie, PD series)
+- Extracts the image
+- Saves as PNG
 
-- Robot 36, Robot 72
-- Martin M1, M2
-- Scottie S1, S2
-- PD modes (PD90, PD120, PD160, PD180, PD240, PD290)
-
-## ARM64 / Raspberry Pi Considerations
-
-The SSTV decoder has special requirements on ARM64 (aarch64) platforms like Raspberry Pi:
-
-### Dependencies
-
-The Python dependencies (numpy, scipy, pillow, soundfile) require additional system libraries on ARM64:
-
-- `libatlas-base-dev` - ATLAS BLAS implementation
-- `libopenblas-dev` - OpenBLAS linear algebra library
-- `gfortran` - Fortran compiler (needed for scipy)
-- `python3-soundfile` - Audio file I/O library
-
-These are now included in the base Docker image.
+**Supported modes**: Robot 36/72, Martin M1/M2, Scottie S1/S2, PD90/120/160/180/240/290
 
 ## Installation Status
 
-### Current Setup
+The decoder is **already included** in the production Docker image (`Dockerfile.base`).
 
-The `Dockerfile.base` includes:
-1. All required system dependencies for arm64
-2. Python 3 with numpy, scipy, pillow, and soundfile
-3. The colaclanth/sstv decoder installed from source
-
-### Checking Installation
-
-To verify SSTV decoder is installed:
+### Verify Installation
 
 ```bash
-# Check if sstv command exists
-docker compose -f docker/compose.yaml exec rfcapture which sstv
-
-# Test decoder version
-docker compose -f docker/compose.yaml exec rfcapture sstv --version
-
-# Check Python module
-docker compose -f docker/compose.yaml exec rfcapture python3 -c "import sstv; print('SSTV module installed')"
+docker exec rfcapture python3 -c "from sstv.decode import SSTVDecoder; print('✓ SSTV installed')"
 ```
 
-## Rebuilding Base Image
-
-If the SSTV decoder is missing, you need to rebuild the base image:
-
-### Option 1: Pull Pre-built Image (Recommended)
+If that fails, rebuild the base image:
 
 ```bash
-docker pull ghcr.io/milesburton/noaa-satellite-capture-base:latest
+# Option 1: Pull pre-built image (recommended)
+docker pull ghcr.io/milesburton/night-watch-base:latest
 docker compose -f docker/compose.yaml up -d --force-recreate
-```
 
-### Option 2: Build Locally
-
-```bash
-# Build base image (takes ~15-30 minutes on Raspberry Pi)
-docker build -f docker/Dockerfile.base -t ghcr.io/milesburton/noaa-satellite-capture-base:latest .
-
-# Rebuild app image
+# Option 2: Build locally on x86_64 (takes 15-30 min)
+docker build -f docker/Dockerfile.base -t night-watch-base:latest .
 docker compose -f docker/compose.yaml build --no-cache
-
-# Restart
 docker compose -f docker/compose.yaml up -d --force-recreate
 ```
 
-### Option 3: Manual Installation (Quick Fix)
+## Raspberry Pi ARM64 Considerations
 
-If you need SSTV decoding immediately without rebuilding:
+The SSTV decoder has heavy dependencies (scipy, numpy) that require:
 
-```bash
-docker compose -f docker/compose.yaml exec rfcapture sh -c '
-  apt-get update && \
-  apt-get install -y python3-numpy python3-pil python3-scipy python3-soundfile \
-                      libatlas-base-dev libopenblas-dev gfortran git && \
-  git clone https://github.com/colaclanth/sstv.git /tmp/sstv && \
-  cd /tmp/sstv && \
-  python3 setup.py install && \
-  rm -rf /tmp/sstv
-'
-```
+- System libraries: `libatlas-base-dev`, `libopenblas-dev`, `gfortran`
+- Compilation time on Pi: **5-10 minutes** (high CPU usage during build)
 
-**Note**: Manual installation is temporary and will be lost when the container is recreated.
+These are included in `Dockerfile.base` to avoid runtime installation.
 
 ## TTY Fix for Non-Interactive Environments
 
-The SSTV decoder requires a terminal for progress output. We've created a Python wrapper that fixes TTY issues:
+The SSTV decoder expects a terminal for progress output. In Docker, this causes `OSError: Inappropriate ioctl for device`.
 
-**Location**: `scripts/sstv-decode-wrapper.py`
+**Solution**: We've included `scripts/sstv-decode-wrapper.py` that patches TTY issues automatically. The decoder integration uses this wrapper by default.
 
-This wrapper:
-- Patches `os.get_terminal_size()` to avoid ioctl errors
-- Handles SSTV decoding in Docker, CI, and non-interactive shells
-- Used automatically by the SSTV decoder
+## Automatic Decoding
 
-## Usage
+SSTV decoding happens automatically in two scenarios:
 
-Once installed, SSTV decoding happens automatically:
+1. **ISS SSTV Events** - Captures & decodes when ISS transmits on 145.800 MHz
+2. **2m Amateur Scanning** - During idle time, scans 144.5/145.5 MHz for ground SSTV
 
-### Automatic Decoding
-
-1. **ISS SSTV Events**: When ISS has an active SSTV event, the system automatically captures and decodes transmissions on 145.800 MHz
-
-2. **2m Ground SSTV**: During idle time (when no satellites are being tracked), the system scans 144.5 MHz and 145.5 MHz for amateur SSTV transmissions
-
-3. **Retroactive Decoding**: Use the maintenance script to decode existing SSTV recordings:
-
+For existing recordings, use maintenance:
 ```bash
-# Using npm scripts
-npm run maintenance:decode
-
-# Or directly
-npm run src/backend/cli/commands/maintenance.ts --decode
-
-# Inside Docker
+npm run maintenance:decode      # Retroactively decode all WAV files
 docker compose -f docker/compose.yaml exec rfcapture npm run maintenance:decode
 ```
 
-### Manual Testing
+## Supported Modes
 
-To test SSTV decoding with a recording:
+The decoder auto-detects the SSTV mode:
 
-```bash
-docker compose -f docker/compose.yaml exec rfcapture \
-  sstv -d /app/recordings/ISS_2026-02-03T13-56-39.wav -o /app/images/test-sstv.png
-```
-
-## Supported SSTV Modes
-
-The decoder automatically detects the SSTV mode. Common modes include:
-
-| Mode | Description | Duration | Resolution |
-|------|-------------|----------|------------|
-| Robot 36 | Most common ISS mode | ~36s | 320×240 |
-| Robot 72 | Higher quality | ~72s | 320×240 |
-| PD120 | High quality | ~120s | 640×496 |
-| Martin M1 | Amateur standard | ~114s | 320×256 |
-| Scottie S1 | Amateur standard | ~110s | 320×256 |
+| Mode | Source | Duration | Resolution |
+|------|--------|----------|------------|
+| Robot 36 | ISS SSTV events | ~36s | 320×240 |
+| Robot 72 | ISS SSTV events | ~72s | 320×240 |
+| Martin M1 | Amateur 2m SSTV | ~114s | 320×256 |
+| Scottie S1 | Amateur 2m SSTV | ~110s | 320×256 |
+| PD120 | Amateur 2m SSTV | ~120s | 640×496 |
 
 ## Troubleshooting
 
-### "sstv: command not found"
+### Decoder not found
+```bash
+docker exec rfcapture python3 -c "from sstv.decode import SSTVDecoder; print('OK')"
+```
+If this fails, rebuild the Docker image.
 
-The SSTV decoder isn't installed. Rebuild the base image or use manual installation (see above).
+### scipy import error
+On ARM64, requires BLAS libraries (already included in base image).
 
-### "ImportError: No module named 'sstv'"
+### Garbled images
+Normal for weak signals or incomplete transmissions. SSTV requires strong signal quality throughout.
 
-The Python module wasn't installed correctly. Try manual installation.
+### No SSTV detected
+- **ISS events**: Check [ARISS SSTV schedule](https://www.ariss.org/current-sstv-information.html)
+- **Amateur 2m**: Sporadic, mostly weekends
+- **Signal strength**: May need to adjust `MIN_SIGNAL_STRENGTH`
+
+## Resources
+
+- **SSTV Decoder**: [colaclanth/sstv](https://github.com/colaclanth/sstv)
+- **ISS Events**: [ARISS SSTV Info](https://www.ariss.org/current-sstv-information.html)
+- **SSTV Modes**: [Technical Details](https://www.chonky.net/hamradio/sstv)
+- **Alternative**: [Web-SSTV](https://mtkhai.github.io/Web-SSTV/) online decoder
 
 ### "Error: scipy import failed"
 

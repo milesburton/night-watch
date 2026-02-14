@@ -9,7 +9,26 @@
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash"
       },
-      "extensions": ["ms-azuretools.vscode-docker", "eamodio.gitlens", "biomejs.biome"]
+      "extensions": [
+        "Anthropic.claude-dev",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens",
+        "biomejs.biome",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "rangav.vscode-thunder-client",
+        "alexcvzz.vscode-sqlite",
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "PKief.material-icon-theme",
+        "ms-vscode.makefile-tools",
+        "ms-vscode.theme-solarized-dark",
+        "ms-vscode-remote.remote-containers",
+        "ms-vscode-remote.remote-ssh",
+        "ms-vscode-remote.remote-ssh-edit"
+      ]
     }
   },
   "mounts": [
@@ -17,9 +36,12 @@
     "source=rfcapture-data,target=/workspace/data,type=volume",
     "source=rfcapture-images,target=/workspace/images,type=volume",
     "source=rfcapture-recordings,target=/workspace/recordings,type=volume",
-    "source=${localEnv:HOME}/.config/claude,target=/home/node/.config/claude,type=bind"
+    "source=${localEnv:HOME}/.config/claude,target=/home/node/.config/claude,type=bind",
+    "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind",
+    "source=${localEnv:HOME}/.openclaw,target=/root/.openclaw,type=bind",
+    "source=${localEnv:HOME}/.claude-mem,target=/root/.claude-mem,type=bind"
   ],
   "runArgs": ["--privileged"],
-  "postCreateCommand": "npm install && echo 'RFCapture Dev Container Ready! Run: npm start'",
+  "postCreateCommand": "npm install && echo 'RFCapture Dev Container Ready! Read docs/README.md for docs overview, then: npm start'",
   "postStartCommand": "npm install"
 }

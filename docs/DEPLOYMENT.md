@@ -6,18 +6,8 @@
 > - `./scripts/deploy/status.sh` - Check status
 > - `./scripts/deploy/logs.sh` - View logs
 
-## Current Status
-
-**Version**: 2.0.20260208 (date-based)
-**Last Updated**: 2026-02-08
-**Git Branch**: main
-**Tests**: All passing (234/234)
-**TypeScript**: No errors
+**Version**: 2.0.20260208 (date-based)  
 **Satellites**: METEOR-M LRPT, ISS SSTV, 2M SSTV
-
-## Directory Structure Note
-
-This project uses `docker/` for all production Docker configurations. While this may seem asymmetric with `.devcontainer/` (used for VS Code development containers), the `docker/` convention is more widely recognized in the Docker ecosystem. The `.devcontainer/` prefix is specifically recognized by VS Code and GitHub Codespaces, whereas `.appcontainer/` is not a standard convention.
 
 ## Deployment Modes
 
@@ -177,58 +167,28 @@ cd src/frontend && npm run build
 # Should see: ✓ built in ~2s
 ```
 
-## Docker Build Commands
+## Docker Build
 
-### ARM Build Notes
+> **Docker Basics**: See [Docker documentation](https://docs.docker.com/build/) for general container concepts.
 
-**Deployment to Raspberry Pi 4:**
-The project uses Node.js 22.x LTS, which has excellent ARM compatibility including Cortex-A72 processors (Raspberry Pi 4).
+**Build Strategy** (Night Watch specific):
+- **Staging**: Push code to GitHub → GitHub Actions builds multi-platform images (x86_64 + ARM64)
+- **Deployment**: Pi pulls pre-built ARM64 images from GitHub Container Registry (no local build needed)
+- **Why?**: Raspberry Pi lacks the performance for building large container images
 
-**Build Strategy:**
-- Build images using GitHub Actions (multi-platform support)
-- Or build locally on x86_64 with cross-compilation
-- Pi pulls pre-built arm64 images from GitHub Container Registry
-
-**Historical Note:** The project originally used Bun runtime but switched to Node.js in Feb 2026 due to "Illegal instruction" crashes on Raspberry Pi 4's Cortex-A72. See [RUNTIME-MIGRATION.md](RUNTIME-MIGRATION.md) for details.
+**Runtime**: Node.js 22.x LTS (switched from Bun in Feb 2026 for Raspberry Pi 4 compatibility). See [RUNTIME-MIGRATION.md](reference/RUNTIME-MIGRATION.md) for details if needed.
 
 ```bash
-# DO NOT run these on Raspberry Pi - they will hang!
-# Instead, push code and let GitHub Actions build:
+# Production workflow:
 git push origin main
-# GitHub Actions builds ARM64 + AMD64 images automatically
-
-# Or build locally with buildx (requires x86_64 machine):
-docker buildx build --platform linux/arm64 -f docker/Dockerfile.app \
-  -t ghcr.io/milesburton/noaa-satellite-capture:latest --push .
+# → GitHub Actions builds images automatically
+# → Run deploy script to pull latest
+bash scripts/deploy/deploy.sh
 ```
 
-### Build Full Image
-
+**Local Development** (without SDR hardware):
 ```bash
-# x86_64 only - DO NOT run on Pi
-docker build -f docker/Dockerfile -t rfcapture:latest .
-```
-
-### Two-Tier Build (Faster Deploys)
-
-```bash
-# x86_64 only - DO NOT run on Pi
-# 1. Build base image (once)
-docker build -f docker/Dockerfile.base -t rfcapture-base:latest .
-
-# 2. Build app image (on each deploy)
-docker build -f docker/Dockerfile.app -t rfcapture:latest .
-```
-
-### Test Locally (Without SDR)
-
-```bash
-# Set environment to skip SDR checks
-export SKIP_SIGNAL_CHECK=true
-export SERVICE_MODE=full
-export STATION_LATITUDE=51.5
-export STATION_LONGITUDE=-0.1
-
+export SKIP_SIGNAL_CHECK=true SERVICE_MODE=full STATION_LATITUDE=51.5 STATION_LONGITUDE=-0.1
 docker compose -f docker/compose.yaml up
 ```
 
