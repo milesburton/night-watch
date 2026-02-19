@@ -51,9 +51,7 @@ RUN cd src/frontend && npm run build
 ARG GIT_COMMIT=unknown
 ARG BUILD_TIME
 COPY scripts/generate-version.ts ./scripts/
-COPY scripts/sstv-decode-wrapper.py ./scripts/
 COPY scripts/lrpt-decode-wrapper.sh ./scripts/
-COPY scripts/test-sstv-roundtrip.py ./scripts/
 RUN chmod +x scripts/lrpt-decode-wrapper.sh
 RUN GIT_COMMIT=${GIT_COMMIT} BUILD_TIME=${BUILD_TIME} npx tsx scripts/generate-version.ts
 
