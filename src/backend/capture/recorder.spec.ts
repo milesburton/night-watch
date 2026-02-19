@@ -101,13 +101,7 @@ describe('recorder', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'rtl_sdr',
-        expect.arrayContaining([
-          '-f', '137900000',
-          '-s', '1024000',
-          '-g', '40',
-          '-p', '0',
-          '-',
-        ]),
+        expect.arrayContaining(['-f', '137900000', '-s', '1024000', '-g', '40', '-p', '0', '-']),
         expect.any(Object)
       )
       // Must NOT use rtl_fm for LRPT
@@ -121,8 +115,16 @@ describe('recorder', () => {
       expect(spawn).toHaveBeenCalledWith(
         'sox',
         expect.arrayContaining([
-          '-e', 'unsigned-integer', '-b', '8', '-c', '2',
-          '-e', 'signed-integer', '-b', '16',
+          '-e',
+          'unsigned-integer',
+          '-b',
+          '8',
+          '-c',
+          '2',
+          '-e',
+          'signed-integer',
+          '-b',
+          '16',
         ]),
         expect.any(Object)
       )
