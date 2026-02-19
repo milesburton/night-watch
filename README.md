@@ -49,10 +49,7 @@ cp .env.example .env
 vi .env  # Set your coordinates
 
 docker compose -f docker/compose.yaml up -d
-```
-
-Access dashboard at http://localhost:8002
-
+``
 ## Configuration
 
 All configuration via `.env` environment variables:
