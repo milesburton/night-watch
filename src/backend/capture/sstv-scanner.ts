@@ -1,4 +1,4 @@
-import type { CaptureResult, ReceiverConfig, SatelliteInfo } from '@backend/types'
+import type { CaptureResult, ReceiverConfig, SatelliteInfo, SatellitePass } from '@backend/types'
 import { getDatabase } from '../db/database'
 import { SIGNAL_CONFIGS } from '../satellites/constants'
 import { stateManager } from '../state/state-manager'
@@ -192,7 +192,15 @@ async function captureSstv(
   const startTime = new Date()
 
   logger.satellite(info.name, `Recording SSTV for ${durationSeconds}s`)
-  stateManager.setStatus('capturing')
+  const virtualPass: SatellitePass = {
+    satellite: info,
+    aos: startTime,
+    los: new Date(startTime.getTime() + durationSeconds * 1000),
+    maxElevation: 90,
+    maxElevationTime: startTime,
+    duration: durationSeconds,
+  }
+  stateManager.startPass(virtualPass)
 
   try {
     const recordingPath = await recordPass(info, durationSeconds, config, (elapsed, total) => {

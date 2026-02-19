@@ -10,6 +10,7 @@ vi.mock('../db/database', () => ({
 vi.mock('../state/state-manager', () => ({
   stateManager: {
     setStatus: vi.fn(),
+    startPass: vi.fn(),
     setScanningFrequency: vi.fn(),
     updateProgress: vi.fn(),
     getState: vi.fn(() => ({ status: 'scanning' })),
