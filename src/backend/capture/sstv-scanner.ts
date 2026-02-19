@@ -16,9 +16,9 @@ export const SSTV_SCAN_FREQUENCIES = [
   // { frequency: 145.5e6, name: '2m SSTV Alt' }, // Disabled to prevent USB conflicts
 ]
 
-// SSTV recording duration: Robot36 is ~36s, Scottie/Martin modes are ~110s
-// Record 45s to capture a full Robot36 frame with buffer
-const SSTV_RECORD_DURATION_SECONDS = 45
+// SSTV recording duration: Robot36 ~36s, Scottie/Martin ~110s, PD120 ~130s
+// Record 150s to cover the longest common mode with buffer
+const SSTV_RECORD_DURATION_SECONDS = 150
 
 // Virtual satellite info for ground-based SSTV
 const GROUND_SSTV_INFO: SatelliteInfo = {

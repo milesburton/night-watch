@@ -249,7 +249,7 @@ describe('sstv-scanner', () => {
           frequency: 144.5e6,
           signalType: 'sstv',
         }),
-        45,
+        150,
         mockConfig,
         expect.any(Function)
       )
