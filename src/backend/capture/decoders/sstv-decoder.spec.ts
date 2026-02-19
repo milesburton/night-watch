@@ -1,45 +1,97 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Mock } from 'vitest'
 
 vi.mock('../../utils/fs', () => ({
   ensureDir: vi.fn(() => Promise.resolve()),
-  ensureParentDir: vi.fn(() => Promise.resolve()),
   fileExists: vi.fn(() => Promise.resolve(true)),
-  readTextFile: vi.fn(() => Promise.resolve('')),
-  writeTextFile: vi.fn(() => Promise.resolve()),
-  formatBytes: vi.fn((bytes: number) => `${bytes} B`),
-  generateFilename: vi.fn((satellite: string, extension: string) => `${satellite}.${extension}`),
 }))
 
-vi.mock('../../utils/shell', () => ({
-  runCommand: vi.fn(() => Promise.resolve({ exitCode: 0, stdout: '', stderr: '' })),
+vi.mock('node:fs/promises', () => ({
+  readFile: vi.fn(),
+  writeFile: vi.fn(() => Promise.resolve()),
 }))
 
+const mockDecodeSamples = vi.fn(() => ({
+  pixels: new Uint8ClampedArray(320 * 240 * 4),
+  width: 320,
+  height: 240,
+  diagnostics: {
+    mode: 'Robot 36',
+    visCode: 0x08,
+    sampleRate: 48000,
+    fileDuration: '36.00s',
+    freqOffset: 0,
+    autoCalibrate: true,
+    visEndPos: 29280,
+    decodeTimeMs: 1200,
+    quality: { rAvg: 120, gAvg: 118, bAvg: 115, brightness: 118, verdict: 'good', warnings: [] },
+  },
+}))
+
+vi.mock('./sstv-toolkit/SSTVDecoder.js', () => ({
+  parseWAV: vi.fn(() => ({
+    samples: new Float32Array(1000),
+    sampleRate: 48000,
+  })),
+  SSTVDecoder: class {
+    decodeSamples = mockDecodeSamples
+  },
+}))
+
+vi.mock('./sstv-toolkit/writePng.js', () => ({
+  writePng: vi.fn(() => Promise.resolve()),
+}))
+
+import { readFile } from 'node:fs/promises'
 import { ensureDir, fileExists } from '../../utils/fs'
-import { runCommand } from '../../utils/shell'
+import { parseWAV } from './sstv-toolkit/SSTVDecoder.js'
+import { writePng } from './sstv-toolkit/writePng.js'
 import { sstvDecoder } from './sstv-decoder'
 
-// Type assertions for mocked functions
 const mockFileExists = fileExists as unknown as Mock
-const mockRunCommand = runCommand as unknown as Mock
 const mockEnsureDir = ensureDir as unknown as Mock
+const mockReadFile = readFile as unknown as Mock
+const mockParseWAV = parseWAV as unknown as Mock
+const mockWritePng = writePng as unknown as Mock
 
 describe('sstvDecoder', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  afterEach(() => {
-    vi.resetAllMocks()
+    mockReadFile.mockResolvedValue(Buffer.from([]))
+    mockParseWAV.mockReturnValue({ samples: new Float32Array(1000), sampleRate: 48000 })
+    mockWritePng.mockResolvedValue(undefined)
+    mockDecodeSamples.mockReturnValue({
+      pixels: new Uint8ClampedArray(320 * 240 * 4),
+      width: 320,
+      height: 240,
+      diagnostics: {
+        mode: 'Robot 36',
+        visCode: 0x08,
+        sampleRate: 48000,
+        fileDuration: '36.00s',
+        freqOffset: 0,
+        autoCalibrate: true,
+        visEndPos: 29280,
+        decodeTimeMs: 1200,
+        quality: { rAvg: 120, gAvg: 118, bAvg: 115, brightness: 118, verdict: 'good', warnings: [] },
+      },
+    })
   })
 
   describe('metadata', () => {
     it('should have correct name', () => {
-      expect(sstvDecoder.name).toBe('SSTV Decoder')
+      expect(sstvDecoder.name).toBe('SSTV Decoder (sstv-toolkit)')
     })
 
     it('should have correct signal type', () => {
       expect(sstvDecoder.signalType).toBe('sstv')
+    })
+  })
+
+  describe('checkInstalled', () => {
+    it('should always return true — no external dependencies', async () => {
+      const result = await sstvDecoder.checkInstalled()
+      expect(result).toBe(true)
     })
   })
 
@@ -55,33 +107,22 @@ describe('sstvDecoder', () => {
 
     it('should ensure output directory exists before decoding', async () => {
       mockFileExists.mockResolvedValue(true)
-      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       await sstvDecoder.decode('/path/to/recording.wav', '/output/dir')
 
       expect(mockEnsureDir).toHaveBeenCalledWith('/output/dir')
     })
 
-    it('should call sstv command with correct arguments', async () => {
+    it('should read the WAV file', async () => {
       mockFileExists.mockResolvedValue(true)
-      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       await sstvDecoder.decode('/path/to/recording.wav', '/output')
 
-      expect(mockRunCommand).toHaveBeenCalledWith(
-        'python3',
-        expect.arrayContaining([
-          expect.stringContaining('sstv-decode-wrapper.py'),
-          '/path/to/recording.wav',
-          '/output/recording-sstv.png',
-        ]),
-        { timeout: 300_000 }
-      )
+      expect(mockReadFile).toHaveBeenCalledWith('/path/to/recording.wav')
     })
 
     it('should return output path for successful decode', async () => {
       mockFileExists.mockResolvedValue(true)
-      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       const result = await sstvDecoder.decode('/path/to/test.wav', '/images')
 
@@ -90,73 +131,53 @@ describe('sstvDecoder', () => {
       expect(result?.outputPaths[0]).toBe('/images/test-sstv.png')
     })
 
-    it('should include metadata with mode auto-detected', async () => {
+    it('should include mode and quality in metadata', async () => {
       mockFileExists.mockResolvedValue(true)
-      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       const result = await sstvDecoder.decode('/path/to/test.wav', '/images')
 
-      expect(result?.metadata).toEqual({ mode: 'auto-detected' })
+      expect(result?.metadata).toMatchObject({
+        mode: 'Robot 36',
+        quality: 'good',
+        warnings: [],
+        freqOffset: 0,
+        visCode: 0x08,
+      })
     })
 
-    it('should return null when decode fails', async () => {
-      mockFileExists.mockImplementation(async (path: string) => {
-        if (typeof path === 'string' && path.endsWith('.wav')) {
-          return true
-        }
-        return false
-      })
-      mockRunCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: 'error' })
+    it('should write the PNG to the correct output path', async () => {
+      mockFileExists.mockResolvedValue(true)
 
-      const result = await sstvDecoder.decode('/path/to/test.wav', '/images')
+      await sstvDecoder.decode('/path/to/test.wav', '/images')
+
+      expect(mockWritePng).toHaveBeenCalledWith(
+        '/images/test-sstv.png',
+        expect.any(Uint8ClampedArray),
+        320,
+        240
+      )
+    })
+
+    it('should return null when WAV parsing throws', async () => {
+      mockFileExists.mockResolvedValue(true)
+      mockParseWAV.mockImplementation(() => {
+        throw new Error('Not a valid WAV file')
+      })
+
+      const result = await sstvDecoder.decode('/path/to/bad.wav', '/images')
 
       expect(result).toBeNull()
     })
 
-    it('should return null when output file not created', async () => {
-      mockFileExists.mockImplementation(async (path: string) => {
-        if (typeof path === 'string' && path.endsWith('.wav')) {
-          return true
-        }
-        return false
+    it('should return null when decoding throws', async () => {
+      mockFileExists.mockResolvedValue(true)
+      mockDecodeSamples.mockImplementationOnce(() => {
+        throw new Error('Could not find sync pulse')
       })
-      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
       const result = await sstvDecoder.decode('/path/to/test.wav', '/images')
 
       expect(result).toBeNull()
-    })
-  })
-
-  describe('checkInstalled', () => {
-    it('should return true when sstv is installed', async () => {
-      mockFileExists.mockResolvedValue(true) // wrapper script exists
-      mockRunCommand.mockResolvedValue({ exitCode: 0, stdout: 'OK\n', stderr: '' })
-
-      const result = await sstvDecoder.checkInstalled()
-
-      expect(result).toBe(true)
-      expect(mockRunCommand).toHaveBeenCalledWith('python3', [
-        '-c',
-        'import sstv; from PIL import Image; print("OK")',
-      ])
-    })
-
-    it('should return false when sstv is not installed', async () => {
-      mockFileExists.mockResolvedValue(true) // wrapper exists but sstv module doesn't
-      mockRunCommand.mockResolvedValue({ exitCode: 1, stdout: '', stderr: 'ModuleNotFoundError' })
-
-      const result = await sstvDecoder.checkInstalled()
-
-      expect(result).toBe(false)
-    })
-
-    it('should return false when which command throws', async () => {
-      mockRunCommand.mockRejectedValue(new Error('Command failed'))
-
-      const result = await sstvDecoder.checkInstalled()
-
-      expect(result).toBe(false)
     })
   })
 })

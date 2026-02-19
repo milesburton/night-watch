@@ -28,7 +28,7 @@ describe('decoder registry', () => {
     it('should return SSTV decoder for sstv signal type', () => {
       const decoder = getDecoder('sstv')
       expect(decoder).toBeDefined()
-      expect(decoder?.name).toBe('SSTV Decoder')
+      expect(decoder?.name).toBe('SSTV Decoder (sstv-toolkit)')
       expect(decoder?.signalType).toBe('sstv')
     })
   })

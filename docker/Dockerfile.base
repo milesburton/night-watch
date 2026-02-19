@@ -26,16 +26,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnng1 \
     libcurl4 \
     libjemalloc2 \
-    # Python for SSTV
-    python3 \
-    python3-pip \
-    python3-numpy \
-    python3-pil \
-    python3-scipy \
-    python3-setuptools \
-    python3-soundfile \
-    libatlas-base-dev \
-    libopenblas-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Multi-stage pattern: Build SatDump in separate layer for better caching
@@ -73,21 +63,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Install SSTV decoder (for ISS and 2m SSTV)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    gfortran \
-    && git clone https://github.com/colaclanth/sstv.git /tmp/sstv \
-    && cd /tmp/sstv \
-    && pip3 install --break-system-packages . \
-    && find /usr/local/lib -name "common.py" -path "*/sstv/*" -exec sed -i 's/cols = get_terminal_size().columns/cols = 80/g' {} \; \
-    && python3 -c "from sstv.decode import SSTVDecoder; print('SSTV decoder verified')" \
-    && cd / \
-    && rm -rf /tmp/sstv \
-    && apt-get purge -y git gfortran \
-    && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
-
 # Install Node.js 22.x LTS
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
@@ -101,14 +76,12 @@ RUN mkdir -p /app/data /app/recordings /app/images
 # Verify installations work
 RUN rtl_power -h 2>&1 | head -1 || echo "rtl_power installed" \
     && satdump --help 2>&1 | head -1 || echo "satdump installed" \
-    && sstv --version 2>&1 | head -1 || echo "sstv installed" \
     && node --version && npm --version
 
 # Labels
 LABEL org.opencontainers.image.title="Night Watch Base" \
       org.opencontainers.image.description="Base image with rtl-sdr, SatDump (LRPT decoder), and Node.js runtime" \
       org.opencontainers.image.source="https://github.com/milesburton/night-watch" \
-      org.opencontainers.image.version="2026.02.08" \
-      satdump.version="${SATDUMP_VERSION}" \
-      sstv.commit="${SSTV_COMMIT}"
+      org.opencontainers.image.version="2026.02.16" \
+      satdump.version="${SATDUMP_VERSION}"
 

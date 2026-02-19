@@ -1,17 +1,12 @@
-import { basename, dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { readFile } from 'node:fs/promises'
+import { basename, join } from 'node:path'
 import { ensureDir, fileExists } from '../../utils/fs'
 import { logger } from '../../utils/logger'
-import { runCommand } from '../../utils/shell'
+import { SSTVDecoder, parseWAV } from './sstv-toolkit/SSTVDecoder.js'
+import { writePng } from './sstv-toolkit/writePng.js'
 import type { Decoder, DecoderResult } from './types'
 
-// Resolve wrapper path relative to project root (works in Docker /app and local dev)
-// Path from /app/src/backend/capture/decoders -> /app (4 levels up)
-const currentDir = dirname(fileURLToPath(import.meta.url))
-const projectRoot = join(currentDir, '..', '..', '..', '..')
-const WRAPPER_PATH = join(projectRoot, 'scripts', 'sstv-decode-wrapper.py')
-
-const decodeWithSstv = async (
+const decodeWithToolkit = async (
   wavPath: string,
   outputDir: string
 ): Promise<DecoderResult | null> => {
@@ -20,30 +15,33 @@ const decodeWithSstv = async (
 
   logger.image(`Decoding SSTV image from ${wavPath}...`)
 
-  const result = await runCommand('python3', [WRAPPER_PATH, wavPath, outputPath], {
-    timeout: 300_000, // 5 minutes max for decode
-  })
+  const wavBuffer = await readFile(wavPath)
+  const { samples, sampleRate } = parseWAV(wavBuffer.buffer as ArrayBuffer)
 
-  if (result.exitCode !== 0) {
-    logger.error(`SSTV decode failed (exit ${result.exitCode}): ${result.stderr.trim()}`)
-    if (result.stdout.trim()) {
-      logger.debug(`SSTV decoder stdout: ${result.stdout.trim()}`)
-    }
-    return null
+  const decoder = new SSTVDecoder(sampleRate)
+  const result = decoder.decodeSamples(samples)
+
+  await writePng(outputPath, result.pixels, result.width, result.height)
+
+  const { mode, quality } = result.diagnostics
+  logger.image(
+    `SSTV image saved: ${outputPath} (mode: ${mode}, quality: ${quality.verdict}, decoded in ${result.diagnostics.decodeTimeMs}ms)`
+  )
+
+  return {
+    outputPaths: [outputPath],
+    metadata: {
+      mode,
+      quality: quality.verdict,
+      warnings: quality.warnings,
+      freqOffset: result.diagnostics.freqOffset,
+      visCode: result.diagnostics.visCode,
+    },
   }
-
-  const outputExists = await fileExists(outputPath)
-  if (!outputExists) {
-    logger.warn('SSTV decoder exited OK but no output image was created')
-    return null
-  }
-
-  logger.image(`SSTV image saved: ${outputPath}`)
-  return { outputPaths: [outputPath], metadata: { mode: 'auto-detected' } }
 }
 
 export const sstvDecoder: Decoder = {
-  name: 'SSTV Decoder',
+  name: 'SSTV Decoder (sstv-toolkit)',
   signalType: 'sstv',
 
   async decode(wavPath: string, outputDir: string): Promise<DecoderResult | null> {
@@ -55,32 +53,16 @@ export const sstvDecoder: Decoder = {
     }
 
     await ensureDir(outputDir)
-    return decodeWithSstv(wavPath, outputDir)
+
+    try {
+      return await decodeWithToolkit(wavPath, outputDir)
+    } catch (err) {
+      logger.error(`SSTV decode failed: ${err instanceof Error ? err.message : String(err)}`)
+      return null
+    }
   },
 
   async checkInstalled(): Promise<boolean> {
-    try {
-      const wrapperExists = await fileExists(WRAPPER_PATH)
-
-      if (!wrapperExists) {
-        logger.warn(`SSTV decoder wrapper not found at: ${WRAPPER_PATH}`)
-        return false
-      }
-
-      // Check if sstv Python module and its dependencies are importable
-      const result = await runCommand('python3', [
-        '-c',
-        'import sstv; from PIL import Image; print("OK")',
-      ])
-
-      if (result.exitCode !== 0) {
-        logger.warn(`SSTV decoder dependencies missing: ${result.stderr.trim()}`)
-        return false
-      }
-
-      return result.stdout.includes('OK')
-    } catch {
-      return false
-    }
+    return Promise.resolve(true)
   },
 }
