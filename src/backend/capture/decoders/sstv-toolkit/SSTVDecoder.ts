@@ -1,5 +1,5 @@
-import type { DecodeDiagnostics, DecodeImageResult, ImageQuality, SSTVMode } from './types.js'
 import { SSTV_MODES } from './SSTVEncoder.js'
+import type { DecodeDiagnostics, DecodeImageResult, ImageQuality, SSTVMode } from './types.js'
 
 // Minimal ImageData shape used internally — avoids requiring browser DOM types
 interface ImageData {
@@ -773,9 +773,7 @@ export class SSTVDecoder {
         for (let j = 0; j < 3; j++) {
           const checkPos = i + Math.floor((syncDuration * this.sampleRate * j) / 3)
           if (
-            Math.abs(
-              this.detectFrequency(samples, checkPos, syncDuration / 3) - expectedSync
-            ) > 200
+            Math.abs(this.detectFrequency(samples, checkPos, syncDuration / 3) - expectedSync) > 200
           ) {
             syncValid = false
             break
@@ -794,9 +792,7 @@ export class SSTVDecoder {
 
     if (endIdx - startIdx < 10) return 0
 
-    const testFreqs = [
-      1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200, 2300,
-    ]
+    const testFreqs = [1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200, 2300]
     let maxMag = 0
     let detectedFreq = 1500
 

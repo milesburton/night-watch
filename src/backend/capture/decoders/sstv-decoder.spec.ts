@@ -44,9 +44,9 @@ vi.mock('./sstv-toolkit/writePng.js', () => ({
 
 import { readFile } from 'node:fs/promises'
 import { ensureDir, fileExists } from '../../utils/fs'
+import { sstvDecoder } from './sstv-decoder'
 import { parseWAV } from './sstv-toolkit/SSTVDecoder.js'
 import { writePng } from './sstv-toolkit/writePng.js'
-import { sstvDecoder } from './sstv-decoder'
 
 const mockFileExists = fileExists as unknown as Mock
 const mockEnsureDir = ensureDir as unknown as Mock
@@ -73,7 +73,14 @@ describe('sstvDecoder', () => {
         autoCalibrate: true,
         visEndPos: 29280,
         decodeTimeMs: 1200,
-        quality: { rAvg: 120, gAvg: 118, bAvg: 115, brightness: 118, verdict: 'good', warnings: [] },
+        quality: {
+          rAvg: 120,
+          gAvg: 118,
+          bAvg: 115,
+          brightness: 118,
+          verdict: 'good',
+          warnings: [],
+        },
       },
     })
   })
