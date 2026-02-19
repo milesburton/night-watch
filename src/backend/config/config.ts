@@ -19,7 +19,7 @@ const envSchema = z.object({
   SDR_SAMPLE_RATE: z.coerce.number().default(48000),
   SDR_PPM_CORRECTION: z.coerce.number().default(0),
   MIN_ELEVATION: z.coerce.number().min(0).max(90).default(20),
-  MIN_SIGNAL_STRENGTH: z.coerce.number().default(-30),
+  MIN_SIGNAL_STRENGTH: z.coerce.number().default(-50),
   SKIP_SIGNAL_CHECK: z
     .string()
     .transform((v) => v === 'true')

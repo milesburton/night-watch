@@ -212,7 +212,8 @@ describe('sstv-scanner', () => {
     })
 
     it('should detect signal above threshold and capture', async () => {
-      // Return strong signal (threshold is -35 - 5 = -40)
+      // minSignalStrength is -35, so threshold is exactly -35 dB
+      // Signal at -30 dB is 5 dB above threshold — should trigger capture
       vi.mocked(getPeakPowerInBand).mockReturnValue(-30)
 
       const result = await scanForSstv(mockConfig, 10)
@@ -225,8 +226,34 @@ describe('sstv-scanner', () => {
     })
 
     it('should not capture if signal is below threshold', async () => {
-      // Signal below threshold (-35 dB - 5 = -40 dB threshold)
-      vi.mocked(getPeakPowerInBand).mockReturnValue(-45)
+      // minSignalStrength is -35, so threshold is exactly -35 dB
+      // Signal at -40 dB is below threshold — should NOT trigger capture
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-40)
+
+      const result = await scanForSstv(mockConfig, 1)
+
+      expect(result).toBeNull()
+      expect(vi.mocked(recordPass)).not.toHaveBeenCalled()
+    })
+
+    it('should not capture a signal that is only just above the noise floor (near-noise-floor regression)', async () => {
+      // Regression: previously signalThreshold = minSignalStrength - 5, which caused
+      // captures to trigger on signals only 1-2 dB above noise, producing garbage images.
+      // Now threshold = minSignalStrength exactly.
+      // Noise floor ~-61 dB, minSignalStrength = -35, threshold = -35 dB.
+      // A signal at -36 dB (1 dB below threshold) must NOT trigger capture.
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-36)
+
+      const result = await scanForSstv(mockConfig, 1)
+
+      expect(result).toBeNull()
+      expect(vi.mocked(recordPass)).not.toHaveBeenCalled()
+    })
+
+    it('should use minSignalStrength directly as threshold without any offset', async () => {
+      // The threshold must equal minSignalStrength exactly (no -5 fudge factor).
+      // Signal exactly at threshold should NOT capture (requires strictly above).
+      vi.mocked(getPeakPowerInBand).mockReturnValue(-35) // exactly at threshold
 
       const result = await scanForSstv(mockConfig, 1)
 

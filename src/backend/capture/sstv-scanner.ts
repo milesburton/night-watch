@@ -112,7 +112,7 @@ export async function scanForSstv(
         // Dwell and check FFT power for signal detection
         // Use band-specific power (±5kHz around center) instead of full 250kHz maxPower
         // to avoid false positives from noise spikes outside the SSTV signal bandwidth
-        const signalThreshold = config.recording.minSignalStrength - 5
+        const signalThreshold = config.recording.minSignalStrength
         const detectionBandwidthHz = 10_000 // ±5kHz around center (SSTV is ~3kHz)
         let hasSignal = false
 
