@@ -5,7 +5,6 @@ import { ensureDir, generateFilename } from '../utils/fs'
 import { logger } from '../utils/logger'
 import { sleep } from '../utils/node-compat'
 
-// SSTV audio sample rate - must match what the Python decoder expects
 const SSTV_SAMPLE_RATE = 48_000
 
 export interface RecordingSession {
@@ -52,56 +51,77 @@ export async function startRecording(
   const outputPath = join(config.recording.recordingsDir, filename)
   const freqHz = satellite.frequency.toString()
 
-  // Use signal-specific sample rate for SSTV, global SDR rate for others
+  const isBaseband = satellite.signalConfig?.demodulation === 'baseband'
   const isSstv = satellite.signalType === 'sstv'
-  const sampleRate = isSstv ? SSTV_SAMPLE_RATE : config.sdr.sampleRate
+
+  // Use signal-specific sample rate if defined, else fall back to global SDR rate
+  const sampleRate = isBaseband
+    ? (satellite.signalConfig?.sampleRate ?? 1_024_000)
+    : isSstv
+      ? SSTV_SAMPLE_RATE
+      : config.sdr.sampleRate
 
   logger.capture(
-    `Starting recording: ${satellite.name} at ${satellite.frequency / 1e6} MHz (${sampleRate} Hz)`
+    `Starting recording: ${satellite.name} at ${satellite.frequency / 1e6} MHz (${sampleRate} Hz, ${isBaseband ? 'baseband IQ' : 'FM demod'})`
   )
 
-  // SSTV: DC blocking, wider filter for FM SSTV audio
-  // LRPT: de-emphasis, FIR filter order 9
-  const rtlArgs = [
-    '-f',
-    freqHz,
-    '-s',
-    sampleRate.toString(),
-    '-g',
-    config.sdr.gain.toString(),
-    '-p',
-    config.sdr.ppmCorrection.toString(),
-    '-E',
-    isSstv ? 'dc' : 'deemp',
-    '-F',
-    isSstv ? '9' : '9',
-    '-',
-  ]
+  let rtlProcess: ChildProcess
+  let soxProcess: ChildProcess
 
-  logger.debug(`rtl_fm args: ${rtlArgs.join(' ')}`)
-
-  const rtlProcess = spawn('rtl_fm', rtlArgs, { stdio: ['pipe', 'pipe', 'pipe'] })
-
-  const soxProcess = spawn(
-    'sox',
-    [
-      '-t',
-      'raw',
-      '-r',
+  if (isBaseband) {
+    // LRPT: raw IQ baseband via rtl_sdr — SatDump expects s16 IQ at 1024000 Hz
+    const rtlArgs = [
+      '-f',
+      freqHz,
+      '-s',
       sampleRate.toString(),
-      '-e',
-      's',
-      '-b',
-      '16',
-      '-c',
-      '1',
+      '-g',
+      config.sdr.gain.toString(),
+      '-p',
+      config.sdr.ppmCorrection.toString(),
       '-',
-      '-t',
-      'wav',
-      outputPath,
-    ],
-    { stdio: ['pipe', 'pipe', 'pipe'] }
-  )
+    ]
+    logger.debug(`rtl_sdr args: ${rtlArgs.join(' ')}`)
+    rtlProcess = spawn('rtl_sdr', rtlArgs, { stdio: ['pipe', 'pipe', 'pipe'] })
+
+    // rtl_sdr outputs u8 IQ; sox converts to s16 WAV for SatDump
+    soxProcess = spawn(
+      'sox',
+      [
+        '-t', 'raw', '-r', sampleRate.toString(),
+        '-e', 'unsigned-integer', '-b', '8', '-c', '2',
+        '-',
+        '-t', 'wav', '-e', 'signed-integer', '-b', '16',
+        outputPath,
+      ],
+      { stdio: ['pipe', 'pipe', 'pipe'] }
+    )
+  } else {
+    // SSTV / FM: demodulate with rtl_fm
+    const rtlArgs = [
+      '-f', freqHz,
+      '-s', sampleRate.toString(),
+      '-g', config.sdr.gain.toString(),
+      '-p', config.sdr.ppmCorrection.toString(),
+      '-E', isSstv ? 'dc' : 'deemp',
+      '-F', '9',
+      '-',
+    ]
+    logger.debug(`rtl_fm args: ${rtlArgs.join(' ')}`)
+    rtlProcess = spawn('rtl_fm', rtlArgs, { stdio: ['pipe', 'pipe', 'pipe'] })
+
+    soxProcess = spawn(
+      'sox',
+      [
+        '-t', 'raw', '-r', sampleRate.toString(),
+        '-e', 's', '-b', '16', '-c', '1',
+        '-',
+        '-t', 'wav',
+        outputPath,
+      ],
+      { stdio: ['pipe', 'pipe', 'pipe'] }
+    )
+  }
 
   soxProcess.stdin && rtlProcess.stdout?.pipe(soxProcess.stdin)
 

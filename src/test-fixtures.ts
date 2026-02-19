@@ -17,7 +17,7 @@ export const TEST_SATELLITE: SatelliteInfo = {
   noradId: 57166,
   frequency: 137.9e6,
   signalType: 'lrpt',
-  signalConfig: { type: 'lrpt', bandwidth: 120000, sampleRate: 1024000, demodulation: 'fm' },
+  signalConfig: { type: 'lrpt', bandwidth: 120000, sampleRate: 1024000, demodulation: 'baseband' },
   enabled: true,
 }
 

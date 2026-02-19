@@ -1,6 +1,6 @@
 import type { ChildProcess } from 'node:child_process'
 import { EventEmitter } from 'node:events'
-import { TEST_SATELLITE } from '@/test-fixtures'
+import { TEST_ISS, TEST_SATELLITE } from '@/test-fixtures'
 import type { ReceiverConfig } from '@backend/types'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -26,7 +26,7 @@ vi.mock('node:child_process', () => {
   }
 
   return {
-    spawn: vi.fn((cmd: string) => createMockProcess(cmd === 'rtl_fm')),
+    spawn: vi.fn((cmd: string) => createMockProcess(cmd === 'rtl_fm' || cmd === 'rtl_sdr')),
   }
 })
 
@@ -96,53 +96,56 @@ describe('recorder', () => {
       expect(generateFilename).toHaveBeenCalledWith('METEOR-M N2-3', 'wav')
     })
 
-    it('should spawn rtl_fm with correct arguments', async () => {
+    it('should spawn rtl_sdr (not rtl_fm) for LRPT baseband satellite', async () => {
       await startRecording(TEST_SATELLITE, mockConfig)
 
       expect(spawn).toHaveBeenCalledWith(
-        'rtl_fm',
+        'rtl_sdr',
         expect.arrayContaining([
-          '-f',
-          '137900000',
-          '-s',
-          '48000',
-          '-g',
-          '40',
-          '-p',
-          '0',
-          '-E',
-          'deemp',
-          '-F',
-          '9',
+          '-f', '137900000',
+          '-s', '1024000',
+          '-g', '40',
+          '-p', '0',
           '-',
+        ]),
+        expect.any(Object)
+      )
+      // Must NOT use rtl_fm for LRPT
+      const spawnCalls = vi.mocked(spawn).mock.calls.map((c) => c[0])
+      expect(spawnCalls).not.toContain('rtl_fm')
+    })
+
+    it('should spawn sox with u8 IQ input and s16 WAV output for LRPT', async () => {
+      await startRecording(TEST_SATELLITE, mockConfig)
+
+      expect(spawn).toHaveBeenCalledWith(
+        'sox',
+        expect.arrayContaining([
+          '-e', 'unsigned-integer', '-b', '8', '-c', '2',
+          '-e', 'signed-integer', '-b', '16',
         ]),
         expect.any(Object)
       )
     })
 
-    it('should spawn sox with correct arguments', async () => {
+    it('should use signal sampleRate (1024000) for LRPT, not global config sampleRate (48000)', async () => {
       await startRecording(TEST_SATELLITE, mockConfig)
 
+      const rtlSdrCall = vi.mocked(spawn).mock.calls.find((c) => c[0] === 'rtl_sdr')
+      expect(rtlSdrCall?.[1]).toContain('1024000')
+      expect(rtlSdrCall?.[1]).not.toContain('48000')
+    })
+
+    it('should use rtl_fm with dc filter and 48000 Hz for SSTV satellite', async () => {
+      await startRecording(TEST_ISS, mockConfig)
+
       expect(spawn).toHaveBeenCalledWith(
-        'sox',
-        [
-          '-t',
-          'raw',
-          '-r',
-          '48000',
-          '-e',
-          's',
-          '-b',
-          '16',
-          '-c',
-          '1',
-          '-',
-          '-t',
-          'wav',
-          expect.stringContaining('.wav'),
-        ],
+        'rtl_fm',
+        expect.arrayContaining(['-f', '145800000', '-s', '48000', '-E', 'dc', '-F', '9', '-']),
         expect.any(Object)
       )
+      const spawnCalls = vi.mocked(spawn).mock.calls.map((c) => c[0])
+      expect(spawnCalls).not.toContain('rtl_sdr')
     })
 
     it('should return session with correct properties', async () => {

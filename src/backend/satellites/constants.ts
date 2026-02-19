@@ -11,7 +11,7 @@ export const SIGNAL_CONFIGS: Record<SignalType, SignalConfig> = {
     type: 'lrpt' as const,
     bandwidth: 120000,
     sampleRate: 1024000,
-    demodulation: 'fm' as DemodulationType,
+    demodulation: 'baseband' as DemodulationType,
   },
 }
 

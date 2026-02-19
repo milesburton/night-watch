@@ -6,7 +6,7 @@ export interface Coordinates {
 
 export type SignalType = 'sstv' | 'lrpt'
 
-export type DemodulationType = 'fm' | 'am' | 'ssb'
+export type DemodulationType = 'fm' | 'am' | 'ssb' | 'baseband'
 
 export interface SignalConfig {
   type: SignalType
