@@ -24,6 +24,8 @@ vi.mock('./fft-stream', () => ({
   getLatestFFTData: vi.fn(() => null),
   getPeakPowerInBand: vi.fn(() => null),
   stopFFTStream: vi.fn(),
+  isFFTStreamRunning: vi.fn(() => true), // pretend FFT is already running in tests
+  startFFTStream: vi.fn(() => Promise.resolve(true)),
 }))
 
 vi.mock('./recorder', () => ({

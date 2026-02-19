@@ -5,7 +5,13 @@ import { stateManager } from '../state/state-manager'
 import { logger } from '../utils/logger'
 import { sleep } from '../utils/node-compat'
 import { decodeRecording } from './decoders'
-import { getLatestFFTData, getPeakPowerInBand, stopFFTStream } from './fft-stream'
+import {
+  getLatestFFTData,
+  getPeakPowerInBand,
+  isFFTStreamRunning,
+  startFFTStream,
+  stopFFTStream,
+} from './fft-stream'
 import { recordPass } from './recorder'
 
 // Common 2m SSTV frequencies (in Hz)
@@ -62,6 +68,26 @@ export async function scanForSstv(
 
   logger.info('Starting 2m SSTV frequency scan...')
   stateManager.setStatus('scanning')
+
+  // Ensure FFT stream is running — it may not be if no web client is connected
+  if (!isFFTStreamRunning()) {
+    const firstFreq = SSTV_SCAN_FREQUENCIES[0]
+    if (firstFreq) {
+      logger.info(`Starting FFT stream for SSTV scan: ${firstFreq.frequency / 1e6} MHz`)
+      await startFFTStream(
+        {
+          frequency: firstFreq.frequency,
+          bandwidth: 200_000,
+          fftSize: 2_048,
+          gain: config.sdr.gain,
+          updateRate: 30,
+        },
+        () => {} // no-op callback — scanner reads data via getLatestFFTData()
+      )
+      // Allow a short settling time for the SDR to start
+      await sleep(2000)
+    }
+  }
 
   const startTime = Date.now()
   const endTime = startTime + maxDurationSeconds * 1000
