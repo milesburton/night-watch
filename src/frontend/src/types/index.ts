@@ -157,6 +157,30 @@ export interface FFTState {
   error?: string | null
 }
 
+export interface SystemStats {
+  cpu: {
+    usagePercent: number
+    loadAvg: [number, number, number]
+    cores: number
+    model: string
+  }
+  memory: {
+    totalMb: number
+    usedMb: number
+    freeMb: number
+    usagePercent: number
+  }
+  disk: {
+    totalGb: number
+    usedGb: number
+    freeGb: number
+    usagePercent: number
+    mountpoint: string
+  } | null
+  uptimeSeconds: number
+  platform: string
+}
+
 // WebSocket message types
 export type WSMessage =
   | { type: 'init'; state: SystemState; globe?: GlobeState; fft?: FFTState }

@@ -6,6 +6,7 @@ import {
   PassTimeline,
   ProgressSection,
   SatelliteTracking,
+  ServerStats,
   Tooltip,
 } from '@/components'
 import { useApi } from '@/hooks/useApi'
@@ -395,6 +396,7 @@ export default function App() {
         </div>
 
         <CaptureGallery />
+        <ServerStats />
       </main>
 
       <DiagnosticsPanel

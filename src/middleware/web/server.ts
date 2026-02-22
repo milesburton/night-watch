@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { type IncomingMessage, type ServerResponse, createServer } from 'node:http'
+import os from 'node:os'
 import { resolve } from 'node:path'
 import {
   type FFTData,
@@ -479,6 +480,12 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
       return
     }
 
+    if (url.pathname === '/api/system-stats') {
+      const stats = await getSystemStats()
+      jsonResponseNode(res, stats)
+      return
+    }
+
     res.writeHead(404, { 'Content-Type': 'text/plain' })
     res.end('Not Found')
   })
@@ -778,6 +785,117 @@ function broadcastFFTError(error: string) {
     } catch {
       fftSubscribers.delete(subscriber)
     }
+  }
+}
+
+export interface SystemStats {
+  cpu: {
+    usagePercent: number
+    loadAvg: [number, number, number]
+    cores: number
+    model: string
+  }
+  memory: {
+    totalMb: number
+    usedMb: number
+    freeMb: number
+    usagePercent: number
+  }
+  disk: {
+    totalGb: number
+    usedGb: number
+    freeGb: number
+    usagePercent: number
+    mountpoint: string
+  } | null
+  uptimeSeconds: number
+  platform: string
+}
+
+async function measureCpuUsage(): Promise<number> {
+  const sample = () => {
+    const cpus = os.cpus()
+    let idle = 0
+    let total = 0
+    for (const cpu of cpus) {
+      for (const [, val] of Object.entries(cpu.times)) {
+        total += val
+      }
+      idle += cpu.times.idle
+    }
+    return { idle, total }
+  }
+
+  const before = sample()
+  await new Promise((r) => setTimeout(r, 200))
+  const after = sample()
+
+  const idleDiff = after.idle - before.idle
+  const totalDiff = after.total - before.total
+  if (totalDiff === 0) return 0
+  return Math.round(100 * (1 - idleDiff / totalDiff))
+}
+
+async function getDiskStats(path: string): Promise<{
+  totalGb: number
+  usedGb: number
+  freeGb: number
+  usagePercent: number
+  mountpoint: string
+} | null> {
+  try {
+    const { runCommand } = await import('@backend/utils/shell')
+    const result = await runCommand('df', ['-B1', '-P', path])
+    const lines = (result.stdout ?? '').trim().split('\n')
+    const parts = lines[1]?.trim().split(/\s+/)
+    if (!parts || parts.length < 6) return null
+    const total = Number(parts[1])
+    const used = Number(parts[2])
+    const available = Number(parts[3])
+    const mountpoint = parts[5] ?? path
+    if (Number.isNaN(total) || total === 0) return null
+    const GB = 1024 * 1024 * 1024
+    return {
+      totalGb: Math.round((total / GB) * 10) / 10,
+      usedGb: Math.round((used / GB) * 10) / 10,
+      freeGb: Math.round((available / GB) * 10) / 10,
+      usagePercent: Math.round((used / total) * 100),
+      mountpoint,
+    }
+  } catch {
+    return null
+  }
+}
+
+async function getSystemStats(): Promise<SystemStats> {
+  const [cpuUsage, disk] = await Promise.all([measureCpuUsage(), getDiskStats('/')])
+
+  const totalMem = os.totalmem()
+  const freeMem = os.freemem()
+  const usedMem = totalMem - freeMem
+  const cpus = os.cpus()
+  const loadAvg = os.loadavg() as [number, number, number]
+
+  return {
+    cpu: {
+      usagePercent: cpuUsage,
+      loadAvg: [
+        Math.round(loadAvg[0] * 100) / 100,
+        Math.round(loadAvg[1] * 100) / 100,
+        Math.round(loadAvg[2] * 100) / 100,
+      ],
+      cores: cpus.length,
+      model: cpus[0]?.model ?? 'Unknown',
+    },
+    memory: {
+      totalMb: Math.round(totalMem / 1024 / 1024),
+      usedMb: Math.round(usedMem / 1024 / 1024),
+      freeMb: Math.round(freeMem / 1024 / 1024),
+      usagePercent: Math.round((usedMem / totalMem) * 100),
+    },
+    disk,
+    uptimeSeconds: Math.floor(os.uptime()),
+    platform: `${os.type()} ${os.release()}`,
   }
 }
 

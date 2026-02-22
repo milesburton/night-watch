@@ -13,10 +13,33 @@ interface WaterfallViewProps {
   currentPass?: SatellitePass | null
 }
 
-const MAX_HISTORY_ROWS = 300 // Increased for better time resolution
 const DEFAULT_FREQUENCY = 137_500_000
-const CANVAS_WIDTH = 1024 // Increased resolution
-const CANVAS_HEIGHT = 600 // Increased resolution
+const CANVAS_WIDTH = 1024
+const CANVAS_HEIGHT = 600
+const LABEL_HEIGHT = 60
+const WATERFALL_HEIGHT = CANVAS_HEIGHT - LABEL_HEIGHT
+const ROW_PX = 2
+
+function getWaterfallColorRGB(normalized: number): [number, number, number] {
+  if (normalized < 0.2) {
+    const t = normalized / 0.2
+    return [0, 0, Math.floor(30 + t * 170)]
+  }
+  if (normalized < 0.4) {
+    const t = (normalized - 0.2) / 0.2
+    return [0, Math.floor(t * 200), Math.floor(200 - t * 50)]
+  }
+  if (normalized < 0.6) {
+    const t = (normalized - 0.4) / 0.2
+    return [Math.floor(t * 200), Math.floor(200 + t * 55), Math.floor(150 - t * 150)]
+  }
+  if (normalized < 0.8) {
+    const t = (normalized - 0.6) / 0.2
+    return [Math.floor(200 + t * 55), Math.floor(255 - t * 100), 0]
+  }
+  const t = (normalized - 0.8) / 0.2
+  return [255, Math.floor(155 - t * 155), 0]
+}
 
 export function WaterfallView({
   frequency,
@@ -30,63 +53,120 @@ export function WaterfallView({
   currentPass,
 }: WaterfallViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [fftHistory, setFftHistory] = useState<FFTData[]>([])
+  const offscreenRef = useRef<HTMLCanvasElement | null>(null)
+  const lastProcessedTimestamp = useRef<number>(0)
+  const lastDataRef = useRef<FFTData | null>(null)
   const [currentConfig, setCurrentConfig] = useState<{
     centerFreq: number
     bandwidth: number
   } | null>(null)
-  const lastDataRef = useRef<FFTData | null>(null)
-  const lastProcessedTimestamp = useRef<number>(0)
 
-  useEffect(() => {
-    if (!latestFFTData || latestFFTData.timestamp === lastProcessedTimestamp.current) {
-      return
+  const powerHistoryRef = useRef<{ min: number; max: number }[]>([])
+  const POWER_HISTORY_LEN = 60
+
+  const getOffscreen = useCallback(() => {
+    if (!offscreenRef.current) {
+      const oc = document.createElement('canvas')
+      oc.width = CANVAS_WIDTH
+      oc.height = WATERFALL_HEIGHT
+      const ctx = oc.getContext('2d')
+      if (ctx) {
+        ctx.fillStyle = '#1a2332'
+        ctx.fillRect(0, 0, CANVAS_WIDTH, WATERFALL_HEIGHT)
+      }
+      offscreenRef.current = oc
+    }
+    return offscreenRef.current
+  }, [])
+
+  const appendRow = useCallback(
+    (data: FFTData, refMin: number, refMax: number) => {
+      const oc = getOffscreen()
+      const ctx = oc.getContext('2d')
+      if (!ctx) return
+
+      ctx.drawImage(
+        oc,
+        0,
+        ROW_PX,
+        CANVAS_WIDTH,
+        WATERFALL_HEIGHT - ROW_PX,
+        0,
+        0,
+        CANVAS_WIDTH,
+        WATERFALL_HEIGHT - ROW_PX
+      )
+
+      const imageData = ctx.createImageData(CANVAS_WIDTH, ROW_PX)
+      const pixels = imageData.data
+      const numBins = data.bins.length
+
+      for (let y = 0; y < ROW_PX; y++) {
+        for (let x = 0; x < CANVAS_WIDTH; x++) {
+          const binIndex = Math.floor((x / CANVAS_WIDTH) * numBins)
+          const power = data.bins[binIndex] ?? refMin
+          const normalized = Math.max(0, Math.min(1, (power - refMin) / (refMax - refMin)))
+          const [r, g, b] = getWaterfallColorRGB(normalized)
+          const offset = (y * CANVAS_WIDTH + x) * 4
+          pixels[offset] = r
+          pixels[offset + 1] = g
+          pixels[offset + 2] = b
+          pixels[offset + 3] = 255
+        }
+      }
+
+      ctx.putImageData(imageData, 0, WATERFALL_HEIGHT - ROW_PX)
+    },
+    [getOffscreen]
+  )
+
+  const computeRange = useCallback((): [number, number] => {
+    const hist = powerHistoryRef.current
+    if (hist.length === 0) return [-80, -40]
+
+    let measuredMin = 0
+    let measuredMax = -150
+    for (const h of hist) {
+      if (h.min > -150 && h.min < 0) measuredMin = Math.min(measuredMin, h.min)
+      if (h.max > -150 && h.max < 0) measuredMax = Math.max(measuredMax, h.max)
     }
 
+    let allMin = -80
+    let allMax = -40
+    if (measuredMin < -10 && measuredMax < 0) {
+      allMin = measuredMin - 5
+      allMax = measuredMax + 10
+    }
+    if (allMax - allMin < 30) {
+      const mid = (allMin + allMax) / 2
+      allMin = mid - 20
+      allMax = mid + 15
+    }
+    return [Math.max(allMin, -120), Math.min(allMax, -10)]
+  }, [])
+
+  useEffect(() => {
+    if (!latestFFTData || latestFFTData.timestamp === lastProcessedTimestamp.current) return
     lastProcessedTimestamp.current = latestFFTData.timestamp
     lastDataRef.current = latestFFTData
     setCurrentConfig({ centerFreq: latestFFTData.centerFreq, bandwidth: 200_000 })
 
-    setFftHistory((prev) => {
-      const newHistory = [...prev, latestFFTData]
-      if (newHistory.length > MAX_HISTORY_ROWS) {
-        return newHistory.slice(newHistory.length - MAX_HISTORY_ROWS)
-      }
-      return newHistory
-    })
-  }, [latestFFTData])
+    powerHistoryRef.current.push({ min: latestFFTData.minPower, max: latestFFTData.maxPower })
+    if (powerHistoryRef.current.length > POWER_HISTORY_LEN) {
+      powerHistoryRef.current.shift()
+    }
 
-  // Fast color mapping using RGB arrays (no string allocation)
-  const getWaterfallColorRGB = useCallback((normalized: number): [number, number, number] => {
-    if (normalized < 0.2) {
-      const t = normalized / 0.2
-      return [0, 0, Math.floor(30 + t * 170)]
-    }
-    if (normalized < 0.4) {
-      const t = (normalized - 0.2) / 0.2
-      return [0, Math.floor(t * 200), Math.floor(200 - t * 50)]
-    }
-    if (normalized < 0.6) {
-      const t = (normalized - 0.4) / 0.2
-      return [Math.floor(t * 200), Math.floor(200 + t * 55), Math.floor(150 - t * 150)]
-    }
-    if (normalized < 0.8) {
-      const t = (normalized - 0.6) / 0.2
-      return [Math.floor(200 + t * 55), Math.floor(255 - t * 100), 0]
-    }
-    const t = (normalized - 0.8) / 0.2
-    return [255, Math.floor(155 - t * 155), 0]
-  }, [])
+    const [refMin, refMax] = computeRange()
+    appendRow(latestFFTData, refMin, refMax)
+  }, [latestFFTData, appendRow, computeRange])
 
-  const drawWaterfall = useCallback(() => {
+  const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
     const { width, height } = canvas
-    const historyHeight = height - 60
 
     ctx.fillStyle = '#1a2332'
     ctx.fillRect(0, 0, width, height)
@@ -103,36 +183,29 @@ export function WaterfallView({
       return
     }
 
-    if (fftHistory.length === 0) {
+    const hasData = powerHistoryRef.current.length > 0
+
+    if (!hasData) {
       ctx.fillStyle = '#64748b'
       ctx.font = '14px sans-serif'
       ctx.textAlign = 'center'
-
-      // Show capture message if actively receiving
       if (isActive && !fftRunning) {
-        let yPos = height / 2 - 50
-
         ctx.fillStyle = '#22c55e'
         ctx.font = 'bold 18px sans-serif'
-        ctx.fillText('🔴 Recording in Progress', width / 2, yPos)
-
-        yPos += 30
-
+        ctx.fillText('🔴 Recording in Progress', width / 2, height / 2 - 50)
         if (currentPass) {
           const satelliteName = currentPass.satellite?.name || 'Unknown'
           ctx.fillStyle = '#94a3b8'
           ctx.font = '16px sans-serif'
-          ctx.fillText(`Capturing ${satelliteName}`, width / 2, yPos)
+          ctx.fillText(`Capturing ${satelliteName}`, width / 2, height / 2 - 20)
         } else if (frequencyName) {
           ctx.fillStyle = '#94a3b8'
           ctx.font = '16px sans-serif'
-          ctx.fillText(`Capturing ${frequencyName}`, width / 2, yPos)
+          ctx.fillText(`Capturing ${frequencyName}`, width / 2, height / 2 - 20)
         }
-
-        yPos += 30
         ctx.fillStyle = '#64748b'
         ctx.font = '14px sans-serif'
-        ctx.fillText('Waterfall paused during signal reception', width / 2, yPos)
+        ctx.fillText('Waterfall paused during signal reception', width / 2, height / 2 + 10)
       } else {
         ctx.fillText(
           fftRunning ? 'Waiting for FFT data...' : 'FFT stream not running',
@@ -145,76 +218,17 @@ export function WaterfallView({
       return
     }
 
-    // Use actual history length for better time resolution
-    const rowHeight = Math.max(1, historyHeight / fftHistory.length)
-
-    // Auto-scale power range based on recent data
-    let allMin = -80
-    let allMax = -40
-    if (fftHistory.length > 0) {
-      const recentRows = fftHistory.slice(-30)
-      let measuredMin = 0
-      let measuredMax = -150
-      for (const row of recentRows) {
-        if (row.minPower > -150 && row.minPower < 0) {
-          measuredMin = Math.min(measuredMin, row.minPower)
-        }
-        if (row.maxPower > -150 && row.maxPower < 0) {
-          measuredMax = Math.max(measuredMax, row.maxPower)
-        }
-      }
-      if (measuredMin < -10 && measuredMax < 0) {
-        allMin = measuredMin - 5
-        allMax = measuredMax + 10
-      }
-      if (allMax - allMin < 30) {
-        const mid = (allMin + allMax) / 2
-        allMin = mid - 20
-        allMax = mid + 15
-      }
-      allMin = Math.max(allMin, -120)
-      allMax = Math.min(allMax, -10)
-    }
-    const refMin = allMin
-    const refMax = allMax
-
-    // High-performance rendering using ImageData (100x faster than fillRect)
-    const imageData = ctx.createImageData(width, Math.floor(historyHeight))
-    const data = imageData.data
-
-    fftHistory.forEach((row, rowIndex) => {
-      const yStart = Math.floor(rowIndex * rowHeight)
-      const yEnd = Math.min(Math.floor((rowIndex + 1) * rowHeight), Math.floor(historyHeight))
-      const numBins = row.bins.length
-
-      for (let y = yStart; y < yEnd; y++) {
-        for (let x = 0; x < width; x++) {
-          // Map pixel x to FFT bin
-          const binIndex = Math.floor((x / width) * numBins)
-          const power = row.bins[binIndex] || refMin
-          const normalized = Math.max(0, Math.min(1, (power - refMin) / (refMax - refMin)))
-          const [r, g, b] = getWaterfallColorRGB(normalized)
-
-          // Write RGBA to ImageData
-          const offset = (y * width + x) * 4
-          data[offset] = r
-          data[offset + 1] = g
-          data[offset + 2] = b
-          data[offset + 3] = 255 // Alpha
-        }
-      }
-    })
-
-    ctx.putImageData(imageData, 0, 0)
+    const oc = offscreenRef.current
+    if (oc) ctx.drawImage(oc, 0, 0, width, WATERFALL_HEIGHT)
 
     ctx.fillStyle = '#1a2332'
-    ctx.fillRect(0, historyHeight, width, 60)
+    ctx.fillRect(0, WATERFALL_HEIGHT, width, LABEL_HEIGHT)
 
     ctx.strokeStyle = '#334155'
     ctx.lineWidth = 1
     ctx.beginPath()
-    ctx.moveTo(0, historyHeight)
-    ctx.lineTo(width, historyHeight)
+    ctx.moveTo(0, WATERFALL_HEIGHT)
+    ctx.lineTo(width, WATERFALL_HEIGHT)
     ctx.stroke()
 
     const centerFreqMHz = (currentConfig?.centerFreq || frequency || DEFAULT_FREQUENCY) / 1e6
@@ -229,11 +243,11 @@ export function WaterfallView({
       const x = (width / (labelCount - 1)) * i
       const freqOffset = (i / (labelCount - 1) - 0.5) * bandwidthMHz
       const labelFreq = (centerFreqMHz + freqOffset).toFixed(3)
-      ctx.fillText(`${labelFreq}`, x, historyHeight + 20)
+      ctx.fillText(`${labelFreq}`, x, WATERFALL_HEIGHT + 20)
 
       ctx.beginPath()
-      ctx.moveTo(x, historyHeight)
-      ctx.lineTo(x, historyHeight + 5)
+      ctx.moveTo(x, WATERFALL_HEIGHT)
+      ctx.lineTo(x, WATERFALL_HEIGHT + 5)
       ctx.stroke()
     }
 
@@ -242,7 +256,7 @@ export function WaterfallView({
     const centerLabel = frequencyName
       ? `${centerFreqMHz.toFixed(3)} MHz - ${frequencyName}`
       : `Center: ${centerFreqMHz.toFixed(3)} MHz`
-    ctx.fillText(centerLabel, width / 2, historyHeight + 40)
+    ctx.fillText(centerLabel, width / 2, WATERFALL_HEIGHT + 40)
 
     ctx.fillStyle = fftRunning ? (isScanning ? '#8b5cf6' : '#22c55e') : '#64748b'
     ctx.font = '11px sans-serif'
@@ -254,24 +268,21 @@ export function WaterfallView({
           ? 'SCANNING'
           : 'MONITORING'
       : 'OFFLINE'
-    ctx.fillText(statusText, 10, historyHeight + 40)
+    ctx.fillText(statusText, 10, WATERFALL_HEIGHT + 40)
 
     if (lastDataRef.current) {
       const peakValue = lastDataRef.current.maxPower
       ctx.fillStyle = '#94a3b8'
       ctx.textAlign = 'right'
-      ctx.fillText(`Peak: ${peakValue.toFixed(1)} dB`, width - 10, historyHeight + 40)
+      ctx.fillText(`Peak: ${peakValue.toFixed(1)} dB`, width - 10, WATERFALL_HEIGHT + 40)
     }
 
-    // Draw capture overlay if actively receiving but FFT stopped
-    if (isActive && !fftRunning && fftHistory.length > 0) {
-      // Semi-transparent overlay with slight blur effect
+    if (isActive && !fftRunning) {
       ctx.fillStyle = 'rgba(26, 35, 50, 0.90)'
-      ctx.fillRect(0, 0, width, historyHeight)
+      ctx.fillRect(0, 0, width, WATERFALL_HEIGHT)
 
       let yPos = height / 2 - 60
 
-      // Main heading - Signal Detected
       ctx.fillStyle = '#22c55e'
       ctx.font = 'bold 22px sans-serif'
       ctx.textAlign = 'center'
@@ -279,12 +290,10 @@ export function WaterfallView({
 
       yPos += 35
 
-      // What's being recorded
       if (currentPass) {
         const satelliteName = currentPass.satellite?.name || 'Unknown'
         const signalType = currentPass.satellite?.signalType?.toUpperCase() || ''
         const freqMhz = (currentPass.satellite?.frequency || 0) / 1e6
-
         ctx.fillStyle = '#94a3b8'
         ctx.font = '16px sans-serif'
         ctx.fillText(
@@ -300,7 +309,6 @@ export function WaterfallView({
 
       yPos += 30
 
-      // Time remaining
       if (progress) {
         const remaining = progress.total - progress.elapsed
         const remainingMin = Math.floor(remaining / 60)
@@ -316,17 +324,14 @@ export function WaterfallView({
 
         yPos += 25
 
-        // Progress bar
         const barWidth = 400
         const barHeight = 8
         const barX = (width - barWidth) / 2
         const barY = yPos
 
-        // Background
         ctx.fillStyle = '#334155'
         ctx.fillRect(barX, barY, barWidth, barHeight)
 
-        // Progress
         const progressWidth = (barWidth * progress.percentage) / 100
         ctx.fillStyle = '#22c55e'
         ctx.fillRect(barX, barY, progressWidth, barHeight)
@@ -334,7 +339,6 @@ export function WaterfallView({
         yPos += 30
       }
 
-      // Informational message
       ctx.font = '14px sans-serif'
       ctx.fillStyle = '#64748b'
       ctx.fillText('Waterfall paused - SDR device exclusively recording', width / 2, yPos)
@@ -346,7 +350,6 @@ export function WaterfallView({
       ctx.fillText('Please wait for recording to complete...', width / 2, yPos)
     }
   }, [
-    fftHistory,
     fftError,
     frequency,
     frequencyName,
@@ -354,40 +357,20 @@ export function WaterfallView({
     isScanning,
     fftRunning,
     currentConfig,
-    getWaterfallColorRGB,
     progress,
     currentPass,
   ])
 
-  // Throttle redraws using requestAnimationFrame for smooth 60fps rendering
   useEffect(() => {
     let rafId: number | null = null
-    let needsRedraw = true
-
-    const scheduleRedraw = () => {
-      if (needsRedraw && rafId === null) {
-        rafId = requestAnimationFrame(() => {
-          drawWaterfall()
-          rafId = null
-          needsRedraw = false
-        })
-      }
-    }
-
-    // Mark as needing redraw whenever dependencies change
-    needsRedraw = true
-    scheduleRedraw()
-
+    rafId = requestAnimationFrame(() => {
+      drawCanvas()
+      rafId = null
+    })
     return () => {
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId)
-      }
+      if (rafId !== null) cancelAnimationFrame(rafId)
     }
-  }, [drawWaterfall])
-
-  const handleClick = useCallback(() => {
-    // Click handled by parent component
-  }, [])
+  }, [drawCanvas])
 
   return (
     <div className="relative">
@@ -397,19 +380,11 @@ export function WaterfallView({
         height={CANVAS_HEIGHT}
         className="rounded-lg bg-bg-secondary cursor-pointer"
         style={{ width: '100%', height: 'auto' }}
-        onClick={handleClick}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            handleClick()
-          }
-        }}
         role="button"
         tabIndex={0}
-        title="Real-time frequency spectrum waterfall visualization. Click or press Enter to control FFT stream."
+        title="Real-time frequency spectrum waterfall visualization."
         aria-label={`Waterfall display${isActive ? ' - Recording in progress' : ''} at ${frequencyName || (frequency ? (frequency / 1e6).toFixed(3) : 'Unknown')}`}
-      />
-      \n{' '}
+      />{' '}
       <output
         className="absolute top-2 right-2 flex items-center gap-2 bg-bg-primary/80 px-2 py-1 rounded text-xs"
         aria-live="polite"

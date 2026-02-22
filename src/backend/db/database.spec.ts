@@ -134,6 +134,80 @@ describe('CaptureDatabase', () => {
     })
   })
 
+  describe('cleanupOldCaptures', () => {
+    const isoAgo = (days: number) => {
+      const d = new Date()
+      d.setDate(d.getDate() - days)
+      return d.toISOString()
+    }
+
+    const backdateCapture = (id: number, days: number) => {
+      db.db.prepare('UPDATE captures SET created_at = ? WHERE id = ?').run(isoAgo(days), id)
+    }
+
+    it('returns zero deleted when database is empty', () => {
+      const { deleted } = db.cleanupOldCaptures(30, 7)
+      expect(deleted).toBe(0)
+    })
+
+    it('keeps good captures within retention window', () => {
+      const pass = createTestPass()
+      const id = db.saveCapture(createTestResult(pass, true), pass)
+      db.saveImages(id, ['/images/recent.png'])
+
+      const { deleted } = db.cleanupOldCaptures(30, 7)
+      expect(deleted).toBe(0)
+      expect(db.getRecentCaptures()).toHaveLength(1)
+    })
+
+    it('deletes good captures with images older than retainDays', () => {
+      const pass = createTestPass()
+      const id = db.saveCapture(createTestResult(pass, true), pass)
+      db.saveImages(id, ['/images/old.png'])
+      backdateCapture(id, 35)
+
+      const { deleted } = db.cleanupOldCaptures(30, 7)
+      expect(deleted).toBe(1)
+      expect(db.getRecentCaptures()).toHaveLength(0)
+    })
+
+    it('deletes failed captures older than failedRetainDays', () => {
+      const pass = createTestPass()
+      const id = db.saveCapture(createTestResult(pass, false), pass)
+      backdateCapture(id, 10)
+
+      const { deleted } = db.cleanupOldCaptures(30, 7)
+      expect(deleted).toBe(1)
+      expect(db.getRecentCaptures()).toHaveLength(0)
+    })
+
+    it('keeps failed captures within failedRetainDays', () => {
+      const pass = createTestPass()
+      const id = db.saveCapture(createTestResult(pass, false), pass)
+      backdateCapture(id, 3)
+
+      const { deleted } = db.cleanupOldCaptures(30, 7)
+      expect(deleted).toBe(0)
+      expect(db.getRecentCaptures()).toHaveLength(1)
+    })
+
+    it('removes old failed capture while keeping recent good capture', () => {
+      const pass = createTestPass()
+
+      const goodId = db.saveCapture(createTestResult(pass, true), pass)
+      db.saveImages(goodId, ['/images/good.png'])
+
+      const failedPass = { ...pass, aos: new Date('2024-01-02T12:00:00Z') }
+      const failedId = db.saveCapture(createTestResult(failedPass, false), failedPass)
+      backdateCapture(failedId, 10)
+
+      const { deleted } = db.cleanupOldCaptures(30, 7)
+      expect(deleted).toBe(1)
+      expect(db.getRecentCaptures()).toHaveLength(1)
+      expect(db.getRecentCaptures()[0]?.imagePaths).toHaveLength(1)
+    })
+  })
+
   describe('getCaptureSummary', () => {
     it('should return zeros when no captures', () => {
       const summary = db.getCaptureSummary()

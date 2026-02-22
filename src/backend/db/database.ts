@@ -5,10 +5,9 @@ import type { CaptureHistoryEntry, CaptureResult, SatellitePass, SignalType } fr
 import Database from 'better-sqlite3'
 
 export class CaptureDatabase {
-  private db: Database.Database
+  readonly db: Database.Database
 
   constructor(dbPath: string) {
-    // Ensure parent directory exists before creating database
     const dir = dirname(dbPath)
     if (!existsSync(dir)) {
       throw new Error(`Database directory does not exist: ${dir}`)
@@ -178,6 +177,38 @@ export class CaptureDatabase {
     }))
   }
 
+  cleanupOldCaptures(retainDays = 30, failedRetainDays = 7): { deleted: number } {
+    const goodCutoff = new Date()
+    goodCutoff.setDate(goodCutoff.getDate() - retainDays)
+
+    const failedCutoff = new Date()
+    failedCutoff.setDate(failedCutoff.getDate() - failedRetainDays)
+
+    const goodResult = this.db
+      .prepare(
+        `
+        DELETE FROM captures
+        WHERE success = 1
+          AND id IN (SELECT capture_id FROM images)
+          AND created_at < ?
+      `
+      )
+      .run(goodCutoff.toISOString())
+
+    const failedResult = this.db
+      .prepare(
+        `
+        DELETE FROM captures
+        WHERE (success = 0 OR id NOT IN (SELECT capture_id FROM images))
+          AND created_at < ?
+      `
+      )
+      .run(failedCutoff.toISOString())
+
+    const deleted = Number(goodResult.changes) + Number(failedResult.changes)
+    return { deleted }
+  }
+
   getCaptureSummary(): { total: number; successful: number; failed: number } {
     const row = this.db
       .prepare(
@@ -222,6 +253,12 @@ export async function initializeDatabase(dbPath: string): Promise<CaptureDatabas
   await mkdir(dir, { recursive: true })
 
   databaseInstance = new CaptureDatabase(dbPath)
+
+  const { deleted } = databaseInstance.cleanupOldCaptures(30, 7)
+  if (deleted > 0) {
+    console.info(`[db] Pruned ${deleted} old capture record(s)`)
+  }
+
   return databaseInstance
 }
 
