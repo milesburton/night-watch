@@ -1,5 +1,5 @@
 {
-  "name": "RFCapture",
+  "name": "nightwatch",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."
@@ -34,9 +34,9 @@
   },
   "mounts": [
     "source=/dev/bus/usb,target=/dev/bus/usb,type=bind",
-    "source=rfcapture-data,target=/workspace/data,type=volume",
-    "source=rfcapture-images,target=/workspace/images,type=volume",
-    "source=rfcapture-recordings,target=/workspace/recordings,type=volume",
+    "source=nightwatch-data,target=/workspace/data,type=volume",
+    "source=nightwatch-images,target=/workspace/images,type=volume",
+    "source=nightwatch-recordings,target=/workspace/recordings,type=volume",
     "source=${localEnv:HOME}/.config/claude,target=/home/node/.config/claude,type=bind",
     "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind",
     "source=${localEnv:HOME}/.openclaw,target=/root/.openclaw,type=bind",
@@ -44,6 +44,6 @@
     "source=${localEnv:HOME}/.config/gh,target=/root/.config/gh,type=bind"
   ],
   "runArgs": ["--privileged"],
-  "postCreateCommand": "npm install && echo 'RFCapture Dev Container Ready! Read docs/README.md for docs overview, then: npm start'",
+  "postCreateCommand": "npm install && echo 'Nightwatch Dev Container Ready! Read docs/README.md for docs overview, then: npm start'",
   "postStartCommand": "npm install"
 }
