@@ -646,6 +646,16 @@ export function startWebServer(port: number, host: string, imagesDir: string) {
       await stopFFTStream()
     }
 
+    // Restart FFT stream when returning to idle after a capture/decode cycle
+    if (event.type === 'status_change' && event.status === 'idle' && fftSubscribers.size > 0) {
+      if (!isFFTStreamRunning()) {
+        const config = getFFTStreamConfig()
+        const frequency = config?.frequency ?? 137_500_000
+        logger.info(`Restarting FFT stream after capture (${(frequency / 1e6).toFixed(3)} MHz)`)
+        debouncedFFTStart(frequency)
+      }
+    }
+
     const message = JSON.stringify(event)
     for (const client of clients) {
       try {
