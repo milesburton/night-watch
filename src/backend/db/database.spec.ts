@@ -191,6 +191,20 @@ describe('CaptureDatabase', () => {
       expect(db.getRecentCaptures()).toHaveLength(1)
     })
 
+    it('returns empty recordingPaths when nothing is deleted', () => {
+      const { recordingPaths } = db.cleanupOldCaptures(30, 7)
+      expect(recordingPaths).toEqual([])
+    })
+
+    it('returns recording paths of deleted captures', () => {
+      const pass = createTestPass()
+      const id = db.saveCapture(createTestResult(pass, false), pass)
+      backdateCapture(id, 10)
+
+      const { recordingPaths } = db.cleanupOldCaptures(30, 7)
+      expect(recordingPaths).toContain('/tmp/test-recording.wav')
+    })
+
     it('removes old failed capture while keeping recent good capture', () => {
       const pass = createTestPass()
 

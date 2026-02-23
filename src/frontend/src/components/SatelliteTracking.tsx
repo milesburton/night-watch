@@ -479,7 +479,7 @@ export function SatelliteTracking({
   progress,
 }: SatelliteTrackingProps) {
   // Use persisted store for tab state
-  const { waterfallMode: mode, setWaterfallMode: setMode } = useUIStore()
+  const { waterfallMode: mode, setWaterfallMode: setMode, waterfallEnabled, setWaterfallEnabled } = useUIStore()
   const [sstvFreqIndex, setSstvFreqIndex] = useState(0)
 
   const isCapturing = !!currentPass || systemStatus === 'capturing'
@@ -505,16 +505,17 @@ export function SatelliteTracking({
     onFrequencyChange?.(currentFrequency, mode)
   }, [currentFrequency, mode, onFrequencyChange])
 
-  // Subscribe to FFT data when WebSocket connects or frequency changes
-  // This fixes the race condition where the component mounts before WebSocket is ready
+  // Subscribe to FFT data only when waterfall is enabled
   useEffect(() => {
-    if (wsConnected) {
+    if (wsConnected && waterfallEnabled) {
       subscribeFFT(currentFrequency)
+    } else {
+      unsubscribeFFT()
     }
     return () => {
       unsubscribeFFT()
     }
-  }, [wsConnected, currentFrequency, subscribeFFT, unsubscribeFFT])
+  }, [wsConnected, currentFrequency, waterfallEnabled, subscribeFFT, unsubscribeFFT])
 
   const tabs = [
     {
@@ -554,27 +555,46 @@ export function SatelliteTracking({
             </Tooltip>
           ))}
 
-          {mode === 'sstv-2m' && (
-            <div className="flex items-center gap-2 ml-auto pr-4">
-              <span className="text-xs text-text-muted">Freq:</span>
-              {SSTV_2M_FREQUENCIES.map((f, idx) => (
-                <Tooltip key={f.freq} content={f.tooltip} position="bottom">
-                  <button
-                    type="button"
-                    onClick={() => setSstvFreqIndex(idx)}
-                    className={cn(
-                      'px-2 py-1 text-xs font-mono rounded transition-colors',
-                      sstvFreqIndex === idx
-                        ? 'bg-purple text-white'
-                        : 'bg-bg-tertiary text-text-secondary hover:bg-bg-secondary'
-                    )}
-                  >
-                    {f.label}
-                  </button>
-                </Tooltip>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center gap-2 ml-auto pr-4">
+            {mode === 'sstv-2m' && (
+              <>
+                <span className="text-xs text-text-muted">Freq:</span>
+                {SSTV_2M_FREQUENCIES.map((f, idx) => (
+                  <Tooltip key={f.freq} content={f.tooltip} position="bottom">
+                    <button
+                      type="button"
+                      onClick={() => setSstvFreqIndex(idx)}
+                      className={cn(
+                        'px-2 py-1 text-xs font-mono rounded transition-colors',
+                        sstvFreqIndex === idx
+                          ? 'bg-purple text-white'
+                          : 'bg-bg-tertiary text-text-secondary hover:bg-bg-secondary'
+                      )}
+                    >
+                      {f.label}
+                    </button>
+                  </Tooltip>
+                ))}
+              </>
+            )}
+            <Tooltip
+              content={waterfallEnabled ? 'Disable waterfall (saves Pi CPU/bandwidth)' : 'Enable waterfall'}
+              position="bottom"
+            >
+              <button
+                type="button"
+                onClick={() => setWaterfallEnabled(!waterfallEnabled)}
+                className={cn(
+                  'px-2 py-1 text-xs rounded transition-colors',
+                  waterfallEnabled
+                    ? 'bg-accent text-white'
+                    : 'bg-bg-tertiary text-text-secondary hover:bg-bg-secondary'
+                )}
+              >
+                {waterfallEnabled ? 'Waterfall ON' : 'Waterfall OFF'}
+              </button>
+            </Tooltip>
+          </div>
         </nav>
       </div>
 
@@ -588,17 +608,30 @@ export function SatelliteTracking({
             </div>
             <div data-testid="waterfall-container" className="flex items-center justify-center">
               <div className="w-full max-w-[600px]">
-                <WaterfallView
-                  frequency={currentFrequency}
-                  frequencyName={currentPass?.satellite?.name}
-                  isActive={isCapturing}
-                  isScanning={false}
-                  fftRunning={fftRunning}
-                  fftError={fftError}
-                  latestFFTData={latestFFTData}
-                  progress={progress}
-                  currentPass={currentPass}
-                />
+                {waterfallEnabled ? (
+                  <WaterfallView
+                    frequency={currentFrequency}
+                    frequencyName={currentPass?.satellite?.name}
+                    isActive={isCapturing}
+                    isScanning={false}
+                    fftRunning={fftRunning}
+                    fftError={fftError}
+                    latestFFTData={latestFFTData}
+                    progress={progress}
+                    currentPass={currentPass}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center bg-bg-secondary rounded border border-border text-text-muted text-sm gap-2" style={{ height: 300 }}>
+                    <span>Waterfall disabled</span>
+                    <button
+                      type="button"
+                      onClick={() => setWaterfallEnabled(true)}
+                      className="px-3 py-1 text-xs bg-bg-tertiary hover:bg-border rounded transition-colors"
+                    >
+                      Enable
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

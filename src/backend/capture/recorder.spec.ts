@@ -10,7 +10,7 @@ vi.mock('node:child_process', () => {
     const proc = Object.assign(emitter, {
       stdout: Object.assign(new EventEmitter(), { pipe: vi.fn() }),
       stderr: new EventEmitter(),
-      stdin: isRtl ? null : { pipe: vi.fn() },
+      stdin: isRtl ? null : Object.assign(new EventEmitter(), { pipe: vi.fn() }),
       killed: false,
       exitCode: null as number | null,
       kill: vi.fn(),

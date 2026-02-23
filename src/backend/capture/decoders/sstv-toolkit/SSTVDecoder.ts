@@ -93,7 +93,7 @@ export class SSTVDecoder {
     })
   }
 
-  detectMode(samples: Float32Array): SSTVMode {
+  detectMode(samples: Float32Array): SSTVMode | null {
     const step = Math.floor(this.sampleRate * 0.0005)
     const searchLimit = Math.min(samples.length, this.sampleRate * 60)
 
@@ -189,11 +189,7 @@ export class SSTVDecoder {
       }
     }
 
-    const timingMode = this.detectModeByTiming(samples)
-    if (timingMode) return timingMode
-
-    this.visFreqShift = 0
-    return SSTV_MODES.ROBOT36 as SSTVMode
+    return this.detectModeByTiming(samples)
   }
 
   private detectModeByTiming(samples: Float32Array): SSTVMode | null {

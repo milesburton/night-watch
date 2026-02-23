@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, unlink } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import type { CaptureHistoryEntry, CaptureResult, SatellitePass, SignalType } from '@backend/types'
 import Database from 'better-sqlite3'
@@ -177,36 +177,53 @@ export class CaptureDatabase {
     }))
   }
 
-  cleanupOldCaptures(retainDays = 30, failedRetainDays = 7): { deleted: number } {
+  cleanupOldCaptures(retainDays = 30, failedRetainDays = 7): { deleted: number; recordingPaths: string[] } {
     const goodCutoff = new Date()
     goodCutoff.setDate(goodCutoff.getDate() - retainDays)
 
     const failedCutoff = new Date()
     failedCutoff.setDate(failedCutoff.getDate() - failedRetainDays)
 
+    const goodPaths = this.db
+      .prepare(
+        `SELECT recording_path FROM captures
+         WHERE success = 1
+           AND id IN (SELECT capture_id FROM images)
+           AND created_at < ?
+           AND recording_path IS NOT NULL AND recording_path != ''`
+      )
+      .all(goodCutoff.toISOString()) as { recording_path: string }[]
+
+    const failedPaths = this.db
+      .prepare(
+        `SELECT recording_path FROM captures
+         WHERE (success = 0 OR id NOT IN (SELECT capture_id FROM images))
+           AND created_at < ?
+           AND recording_path IS NOT NULL AND recording_path != ''`
+      )
+      .all(failedCutoff.toISOString()) as { recording_path: string }[]
+
+    const recordingPaths = [...goodPaths, ...failedPaths].map((r) => r.recording_path)
+
     const goodResult = this.db
       .prepare(
-        `
-        DELETE FROM captures
-        WHERE success = 1
-          AND id IN (SELECT capture_id FROM images)
-          AND created_at < ?
-      `
+        `DELETE FROM captures
+         WHERE success = 1
+           AND id IN (SELECT capture_id FROM images)
+           AND created_at < ?`
       )
       .run(goodCutoff.toISOString())
 
     const failedResult = this.db
       .prepare(
-        `
-        DELETE FROM captures
-        WHERE (success = 0 OR id NOT IN (SELECT capture_id FROM images))
-          AND created_at < ?
-      `
+        `DELETE FROM captures
+         WHERE (success = 0 OR id NOT IN (SELECT capture_id FROM images))
+           AND created_at < ?`
       )
       .run(failedCutoff.toISOString())
 
     const deleted = Number(goodResult.changes) + Number(failedResult.changes)
-    return { deleted }
+    return { deleted, recordingPaths }
   }
 
   getCaptureSummary(): { total: number; successful: number; failed: number } {
@@ -254,9 +271,14 @@ export async function initializeDatabase(dbPath: string): Promise<CaptureDatabas
 
   databaseInstance = new CaptureDatabase(dbPath)
 
-  const { deleted } = databaseInstance.cleanupOldCaptures(30, 7)
+  const { deleted, recordingPaths } = databaseInstance.cleanupOldCaptures(30, 7)
   if (deleted > 0) {
     console.info(`[db] Pruned ${deleted} old capture record(s)`)
+    for (const filePath of recordingPaths) {
+      unlink(filePath).catch(() => {
+        // File already gone or inaccessible — ignore
+      })
+    }
   }
 
   return databaseInstance

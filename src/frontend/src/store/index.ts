@@ -9,6 +9,7 @@ interface UIState {
   diagnosticsTab: DiagnosticsTab
   diagnosticsPanelHeight: number
   waterfallMode: WaterfallMode
+  waterfallEnabled: boolean
   selectedFrequency: number | null
 
   setDiagnosticsOpen: (open: boolean) => void
@@ -16,6 +17,7 @@ interface UIState {
   setDiagnosticsTab: (tab: DiagnosticsTab) => void
   setDiagnosticsPanelHeight: (height: number) => void
   setWaterfallMode: (mode: WaterfallMode) => void
+  setWaterfallEnabled: (enabled: boolean) => void
   setSelectedFrequency: (freq: number | null) => void
 }
 
@@ -26,6 +28,7 @@ export const useUIStore = create<UIState>()(
       diagnosticsTab: 'console',
       diagnosticsPanelHeight: 300,
       waterfallMode: 'satellite',
+      waterfallEnabled: false,
       selectedFrequency: null,
 
       setDiagnosticsOpen: (open) => set({ diagnosticsOpen: open }),
@@ -33,6 +36,7 @@ export const useUIStore = create<UIState>()(
       setDiagnosticsTab: (tab) => set({ diagnosticsTab: tab }),
       setDiagnosticsPanelHeight: (height) => set({ diagnosticsPanelHeight: height }),
       setWaterfallMode: (mode) => set({ waterfallMode: mode }),
+      setWaterfallEnabled: (enabled) => set({ waterfallEnabled: enabled }),
       setSelectedFrequency: (freq) => set({ selectedFrequency: freq }),
     }),
     {
@@ -42,6 +46,7 @@ export const useUIStore = create<UIState>()(
         diagnosticsTab: state.diagnosticsTab,
         diagnosticsPanelHeight: state.diagnosticsPanelHeight,
         waterfallMode: state.waterfallMode,
+        waterfallEnabled: state.waterfallEnabled,
       }),
     }
   )

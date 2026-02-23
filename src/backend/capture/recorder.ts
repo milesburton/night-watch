@@ -151,7 +151,15 @@ export async function startRecording(
     )
   }
 
-  soxProcess.stdin && rtlProcess.stdout?.pipe(soxProcess.stdin)
+  if (soxProcess.stdin && rtlProcess.stdout) {
+    rtlProcess.stdout.pipe(soxProcess.stdin)
+    rtlProcess.stdout.on('error', (err: NodeJS.ErrnoException) => {
+      if (err.code !== 'EPIPE') logger.error(`rtl stdout error: ${err.message}`)
+    })
+    soxProcess.stdin.on('error', (err: NodeJS.ErrnoException) => {
+      if (err.code !== 'EPIPE') logger.error(`sox stdin error: ${err.message}`)
+    })
+  }
 
   rtlProcess.stderr?.on('data', (data: Buffer) => {
     const msg = data.toString().trim()
