@@ -177,7 +177,10 @@ export class CaptureDatabase {
     }))
   }
 
-  cleanupOldCaptures(retainDays = 30, failedRetainDays = 7): { deleted: number; recordingPaths: string[] } {
+  cleanupOldCaptures(
+    retainDays = 30,
+    failedRetainDays = 7
+  ): { deleted: number; recordingPaths: string[] } {
     const goodCutoff = new Date()
     goodCutoff.setDate(goodCutoff.getDate() - retainDays)
 

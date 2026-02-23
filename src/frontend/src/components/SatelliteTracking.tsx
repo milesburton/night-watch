@@ -479,7 +479,14 @@ export function SatelliteTracking({
   progress,
 }: SatelliteTrackingProps) {
   // Use persisted store for tab state
-  const { waterfallMode: mode, setWaterfallMode: setMode, waterfallEnabled, setWaterfallEnabled } = useUIStore()
+  const {
+    waterfallMode: mode,
+    setWaterfallMode: setMode,
+    waterfallEnabled,
+    collapsedSections,
+    toggleSection,
+  } = useUIStore()
+  const waterfallCollapsed = collapsedSections.waterfall
   const [sstvFreqIndex, setSstvFreqIndex] = useState(0)
 
   const isCapturing = !!currentPass || systemStatus === 'capturing'
@@ -555,7 +562,7 @@ export function SatelliteTracking({
             </Tooltip>
           ))}
 
-          <div className="flex items-center gap-2 ml-auto pr-4">
+          <div className="flex items-center gap-2 ml-auto pr-2">
             {mode === 'sstv-2m' && (
               <>
                 <span className="text-xs text-text-muted">Freq:</span>
@@ -578,79 +585,89 @@ export function SatelliteTracking({
               </>
             )}
             <Tooltip
-              content={waterfallEnabled ? 'Disable waterfall (saves Pi CPU/bandwidth)' : 'Enable waterfall'}
+              content={
+                waterfallCollapsed ? 'Show waterfall' : 'Hide waterfall (saves Pi CPU/bandwidth)'
+              }
               position="bottom"
             >
               <button
                 type="button"
-                onClick={() => setWaterfallEnabled(!waterfallEnabled)}
-                className={cn(
-                  'px-2 py-1 text-xs rounded transition-colors',
-                  waterfallEnabled
-                    ? 'bg-accent text-white'
-                    : 'bg-bg-tertiary text-text-secondary hover:bg-bg-secondary'
-                )}
+                onClick={() => toggleSection('waterfall')}
+                className="p-1.5 rounded text-text-secondary hover:text-text-primary hover:bg-bg-tertiary transition-colors"
+                aria-label={waterfallCollapsed ? 'Expand waterfall' : 'Collapse waterfall'}
+                aria-expanded={!waterfallCollapsed}
               >
-                {waterfallEnabled ? 'Waterfall ON' : 'Waterfall OFF'}
+                <svg
+                  className={cn('w-4 h-4 transition-transform', waterfallCollapsed && '-rotate-90')}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
               </button>
             </Tooltip>
           </div>
         </nav>
       </div>
 
-      <div className="p-2">
-        {mode === 'satellite' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="flex justify-center items-center">
-              <div className="aspect-square w-full max-w-[500px]">
-                <SkyView globeState={globeState} />
+      {!waterfallCollapsed && (
+        <div className="p-2">
+          {mode === 'satellite' ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="flex justify-center items-center">
+                <div className="aspect-square w-full max-w-[500px]">
+                  <SkyView globeState={globeState} />
+                </div>
               </div>
-            </div>
-            <div data-testid="waterfall-container" className="flex items-center justify-center">
-              <div className="w-full max-w-[600px]">
-                {waterfallEnabled ? (
-                  <WaterfallView
-                    frequency={currentFrequency}
-                    frequencyName={currentPass?.satellite?.name}
-                    isActive={isCapturing}
-                    isScanning={false}
-                    fftRunning={fftRunning}
-                    fftError={fftError}
-                    latestFFTData={latestFFTData}
-                    progress={progress}
-                    currentPass={currentPass}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center bg-bg-secondary rounded border border-border text-text-muted text-sm gap-2" style={{ height: 300 }}>
-                    <span>Waterfall disabled</span>
-                    <button
-                      type="button"
-                      onClick={() => setWaterfallEnabled(true)}
-                      className="px-3 py-1 text-xs bg-bg-tertiary hover:bg-border rounded transition-colors"
+              <div data-testid="waterfall-container" className="flex items-center justify-center">
+                <div className="w-full max-w-[600px]">
+                  {waterfallEnabled ? (
+                    <WaterfallView
+                      frequency={currentFrequency}
+                      frequencyName={currentPass?.satellite?.name}
+                      isActive={isCapturing}
+                      isScanning={false}
+                      fftRunning={fftRunning}
+                      fftError={fftError}
+                      latestFFTData={latestFFTData}
+                      progress={progress}
+                      currentPass={currentPass}
+                    />
+                  ) : (
+                    <div
+                      className="flex items-center justify-center bg-bg-secondary rounded border border-border text-text-muted text-sm"
+                      style={{ height: 300 }}
                     >
-                      Enable
-                    </button>
-                  </div>
-                )}
+                      <span>Waterfall loading…</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="w-full">
-            <SpectrumWaterfall
-              frequency={currentFrequency}
-              frequencyName={
-                isScanning ? scanningFrequencyName : SSTV_2M_FREQUENCIES[sstvFreqIndex]?.label
-              }
-              isScanning={isScanning}
-              isActive={isCapturing}
-              fftRunning={fftRunning}
-              latestFFTData={latestFFTData}
-              progress={progress}
-            />
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="w-full">
+              <SpectrumWaterfall
+                frequency={currentFrequency}
+                frequencyName={
+                  isScanning ? scanningFrequencyName : SSTV_2M_FREQUENCIES[sstvFreqIndex]?.label
+                }
+                isScanning={isScanning}
+                isActive={isCapturing}
+                fftRunning={fftRunning}
+                latestFFTData={latestFFTData}
+                progress={progress}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

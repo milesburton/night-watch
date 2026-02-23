@@ -18,6 +18,36 @@ import { useUIStore } from '@/store'
 import type { FFTData, VersionInfo } from '@/types'
 import { useCallback, useEffect, useState } from 'react'
 
+function SectionHeader({
+  title,
+  collapsed,
+  onToggle,
+}: {
+  title: string
+  collapsed: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-tertiary transition-colors rounded"
+      aria-expanded={!collapsed}
+    >
+      <span>{title}</span>
+      <svg
+        className={cn('w-4 h-4 transition-transform', collapsed && '-rotate-90')}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+  )
+}
+
 type WaterfallMode = 'satellite' | 'sstv-2m'
 
 export default function App() {
@@ -51,7 +81,13 @@ export default function App() {
   const [serverTime, setServerTime] = useState<string>('')
   const [, setTick] = useState(0)
 
-  const { diagnosticsOpen, toggleDiagnostics, setDiagnosticsOpen } = useUIStore()
+  const {
+    diagnosticsOpen,
+    toggleDiagnostics,
+    setDiagnosticsOpen,
+    collapsedSections,
+    toggleSection,
+  } = useUIStore()
 
   useFavicon(systemState?.status || 'idle')
   usePageTitle(
@@ -395,8 +431,22 @@ export default function App() {
           )}
         </div>
 
-        <CaptureGallery />
-        <ServerStats />
+        <div>
+          <SectionHeader
+            title="Capture Gallery"
+            collapsed={collapsedSections.gallery}
+            onToggle={() => toggleSection('gallery')}
+          />
+          {!collapsedSections.gallery && <CaptureGallery />}
+        </div>
+        <div>
+          <SectionHeader
+            title="Server Stats"
+            collapsed={collapsedSections.server}
+            onToggle={() => toggleSection('server')}
+          />
+          {!collapsedSections.server && <ServerStats />}
+        </div>
       </main>
 
       <DiagnosticsPanel
