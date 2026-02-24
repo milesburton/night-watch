@@ -6,6 +6,7 @@ import { logger } from '../utils/logger'
 import { sleep } from '../utils/node-compat'
 import { decodeRecording } from './decoders'
 import {
+  getFFTStreamConfig,
   getLatestFFTData,
   getPeakPowerInBand,
   isFFTStreamRunning,
@@ -108,6 +109,25 @@ export async function scanForSstv(
         // Broadcast current scanning frequency — the server will tune the FFT stream
         stateManager.setScanningFrequency(freq.frequency, freq.name)
         logger.info(`Scanning ${freq.name} (${(freq.frequency / 1e6).toFixed(3)} MHz)`)
+
+        // Ensure FFT stream is running at the correct frequency.
+        // A browser connection/disconnection can stop or retune the stream.
+        const currentConfig = getFFTStreamConfig()
+        const needsRestart = !isFFTStreamRunning() || currentConfig?.frequency !== freq.frequency
+        if (needsRestart) {
+          logger.info(`Starting FFT stream for SSTV scan: ${freq.frequency / 1e6} MHz`)
+          await startFFTStream(
+            {
+              frequency: freq.frequency,
+              bandwidth: 200_000,
+              fftSize: 2_048,
+              gain: config.sdr.gain,
+              updateRate: 30,
+            },
+            () => {}
+          )
+          await sleep(2000)
+        }
 
         // Dwell and check FFT power for signal detection
         // Use band-specific power (±5kHz around center) instead of full 250kHz maxPower
