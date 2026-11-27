@@ -23,7 +23,7 @@ const envSchema = z.object({
   SKIP_SIGNAL_CHECK: z
     .string()
     .transform((v) => v === 'true')
-    .default('false'),
+    .prefault('false'),
   RECORDINGS_DIR: z.string().default('./recordings'),
   IMAGES_DIR: z.string().default('./images'),
   TLE_UPDATE_INTERVAL_HOURS: z.coerce.number().default(24),
@@ -34,14 +34,14 @@ const envSchema = z.object({
   ISS_SSTV_ENABLED: z
     .string()
     .transform((v) => v === 'true')
-    .default('true'),
+    .prefault('true'),
 })
 
 function parseEnv(): z.infer<typeof envSchema> {
   const result = envSchema.safeParse(process.env)
 
   if (!result.success) {
-    const errors = result.error.errors.map((e) => `  ${e.path.join('.')}: ${e.message}`).join('\n')
+    const errors = result.error.issues.map((e) => `  ${e.path.join('.')}: ${e.message}`).join('\n')
     throw new Error(`Environment validation failed:\n${errors}`)
   }
 

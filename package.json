@@ -44,12 +44,12 @@
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.19.11",
     "@types/ws": "^8.5.13",
-    "@vitest/coverage-istanbul": "^4.1.11",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-istanbul": "^4.1.12",
+    "@vitest/coverage-v8": "^4.1.12",
     "husky": "^9.1.7",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "engines": {
     "node": ">=22.0.0"
